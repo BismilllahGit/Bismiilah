@@ -105,7 +105,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <Button
           variant="outline"
           size="icon"
-          className="absolute -right-4 top-20 z-10 h-8 w-8 rounded-full bg-white shadow-sm"
+          className="absolute -right-4 top-20 z-10 h-8 w-8 rounded-full bg-white shadow-sm cursor-pointer"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? (
