@@ -1,0 +1,193 @@
+{
+  "workers": [
+    {
+      "id": "dd68e337-47c3-4683-a9d8-172c549ea938",
+      "name": "Worker 1",
+      "type": "LABOURER",
+      "phone": "9876500000",
+      "dailyRate": "500",
+      "isActive": true,
+      "createdAt": "2026-07-15T08:42:46.735Z",
+      "updatedAt": "2026-07-15T08:42:46.735Z"
+    },
+    {
+      "id": "96b2d0a1-782f-4234-b362-cddaef54105f",
+      "name": "Worker 2",
+      "type": "ELECTRICIAN",
+      "phone": "9876500001",
+      "dailyRate": "600",
+      "isActive": true,
+      "createdAt": "2026-07-15T08:42:46.738Z",
+      "updatedAt": "2026-07-15T08:42:46.738Z"
+    },
+    {
+      "id": "ff306dd5-2331-41c3-982f-fc7983a1687d",
+      "name": "Worker 3",
+      "type": "MASON",
+      "phone": "9876500002",
+      "dailyRate": "700",
+      "isActive": true,
+      "createdAt": "2026-07-15T08:42:46.739Z",
+      "updatedAt": "2026-07-15T08:42:46.739Z"
+    },
+    {
+      "id": "27155b7b-4b94-49f5-b882-f0ba9fcdcc25",
+      "name": "Worker 4",
+      "type": "PLUMBER",
+      "phone": "9876500003",
+      "dailyRate": "800",
+      "isActive": true,
+      "createdAt": "2026-07-15T08:42:46.741Z",
+      "updatedAt": "2026-07-15T08:42:46.741Z"
+    },
+    {
+      "id": "fa2141da-b627-4a99-8006-91eac01975c3",
+      "name": "Worker 5",
+      "type": "MASTHIRI",
+      "phone": "9876500004",
+      "dailyRate": "900",
+      "isActive": true,
+      "createdAt": "2026-07-15T08:42:46.743Z",
+      "updatedAt": "2026-07-15T08:42:46.743Z"
+    }
+  ],
+  "attendance": [
+    {
+      "id": "ad9e1b55-1bfc-48e3-a901-a11c9f0d0f52",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "dd68e337-47c3-4683-a9d8-172c549ea938",
+      "date": "2026-07-15T00:00:00.000Z",
+      "status": "PRESENT",
+      "createdAt": "2026-07-15T08:42:46.767Z",
+      "updatedAt": "2026-07-15T08:42:46.767Z"
+    },
+    {
+      "id": "347d9926-63de-4b74-8522-1b2cdf6cfd58",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "96b2d0a1-782f-4234-b362-cddaef54105f",
+      "date": "2026-07-15T00:00:00.000Z",
+      "status": "HALF_DAY",
+      "createdAt": "2026-07-15T08:42:46.770Z",
+      "updatedAt": "2026-07-15T08:42:46.770Z"
+    },
+    {
+      "id": "01145759-c792-425c-8983-418d2218abe4",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "ff306dd5-2331-41c3-982f-fc7983a1687d",
+      "date": "2026-07-15T00:00:00.000Z",
+      "status": "PRESENT",
+      "createdAt": "2026-07-15T08:42:46.772Z",
+      "updatedAt": "2026-07-15T08:42:46.772Z"
+    },
+    {
+      "id": "6f08faa6-5eb5-4ffc-9dac-fe04a138bde1",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "27155b7b-4b94-49f5-b882-f0ba9fcdcc25",
+      "date": "2026-07-15T00:00:00.000Z",
+      "status": "HALF_DAY",
+      "createdAt": "2026-07-15T08:42:46.773Z",
+      "updatedAt": "2026-07-15T08:42:46.773Z"
+    },
+    {
+      "id": "852be1fc-c289-4cc0-a00b-1055c53ea400",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "fa2141da-b627-4a99-8006-91eac01975c3",
+      "date": "2026-07-15T00:00:00.000Z",
+      "status": "PRESENT",
+      "createdAt": "2026-07-15T08:42:46.775Z",
+      "updatedAt": "2026-07-15T08:42:46.775Z"
+    },
+    {
+      "id": "a8784b48-9401-49be-bf8d-6d5cf5dc0e80",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "dd68e337-47c3-4683-a9d8-172c549ea938",
+      "date": "2026-07-16T00:00:00.000Z",
+      "status": "HALF_DAY",
+      "createdAt": "2026-07-16T04:36:12.765Z",
+      "updatedAt": "2026-07-16T04:36:12.765Z"
+    },
+    {
+      "id": "3d591510-e98d-461a-a28d-4d934e14cc09",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "96b2d0a1-782f-4234-b362-cddaef54105f",
+      "date": "2026-07-16T00:00:00.000Z",
+      "status": "PRESENT",
+      "createdAt": "2026-07-16T04:36:12.765Z",
+      "updatedAt": "2026-07-16T04:36:12.765Z"
+    },
+    {
+      "id": "a66fe24e-b79f-401e-a30c-433d36f554a7",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "ff306dd5-2331-41c3-982f-fc7983a1687d",
+      "date": "2026-07-16T00:00:00.000Z",
+      "status": "PRESENT",
+      "createdAt": "2026-07-16T04:36:12.765Z",
+      "updatedAt": "2026-07-16T04:36:12.765Z"
+    },
+    {
+      "id": "8f03145e-f70f-4fed-af06-5d3a7459ef7a",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "27155b7b-4b94-49f5-b882-f0ba9fcdcc25",
+      "date": "2026-07-16T00:00:00.000Z",
+      "status": "PRESENT",
+      "createdAt": "2026-07-16T04:36:12.765Z",
+      "updatedAt": "2026-07-16T04:36:12.765Z"
+    },
+    {
+      "id": "5367bb06-11a4-4c91-b3c5-e718e0a509ba",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "fa2141da-b627-4a99-8006-91eac01975c3",
+      "date": "2026-07-16T00:00:00.000Z",
+      "status": "PRESENT",
+      "createdAt": "2026-07-16T04:36:12.765Z",
+      "updatedAt": "2026-07-16T04:36:12.765Z"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "bbdda3e0-1457-49db-a49a-e224495956a6",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "dd68e337-47c3-4683-a9d8-172c549ea938",
+      "assignedDate": "2023-01-05T00:00:00.000Z",
+      "releasedDate": null,
+      "createdAt": "2026-07-15T08:42:46.755Z",
+      "updatedAt": "2026-07-15T08:42:46.755Z"
+    },
+    {
+      "id": "deb67e5d-78b6-49bb-9d9e-eedc2ace6165",
+      "projectId": "09bbaf71-5ae0-4631-b5df-deb6825f7cf9",
+      "workerId": "96b2d0a1-782f-4234-b362-cddaef54105f",
+      "assignedDate": "2023-02-05T00:00:00.000Z",
+      "releasedDate": null,
+      "createdAt": "2026-07-15T08:42:46.759Z",
+      "updatedAt": "2026-07-15T08:42:46.759Z"
+    },
+    {
+      "id": "8f0bfafd-a109-4fda-ab6e-ec8158af4292",
+      "projectId": "2e10863a-0b4d-45d4-a017-6bbc6b919797",
+      "workerId": "ff306dd5-2331-41c3-982f-fc7983a1687d",
+      "assignedDate": "2023-03-05T00:00:00.000Z",
+      "releasedDate": null,
+      "createdAt": "2026-07-15T08:42:46.760Z",
+      "updatedAt": "2026-07-15T08:42:46.760Z"
+    },
+    {
+      "id": "d6fa4d3d-9501-4424-aacf-df282d863384",
+      "projectId": "5a69847c-4ef6-460f-8c88-2d5e3246fd08",
+      "workerId": "27155b7b-4b94-49f5-b882-f0ba9fcdcc25",
+      "assignedDate": "2023-01-05T00:00:00.000Z",
+      "releasedDate": null,
+      "createdAt": "2026-07-15T08:42:46.762Z",
+      "updatedAt": "2026-07-15T08:42:46.762Z"
+    },
+    {
+      "id": "15de6628-6026-4d9c-9c7b-d42bc656684e",
+      "projectId": "09bbaf71-5ae0-4631-b5df-deb6825f7cf9",
+      "workerId": "fa2141da-b627-4a99-8006-91eac01975c3",
+      "assignedDate": "2023-02-05T00:00:00.000Z",
+      "releasedDate": null,
+      "createdAt": "2026-07-15T08:42:46.764Z",
+      "updatedAt": "2026-07-15T08:42:46.764Z"
+    }
+  ]
+}

@@ -1,0 +1,623 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(ADMIN)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  VIEWER
+}
+
+model Project {
+  id                   String                @id @default(uuid())
+  name                 String                @db.VarChar(255)
+  location             String                @db.VarChar(255)
+  status               ProjectStatus         @default(ACTIVE)
+  startDate            DateTime              @map("start_date") @db.Date
+  endDate              DateTime?             @map("end_date") @db.Date
+  agreedValue          Decimal               @map("agreed_value") @db.Decimal(12, 2)
+  notes                String?               @db.Text
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  
+  projectInventories   ProjectInventory[]
+  inventoryTransactions InventoryTransaction[]
+  siteExpenses         SiteExpense[]
+  extraWork            ExtraWork[]
+  siteActivities       SiteActivity[]
+  invoices             Invoice[]
+  vendorTransactions   VendorTransaction[]
+  dailyLabourEntries   DailyLabourEntry[]
+  closureReport        ClosureReport?
+  boqs                 BOQ[]
+  projectTasks         ProjectTask[]
+
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  CLOSED
+}
+
+model ProjectTask {
+  id          String     @id @default(uuid())
+  projectId   String     @map("project_id")
+  title       String     @db.VarChar(255)
+  description String?    @db.Text
+  targetDate  DateTime   @map("target_date") @db.Date
+  status      TaskStatus @default(PENDING)
+  completedAt DateTime?  @map("completed_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@index([projectId, targetDate])
+  @@index([targetDate, status])
+  @@map("project_tasks")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum PaymentCycle {
+  DAILY
+  WEEKLY
+}
+
+model WorkerType {
+  id            String       @id @default(uuid())
+  name          String       @unique @db.VarChar(100)
+  defaultRate   Decimal      @default(0) @map("default_rate") @db.Decimal(10, 2)
+  paymentCycle  PaymentCycle @default(WEEKLY) @map("payment_cycle")
+  isCustom      Boolean      @default(false) @map("is_custom")
+  isActive      Boolean      @default(true) @map("is_active")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  dailyLabourEntries DailyLabourEntry[]
+  boqLineItems       BOQLineItem[]
+
+  @@map("worker_types")
+}
+
+model DailyLabourEntry {
+  id            String     @id @default(uuid())
+  voucherNumber String     @unique @map("voucher_number") @db.VarChar(20)
+  projectId     String     @map("project_id")
+  workerTypeId    String     @map("worker_type_id")
+  date          DateTime   @db.Date
+  headcount     Int
+  wageRate        Decimal    @map("wage_rate") @db.Decimal(10, 2)
+  contractorId    String?    @map("contractor_id")
+  paidImmediately Boolean    @default(false) @map("paid_immediately")
+  title           String?    @db.VarChar(255)
+  note            String?    @db.Text
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  project    Project    @relation(fields: [projectId], references: [id])
+  contractor Contact?   @relation(fields: [contractorId], references: [id])
+  workerType WorkerType @relation(fields: [workerTypeId], references: [id])
+
+  @@index([projectId, date])
+  @@index([workerTypeId, date])
+  @@index([contractorId])
+  @@index([date])
+  @@index([contractorId, date, createdAt])
+  @@map("daily_labour_entries")
+}
+
+model Item {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(255)
+  type      ItemType
+  grade     ItemGrade?
+  unit      String   @db.VarChar(50) // kg, bag, piece, litre
+  unitCost  Decimal  @map("unit_cost") @db.Decimal(10, 2)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projectInventories   ProjectInventory[]
+  inventoryTransactions InventoryTransaction[]
+  boqLineItems         BOQLineItem[]
+
+  @@map("items")
+}
+
+enum ItemType {
+  MATERIAL
+  TOOL
+  PAINT
+  CEMENT
+}
+
+enum ItemGrade {
+  GRADE_A
+  GRADE_B
+  GRADE_C
+}
+
+model ProjectInventory {
+  id          String  @id @default(uuid())
+  projectId   String  @map("project_id")
+  itemId      String  @map("item_id")
+  qtyBought   Decimal @default(0) @map("qty_bought") @db.Decimal(10, 2)
+  qtyIssued   Decimal @default(0) @map("qty_issued") @db.Decimal(10, 2)
+  qtyReturned Decimal @default(0) @map("qty_returned") @db.Decimal(10, 2)
+  qtyTransferredIn  Decimal @default(0) @map("qty_transferred_in") @db.Decimal(10, 2)
+  qtyTransferredOut Decimal @default(0) @map("qty_transferred_out") @db.Decimal(10, 2)
+
+  project Project @relation(fields: [projectId], references: [id])
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@unique([projectId, itemId])
+  @@map("project_inventory")
+}
+
+model InventoryTransaction {
+  id        String          @id @default(uuid())
+  projectId String          @map("project_id")
+  itemId    String          @map("item_id")
+  voucherNumber String     @unique @map("voucher_number") @db.VarChar(20)
+  transferGroupId String?  @map("transfer_group_id") @db.VarChar(40)
+  type      TransactionType
+  quantity  Decimal         @db.Decimal(10, 2)
+  unitCost  Decimal         @map("unit_cost") @db.Decimal(10, 2)
+  date      DateTime        @db.Date
+  note      String?         @db.Text
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@index([projectId, date])
+  @@index([projectId, itemId, date, createdAt])
+  @@index([transferGroupId])
+  @@map("inventory_transactions")
+}
+
+enum TransactionType {
+  BUY
+  ISSUE
+  RETURN
+  ADJUST
+  TRANSFER_OUT
+  TRANSFER_IN
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(255)
+  phone     String?  @db.VarChar(20)
+  address   String?  @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  invoices       Invoice[]
+  clientPayments ClientPayment[]
+
+  @@index([name])
+  @@map("clients")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  projectId     String        @map("project_id")
+  clientId      String        @map("client_id")
+  invoiceNumber String        @unique @map("invoice_number") @db.VarChar(50)
+  amount        Decimal       @db.Decimal(12, 2)
+  status        InvoiceStatus
+  issuedDate    DateTime      @map("issued_date") @db.Date
+  dueDate       DateTime      @map("due_date") @db.Date
+  notes         String?       @db.Text
+  pdfUrl        String?       @map("pdf_url") @db.Text
+  voidReason    String?       @map("void_reason") @db.Text
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  project        Project         @relation(fields: [projectId], references: [id])
+  client         Client          @relation(fields: [clientId], references: [id])
+  clientPayments ClientPayment[]
+  paymentAllocations PaymentAllocation[]
+  lineItems      InvoiceLineItem[]
+
+  @@index([clientId, status])
+  @@index([clientId, issuedDate, createdAt])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  VOID
+}
+
+model InvoiceLineItem {
+  id          String   @id @default(uuid())
+  invoiceId   String   @map("invoice_id")
+  description String   @db.VarChar(255)
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
+  total       Decimal  @db.Decimal(12, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  @@map("invoice_line_items")
+}
+
+model ClientPayment {
+  id          String   @id @default(uuid())
+  invoiceId   String?  @map("invoice_id")
+  clientId    String   @map("client_id")
+  voucherNumber String @unique @map("voucher_number") @db.VarChar(20)
+  amount      Decimal  @db.Decimal(12, 2)
+  paymentDate DateTime @map("payment_date") @db.Date
+  method      String   @db.VarChar(50)
+  note        String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+  client  Client  @relation(fields: [clientId], references: [id])
+  allocations PaymentAllocation[]
+
+  @@index([clientId, paymentDate, createdAt])
+  @@map("client_payments")
+}
+
+model PaymentAllocation {
+  id              String   @id @default(uuid())
+  clientPaymentId String   @map("client_payment_id")
+  invoiceId       String   @map("invoice_id")
+  allocatedAmount Decimal  @map("allocated_amount") @db.Decimal(12, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  clientPayment ClientPayment @relation(fields: [clientPaymentId], references: [id])
+  invoice       Invoice       @relation(fields: [invoiceId], references: [id])
+
+  @@map("payment_allocations")
+}
+
+model Contact {
+  id        String      @id @default(uuid())
+  name      String      @db.VarChar(255)
+  type      ContactType
+  phone     String?     @db.VarChar(20)
+  specialty String?     @db.VarChar(255)
+  address   String?     @db.Text
+  isActive  Boolean     @default(true) @map("is_active")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  vendorTransactions VendorTransaction[]
+  labourPayments     LabourPayment[]
+  dailyLabourEntries DailyLabourEntry[]
+
+  @@index([name])
+  @@map("contacts")
+}
+
+enum ContactType {
+  VENDOR
+  SHOP
+  ELECTRICIAN
+  LABOUR_CONTRACTOR
+}
+
+model VendorTransaction {
+  id          String                @id @default(uuid())
+  contactId   String                @map("contact_id")
+  projectId   String?               @map("project_id")
+  voucherNumber String             @unique @map("voucher_number") @db.VarChar(20)
+  type        VendorTransactionType
+  amount      Decimal               @db.Decimal(12, 2)
+  date        DateTime              @db.Date
+  description String?               @db.Text
+  notified    Boolean               @default(false)
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  contact Contact  @relation(fields: [contactId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
+
+  @@index([contactId, date, createdAt])
+  @@map("vendor_transactions")
+}
+
+enum VendorTransactionType {
+  PURCHASE
+  PAYMENT
+}
+
+model LabourPayment {
+  id            String   @id @default(uuid())
+  voucherNumber String   @unique @map("voucher_number") @db.VarChar(20)
+  contactId     String   @map("contact_id")  // the labour contractor
+  amount        Decimal  @db.Decimal(12, 2)
+  paymentDate   DateTime @map("payment_date") @db.Date
+  method        String   @db.VarChar(50)
+  note          String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  contact Contact @relation(fields: [contactId], references: [id])
+
+  @@index([contactId, paymentDate, createdAt])
+  @@map("labour_payments")
+}
+
+model SiteExpense {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  voucherNumber String @unique @map("voucher_number") @db.VarChar(20)
+  category    String   @db.VarChar(100)
+  amount      Decimal  @db.Decimal(12, 2)
+  date        DateTime @db.Date
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("site_expenses")
+}
+
+model ExtraWork {
+  id          String          @id @default(uuid())
+  projectId   String          @map("project_id")
+  voucherNumber String       @unique @map("voucher_number") @db.VarChar(20)
+  date        DateTime        @db.Date
+  description String          @db.Text
+  amount      Decimal         @db.Decimal(12, 2)
+  status      ExtraWorkStatus @default(UNBILLED)
+  invoiceId   String?         @map("invoice_id")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@index([projectId, status])
+  @@map("extra_work")
+}
+
+enum ExtraWorkStatus {
+  UNBILLED
+  BILLED
+  COLLECTED
+}
+
+model SiteActivity {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  date        DateTime @db.Date
+  description String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("site_activities")
+}
+
+model ShareLog {
+  id           String   @id @default(uuid())
+  type         String   @db.VarChar(50)  // "CLIENT_RECEIPT", "VENDOR_PAYMENT", "LABOUR_PAYMENT", "INVOICE", "BOQ", etc.
+  referenceId  String   @map("reference_id")   // the invoice/BOQ/payment ID
+  referenceType String  @map("reference_type")
+  recipientPhone String @map("recipient_phone")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([referenceType, referenceId])
+  @@map("share_logs")
+}
+
+model ClosureReport {
+  id           String   @id @default(uuid())
+  projectId    String   @unique @map("project_id")
+  pdfUrl       String   @map("pdf_url") @db.Text
+  summaryJson  Json     @map("summary_json") // cached aggregated data
+  generatedAt  DateTime @default(now()) @map("generated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("closure_reports")
+}
+
+model VoucherSequence {
+  id      String @id // e.g. "VENDOR_PUR", "VENDOR_PAY", "CLIENT_PAY", "INV_TXN", "EXPENSE", "EXTRA_WORK"
+  nextVal Int    @default(1)
+
+  @@map("voucher_sequences")
+}
+
+model BOQ {
+  id            String    @id @default(uuid())
+  projectId     String    @map("project_id")
+  versionNumber Int       @map("version_number")
+  status        BOQStatus @default(DRAFT)
+  targetBudget  Decimal?  @map("target_budget") @db.Decimal(14, 2)
+  cgstRate      Decimal   @default(9.00) @map("cgst_rate") @db.Decimal(5, 2)
+  sgstRate      Decimal   @default(9.00) @map("sgst_rate") @db.Decimal(5, 2)
+  termsOverride String?   @map("terms_override") @db.Text
+  note          String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  approvedAt    DateTime? @map("approved_at")
+
+  project  Project      @relation(fields: [projectId], references: [id])
+  sections BOQSection[]
+  milestones BOQPaymentMilestone[]
+
+  @@index([projectId, versionNumber])
+  @@map("boqs")
+}
+
+enum BOQStatus {
+  DRAFT
+  ACTIVE
+  SUPERSEDED
+}
+
+model BOQGroup {
+  id        String   @id @default(uuid())
+  name      String   @unique @db.VarChar(100) // e.g. "Civil", "Others", "Electrical"
+  isCustom  Boolean  @default(false) @map("is_custom")
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sections         BOQSection[]
+  templateSections BOQTemplateSection[]
+
+  @@map("boq_groups")
+}
+
+model BOQSection {
+  id        String @id @default(uuid())
+  boqId     String @map("boq_id")
+  name      String @db.VarChar(255)
+  groupId   String @map("group_id")
+  sortOrder Int    @default(0) @map("sort_order")
+
+  boq        BOQ           @relation(fields: [boqId], references: [id])
+  group      BOQGroup      @relation(fields: [groupId], references: [id])
+  lineItems  BOQLineItem[]
+
+  @@index([boqId])
+  @@index([groupId])
+  @@map("boq_sections")
+}
+
+
+model BOQLineItem {
+  id               String         @id @default(uuid())
+  sectionId        String         @map("section_id")
+  itemNo           String?        @db.VarChar(20)
+  title            String         @default("Item") @db.VarChar(255)
+  make             String?        @db.VarChar(255)
+  description      String?        @db.Text
+  lineType         BOQLineType    @default(CALCULATED) @map("line_type")
+  quantity         Decimal?       @db.Decimal(12, 2)
+  unit             String?        @db.VarChar(50)
+  rate             Decimal?       @db.Decimal(10, 2)
+  amount           Decimal        @db.Decimal(14, 2)
+  executedQuantity Decimal        @default(0) @map("executed_quantity") @db.Decimal(12, 2)
+  executedAmount   Decimal        @default(0) @map("executed_amount") @db.Decimal(14, 2)
+  grade            ItemGrade?
+  itemId           String?        @map("item_id")
+  workerTypeId     String?        @map("worker_type_id")
+  sortOrder        Int            @default(0) @map("sort_order")
+
+  section    BOQSection  @relation(fields: [sectionId], references: [id])
+  item       Item?       @relation(fields: [itemId], references: [id])
+  workerType WorkerType? @relation(fields: [workerTypeId], references: [id])
+
+  @@index([sectionId])
+  @@map("boq_line_items")
+}
+
+enum BOQLineType {
+  CALCULATED
+  LUMP_SUM
+}
+
+model BusinessProfile {
+  id                String   @id @default(uuid())
+  companyName       String   @db.VarChar(255)
+  tagline           String?  @db.VarChar(255)
+  licenseDetails    String?  @db.Text
+  address           String?  @db.Text
+  phone             String?  @db.VarChar(50)
+  email             String?  @db.VarChar(255)
+  website           String?  @db.VarChar(255)
+  gstNumber         String?  @db.VarChar(50)
+  tanNumber         String?  @db.VarChar(50)
+  logoUrl           String?  @db.Text
+  bankAccountName   String?  @db.VarChar(255)
+  bankAccountNumber String?  @db.VarChar(50)
+  bankIfsc          String?  @db.VarChar(20)
+  bankName          String?  @db.VarChar(255)
+  bankBranch        String?  @db.VarChar(255)
+  bankAccountType   String?  @db.VarChar(50)
+  upiId             String?  @db.VarChar(100)
+  defaultTerms      String?  @db.Text
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("business_profile")
+}
+
+model BOQPaymentMilestone {
+  id         String    @id @default(uuid())
+  boqId      String    @map("boq_id")
+  sortOrder  Int       @default(0) @map("sort_order")
+  stageName  String    @db.Text
+  targetDate DateTime? @map("target_date") @db.Date
+  percentage Decimal   @db.Decimal(5, 2)
+  amount     Decimal   @db.Decimal(14, 2)
+
+  boq BOQ @relation(fields: [boqId], references: [id], onDelete: Cascade)
+
+  @@index([boqId])
+  @@map("boq_payment_milestones")
+}
+
+model BOQTemplate {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(255)
+  category  String   @db.VarChar(100) // "Residential", "Commercial"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sections BOQTemplateSection[]
+
+  @@map("boq_templates")
+}
+
+model BOQTemplateSection {
+  id         String @id @default(uuid())
+  templateId String @map("template_id")
+  name       String @db.VarChar(255)
+  groupId    String @map("group_id")
+  sortOrder  Int    @default(0) @map("sort_order")
+
+  template  BOQTemplate            @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  group     BOQGroup               @relation(fields: [groupId], references: [id])
+  lineItems BOQTemplateLineItem[]
+
+  @@map("boq_template_sections")
+}
+
+model BOQTemplateLineItem {
+  id        String @id @default(uuid())
+  sectionId String @map("section_id")
+  title     String @db.VarChar(255)
+  sortOrder Int    @default(0) @map("sort_order")
+
+  section BOQTemplateSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@map("boq_template_line_items")
+}
