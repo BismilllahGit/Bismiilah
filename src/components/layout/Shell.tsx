@@ -51,7 +51,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
             <SheetContent
               side="left"
-              className="w-[260px] p-0 flex flex-col bg-white"
+              className="w-65 p-0 flex flex-col bg-white"
             >
               <div className="flex h-14 items-center border-b px-6">
                 <Link
@@ -98,8 +98,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       <div
-        className={`hidden shrink-0 border-r bg-white md:block sticky top-0 h-screen transition-all duration-300 ease-in-out relative ${
-          isCollapsed ? "w-16" : "w-56 lg:w-58"
+        className={`hidden shrink-0 border-r bg-white md:block top-0 h-screen transition-all duration-300 ease-in-out relative ${
+          isCollapsed ? "w-16" : "w-56 lg:w-59"
         }`}
       >
         <Button
@@ -116,7 +116,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </Button>
 
         <div
-          className={`flex h-14 items-center border-b lg:h-[60px] transition-all duration-300 ${
+          className={`flex h-14 items-center border-b lg:h-15 transition-all duration-300 ${
             isCollapsed ? "justify-center px-0" : "justify-between px-4"
           }`}
         >
@@ -129,7 +129,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Building2 className="h-6 w-6 shrink-0" />
             {!isCollapsed && (
               <span className="truncate text-sm lg:text-base">
-                Bismillah Const.
+                Bismillah Construction
               </span>
             )}
           </Link>
