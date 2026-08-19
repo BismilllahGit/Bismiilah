@@ -175,7 +175,7 @@ export default async function ProjectsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-3">
-                <p className="text-sm text-muted-foreground line-clamp-2">
+                <p className="text-sm text-muted-foreground line-clamp-2 min-h-10">
                   {project.notes || "No description provided."}
                 </p>
 
