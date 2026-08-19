@@ -98,7 +98,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       <div
-        className={`hidden shrink-0 border-r bg-white md:block top-0 h-screen transition-all duration-300 ease-in-out relative ${
+        className={`hidden shrink-0 border-r bg-white md:block top-0 h-100vh transition-all duration-300 ease-in-out relative ${
           isCollapsed ? "w-16" : "w-56 lg:w-59"
         }`}
       >
