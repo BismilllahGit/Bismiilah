@@ -258,7 +258,7 @@ export default function InvoicesPage() {
               </SheetDescription>
             </SheetHeader>
             <form onSubmit={handleSaveInvoice} className="space-y-4 mt-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Client *</label>
                   <select
@@ -298,7 +298,7 @@ export default function InvoicesPage() {
                   type="date"
                   required
                   defaultValue={new Date().toISOString().split("T")[0]}
-                  className="flex h-9 w-fit rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
               </div>
 
@@ -961,7 +961,7 @@ export default function InvoicesPage() {
                     type="date"
                     required
                     defaultValue={new Date().toISOString().split("T")[0]}
-                    className="flex h-9 w-fit rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
                 <div className="space-y-2">
