@@ -163,7 +163,7 @@ export default function ItemsPage() {
                   <option value="GRADE_C">Grade C</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Unit *</label>
                   <input
