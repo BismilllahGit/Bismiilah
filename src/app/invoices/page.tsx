@@ -710,7 +710,7 @@ export default function InvoicesPage() {
 
       {/* Invoice Detail Sheet */}
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto p-4">
+        <SheetContent className="sm:max-w-xl overflow-y-auto p-4 lg:min-w-2xl">
           {selectedInvoice && (
             <>
               <SheetHeader className="p-0">
@@ -738,7 +738,7 @@ export default function InvoicesPage() {
                       {new Date(selectedInvoice.dueDate).toLocaleDateString()}
                     </span>
                   </div>
-                  <div>
+                  <div className="flex flex-row w-full gap-x-1 items-center">
                     <span className="text-muted-foreground">Status:</span>
                     <br />
                     <Badge variant="outline">{selectedInvoice.status}</Badge>
