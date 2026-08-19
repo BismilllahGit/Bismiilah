@@ -7,7 +7,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProjectCostBreakdown } from "./ProjectCostBreakdown";
 
-export default async function ProjectOverviewPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProjectOverviewPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
@@ -25,26 +29,42 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-            <p className="text-sm">{project.notes || "No description provided."}</p>
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">
+              Description
+            </h3>
+            <p className="text-sm">
+              {project.notes || "No description provided."}
+            </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Start Date</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                Start Date
+              </h3>
               <p className="text-sm font-medium">
-                {project.startDate ? new Date(project.startDate).toLocaleDateString() : "Not set"}
+                {project.startDate
+                  ? new Date(project.startDate).toLocaleDateString()
+                  : "Not set"}
               </p>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Expected End Date</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                Expected End Date
+              </h3>
               <p className="text-sm font-medium">
-                {project.endDate ? new Date(project.endDate).toLocaleDateString() : "Not set"}
+                {project.endDate
+                  ? new Date(project.endDate).toLocaleDateString()
+                  : "Not set"}
               </p>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Budget</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                Budget
+              </h3>
               <p className="text-sm font-medium text-green-600">
-                {project.agreedValue ? `₹${Number(project.agreedValue).toLocaleString()}` : "Not set"}
+                {project.agreedValue
+                  ? `₹${Number(project.agreedValue).toLocaleString()}`
+                  : "Not set"}
               </p>
             </div>
           </div>
@@ -60,7 +80,12 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
       {project.status !== "CLOSED" && (
         <div className="col-span-1 md:col-span-3 flex justify-end mt-4">
           <Link href={`/projects/${project.id}/closure`}>
-            <Button variant="destructive" className="bg-red-600 hover:bg-red-700">Close Project</Button>
+            <Button
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700 text-white cursor-pointer"
+            >
+              Close Project
+            </Button>
           </Link>
         </div>
       )}

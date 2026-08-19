@@ -18,7 +18,7 @@ export default function SettingsLayout({
   const pathname = usePathname();
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
         <p className="text-muted-foreground">
@@ -27,8 +27,8 @@ export default function SettingsLayout({
       </div>
 
       <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-        <aside className="-mx-4 lg:w-1/5">
-          <nav className="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
+        <aside className="mx-4 lg:w-1/6">
+          <nav className="flex space-x-2 gap-y-1.5 lg:flex-col lg:space-x-0 lg:space-y-1">
             {settingsNav.map((item) => (
               <Link
                 key={item.href}

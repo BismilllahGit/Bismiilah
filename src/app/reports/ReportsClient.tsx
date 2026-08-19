@@ -91,7 +91,7 @@ export function ReportsClient({
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
@@ -172,7 +172,7 @@ export function ReportsClient({
         {/* TAB 1: OVERVIEW */}
         <TabsContent value="overview" className="space-y-8">
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Financial Overview</h2>
+            <h2 className="text-2xl font-semibold">Financial Overview</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <Card className="bg-green-50 border-green-200 shadow-sm">
                 <CardHeader className="pb-2">

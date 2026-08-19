@@ -235,7 +235,7 @@ export default function InvoicesPage() {
     }, 0);
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -250,8 +250,8 @@ export default function InvoicesPage() {
           <SheetTrigger render={<Button className="flex items-center gap-2" />}>
             <Plus className="h-4 w-4" /> Create Invoice
           </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl overflow-y-auto">
-            <SheetHeader>
+          <SheetContent className="sm:max-w-2xl overflow-y-auto p-4">
+            <SheetHeader className="p-0">
               <SheetTitle>Generate Invoice</SheetTitle>
               <SheetDescription>
                 Bill a client for a specific project with detailed line items.
@@ -298,7 +298,7 @@ export default function InvoicesPage() {
                   type="date"
                   required
                   defaultValue={new Date().toISOString().split("T")[0]}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  className="flex h-9 w-fit rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 />
               </div>
 
@@ -320,21 +320,21 @@ export default function InvoicesPage() {
                   </Button>
                 </div>
                 {lineItems.map((item, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <input
-                        required
-                        placeholder="Description"
-                        className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm"
-                        value={item.description}
-                        onChange={(e) => {
-                          const newItems = [...lineItems];
-                          newItems[index].description = e.target.value;
-                          setLineItems(newItems);
-                        }}
-                      />
-                    </div>
-                    <div className="w-20">
+                  <div key={index} className="flex flex-col items-start gap-2">
+                    {/* <div className="flex-1"> */}
+                    <input
+                      required
+                      placeholder="Description"
+                      className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm"
+                      value={item.description}
+                      onChange={(e) => {
+                        const newItems = [...lineItems];
+                        newItems[index].description = e.target.value;
+                        setLineItems(newItems);
+                      }}
+                    />
+                    {/* </div> */}
+                    <div className="flex flex-row gap-x-4">
                       <input
                         type="number"
                         min="0.01"
@@ -349,8 +349,8 @@ export default function InvoicesPage() {
                           setLineItems(newItems);
                         }}
                       />
-                    </div>
-                    <div className="w-28">
+                      {/* </div> */}
+                      {/* <div className="w-28"> */}
                       <input
                         type="number"
                         min="0"
@@ -365,19 +365,19 @@ export default function InvoicesPage() {
                           setLineItems(newItems);
                         }}
                       />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-red-500"
+                        onClick={() =>
+                          setLineItems(lineItems.filter((_, i) => i !== index))
+                        }
+                        disabled={lineItems.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-red-500"
-                      onClick={() =>
-                        setLineItems(lineItems.filter((_, i) => i !== index))
-                      }
-                      disabled={lineItems.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 ))}
                 <div className="text-right font-bold pt-2 border-t mt-2">
@@ -710,10 +710,10 @@ export default function InvoicesPage() {
 
       {/* Invoice Detail Sheet */}
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
+        <SheetContent className="sm:max-w-xl overflow-y-auto p-4">
           {selectedInvoice && (
             <>
-              <SheetHeader>
+              <SheetHeader className="p-0">
                 <SheetTitle>Invoice {selectedInvoice.invoiceNumber}</SheetTitle>
                 <SheetDescription>
                   Details for {selectedInvoice.client.name} -{" "}
@@ -774,7 +774,7 @@ export default function InvoicesPage() {
                     ))}
                   </div>
                   <div className="hidden sm:block border rounded-md overflow-hidden">
-                    <Table className="min-w-[450px]">
+                    <Table className="min-w-[450px] mb-3">
                       <TableHeader className="bg-slate-50 text-xs">
                         <TableRow>
                           <TableHead className="w-[220px] font-semibold text-slate-700">
@@ -874,7 +874,7 @@ export default function InvoicesPage() {
           if (!open) setTimeout(() => setSuccessPaymentData(null), 300);
         }}
       >
-        <SheetContent className="sm:max-w-md">
+        <SheetContent className="sm:max-w-md p-4">
           {successPaymentData ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4 mt-6">
               <CheckCircle2 className="h-14 w-14 text-emerald-500" />
@@ -908,7 +908,7 @@ export default function InvoicesPage() {
             </div>
           ) : (
             <>
-              <SheetHeader>
+              <SheetHeader className="p-0">
                 <SheetTitle>Log Payment Received</SheetTitle>
                 <SheetDescription>
                   Record an incoming payment for {selectedInvoice?.client.name}.
@@ -961,7 +961,7 @@ export default function InvoicesPage() {
                     type="date"
                     required
                     defaultValue={new Date().toISOString().split("T")[0]}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    className="flex h-9 w-fit rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                   />
                 </div>
                 <div className="space-y-2">

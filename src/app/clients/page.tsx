@@ -104,7 +104,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
@@ -117,8 +117,8 @@ export default function ClientsPage() {
           <SheetTrigger render={<Button className="flex items-center gap-2" />}>
             <Plus className="h-4 w-4" /> New Client
           </SheetTrigger>
-          <SheetContent className="sm:max-w-md">
-            <SheetHeader>
+          <SheetContent className="sm:max-w-md p-4">
+            <SheetHeader className="p-0">
               <SheetTitle>Add Client</SheetTitle>
               <SheetDescription>
                 Register a new client profile.
