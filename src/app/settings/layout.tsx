@@ -34,7 +34,7 @@ export default function SettingsLayout({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "justify-start px-4 py-2 text-sm font-medium rounded-md hover:bg-slate-100 hover:text-slate-900",
+                  "justify-start px-4 py-2 text-sm text-center md:text-left font-medium rounded-md hover:bg-slate-100 hover:text-slate-900",
                   pathname === item.href
                     ? "bg-slate-100 text-slate-900"
                     : "text-slate-500",

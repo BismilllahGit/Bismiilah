@@ -184,7 +184,7 @@ export default function WageRatesSettingsPage() {
                 value={newTypeName}
                 onChange={(e) => setNewTypeName(e.target.value)}
                 required
-                className="bg-white"
+                className="bg-white h-9"
               />
             </div>
             <div className="w-full sm:w-[160px] space-y-1">
@@ -196,7 +196,7 @@ export default function WageRatesSettingsPage() {
                 min="0"
                 step="0.01"
                 placeholder="0.00"
-                className="font-mono bg-white"
+                className="font-mono bg-white h-9"
                 value={newTypeRate}
                 onChange={(e) => setNewTypeRate(e.target.value)}
               />
