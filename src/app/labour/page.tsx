@@ -155,7 +155,7 @@ export default function LabourLedgerPage() {
               Date Range
             </label>
             <select
-              className="flex h-9 max-sm:h-11 w-[160px] max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm max-sm:text-base shadow-sm"
+              className="flex h-9 w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={datePreset}
               onChange={(e) => setDatePreset(e.target.value)}
             >
@@ -198,7 +198,7 @@ export default function LabourLedgerPage() {
               Worker Type
             </label>
             <select
-              className="flex h-9 max-sm:h-11 w-[160px] max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm max-sm:text-base shadow-sm"
+              className="flex h-9 w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={workerType}
               onChange={(e) => setWorkerType(e.target.value)}
             >
@@ -216,7 +216,7 @@ export default function LabourLedgerPage() {
               Project
             </label>
             <select
-              className="flex h-9 max-sm:h-11 w-[220px] max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm max-sm:text-base shadow-sm"
+              className="flex h-9 w-55 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
             >
@@ -234,7 +234,7 @@ export default function LabourLedgerPage() {
               Group By
             </label>
             <select
-              className="flex h-9 max-sm:h-11 w-[160px] max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm max-sm:text-base shadow-sm font-medium bg-slate-50"
+              className="flex h-9 w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value)}
             >
@@ -279,24 +279,25 @@ export default function LabourLedgerPage() {
                             {row.voucherNumber || "VOUCHER"}
                           </span>
                         </div>
-
-                        <div className="space-y-1 text-xs">
-                          <div className="font-bold text-slate-800 text-sm">
-                            {row.workerType}
+                        <div className="flex flex-row justify-between w-full">
+                          <div className="space-y-1 text-xs flex flex-col">
+                            <div className="font-bold text-slate-800 text-sm">
+                              {row.workerType}
+                            </div>
+                            {row.title && (
+                              <div className="text-slate-600 font-medium">
+                                {row.title}
+                              </div>
+                            )}
+                            {(row.contractorName || row.broughtBy) && (
+                              <div className="text-slate-500 font-medium text-[11px]">
+                                Contractor:{" "}
+                                <span className="text-slate-700 font-semibold">
+                                  {row.contractorName || row.broughtBy}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          {row.title && (
-                            <div className="text-slate-600 font-medium">
-                              {row.title}
-                            </div>
-                          )}
-                          {(row.contractorName || row.broughtBy) && (
-                            <div className="text-slate-500 font-medium text-[11px]">
-                              Contractor:{" "}
-                              <span className="text-slate-700 font-semibold">
-                                {row.contractorName || row.broughtBy}
-                              </span>
-                            </div>
-                          )}
                           {row.paidImmediately && (
                             <div className="pt-1">
                               <Badge
@@ -310,27 +311,27 @@ export default function LabourLedgerPage() {
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs">
-                          <div className="bg-slate-50/80 rounded-lg p-2 text-center border border-slate-100/80 flex flex-col justify-center">
+                          <div className="bg-slate-50/80 rounded-lg p-2 text-center border border-slate-100/80 flex flex-col justify-start">
                             <span className="text-slate-500 text-[10px] uppercase font-semibold">
                               Headcount
                             </span>
-                            <span className="font-mono font-bold text-slate-900 text-sm mt-0.5">
+                            <span className="font-mono font-semibold text-slate-700 text-sm mt-0.5 flex flex-1 items-center justify-center">
                               {row.headcount} Workers
                             </span>
                           </div>
-                          <div className="bg-slate-50/80 rounded-lg p-2 text-center border border-slate-100/80 flex flex-col justify-center">
+                          <div className="bg-slate-50/80 rounded-lg p-2 text-center border border-slate-100/80 flex flex-col justify-start">
                             <span className="text-slate-500 text-[10px] uppercase font-semibold">
                               Wage Rate
                             </span>
-                            <span className="font-mono font-semibold text-slate-700 text-sm mt-0.5">
+                            <span className="font-mono font-semibold text-slate-700 text-sm mt-0.5 flex flex-1 items-center justify-center">
                               {formatCurrency(row.wageRate)}
                             </span>
                           </div>
-                          <div className="bg-slate-50/80 rounded-lg p-2 text-center border border-slate-100/80 flex flex-col justify-center">
+                          <div className="bg-slate-50/80 rounded-lg p-2 text-center border border-slate-100/80 flex flex-col justify-start">
                             <span className="text-slate-500 text-[10px] uppercase font-semibold">
-                              Total Spend
+                              Total
                             </span>
-                            <span className="font-mono font-bold text-slate-950 text-sm sm:text-base mt-0.5">
+                            <span className="font-mono font-bold text-slate-700 text-sm mt-0.5 flex flex-1 items-center justify-center">
                               {formatCurrency(row.totalSpend)}
                             </span>
                           </div>
