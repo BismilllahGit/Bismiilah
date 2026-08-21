@@ -23,12 +23,24 @@ export default function NewProjectPage() {
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("/api/workers")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setWorkers(data.filter((w) => w.isActive));
+    fetch("/api/worker-types")
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`API returned status: ${res.status}`);
+        }
+        return res.json();
       })
-      .catch(console.error);
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setWorkers(data.filter((w) => w.isActive));
+        } else {
+          console.warn("Expected array of workers, got:", data);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch workers:", err);
+        setWorkers([]);
+      });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -70,7 +82,7 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <Link
         href="/projects"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
