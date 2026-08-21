@@ -111,7 +111,7 @@ export default async function ProjectsPage() {
           {projects.map((project) => (
             <Card
               key={project.id}
-              className="hover:shadow-md transition-shadow"
+              className="flex flex-col hover:shadow-md transition-shadow"
             >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
@@ -174,7 +174,7 @@ export default async function ProjectsPage() {
                   <MapPin className="h-3 w-3" /> {project.location}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pb-3">
+              <CardContent className="flex-1 pb-3">
                 <p className="text-sm text-muted-foreground line-clamp-2 min-h-10">
                   {project.notes || "No description provided."}
                 </p>
@@ -189,7 +189,7 @@ export default async function ProjectsPage() {
                   </span>
                 </div>
               </CardContent>
-              <CardFooter className="pt-2">
+              <CardFooter className="pt-2 mt-auto">
                 <Link href={`/projects/${project.id}`} className="w-full">
                   <Button variant="outline" className="w-full">
                     View Details
