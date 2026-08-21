@@ -329,7 +329,7 @@ export default function ProjectTasksClient({
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
                 required
-                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
+                className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
               />
             </div>
             <div className="space-y-2">
