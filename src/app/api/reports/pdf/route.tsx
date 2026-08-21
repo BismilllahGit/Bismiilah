@@ -5,17 +5,17 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { ReportLayout, PdfTable, PdfColumn } from "@/lib/pdf/ReportLayout";
 import { uploadPdfAndGetSignedUrl } from "@/lib/storage";
-import { 
-  getVendorLedgerData, 
-  getLabourContractorLedgerData, 
-  getClientLedgerData, 
-  getInventoryLedgerData 
+import {
+  getVendorLedgerData,
+  getLabourContractorLedgerData,
+  getClientLedgerData,
+  getInventoryLedgerData,
 } from "@/lib/queries/ledger-queries";
-import { 
-  getDailyLabourReportData, 
-  getSaturdayViewReportData, 
-  getClosureReportData, 
-  getTopUsageReportData 
+import {
+  getDailyLabourReportData,
+  getSaturdayViewReportData,
+  getClosureReportData,
+  getTopUsageReportData,
 } from "@/lib/queries/report-queries";
 import { getEnrichedProjectBOQ } from "@/lib/queries/boq-queries";
 import { BOQPdfTable } from "@/lib/pdf/BOQPdfTable";
@@ -25,17 +25,17 @@ import { View, Text, StyleSheet } from "@react-pdf/renderer";
 const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    fontWeight: 'bold',
-    color: '#1E293B',
+    fontFamily: "Helvetica-Bold",
+    fontWeight: "bold",
+    color: "#1E293B",
     marginTop: 12,
     marginBottom: 6,
   },
   divider: {
     marginVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  }
+    borderBottomColor: "#E2E8F0",
+  },
 });
 
 const formatRs = (val: number | null | undefined) => {
@@ -51,7 +51,11 @@ const formatNum = (val: number | null | undefined) => {
 const formatDate = (val: any) => {
   if (!val) return "-";
   try {
-    return new Date(val).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return new Date(val).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   } catch {
     return String(val);
   }
@@ -85,14 +89,24 @@ export async function POST(request: Request) {
 
     // 1. Vendor Ledger
     if (reportType === "vendor_ledger") {
-      const data = await getVendorLedgerData(params.contactId, { ...params, limit: 2000, page: 1 });
+      const data = await getVendorLedgerData(params.contactId, {
+        ...params,
+        limit: 2000,
+        page: 1,
+      });
       title = "Vendor Ledger Statement";
       subtitle = `Vendor: ${data.contact.name} ${data.contact.phone ? `(Phone: ${data.contact.phone})` : ""}`;
       summaryItems = [
         { label: "Opening Balance", value: formatRs(data.openingBalance) },
         { label: "Total Debits (Payments)", value: formatRs(data.totalDebit) },
-        { label: "Total Credits (Purchases)", value: formatRs(data.totalCredit) },
-        { label: "Closing Balance", value: `${formatRs(data.closingBalance)}${data.closingBalance >= 0 ? " Cr" : " Dr"}` },
+        {
+          label: "Total Credits (Purchases)",
+          value: formatRs(data.totalCredit),
+        },
+        {
+          label: "Closing Balance",
+          value: `${formatRs(data.closingBalance)}${data.closingBalance >= 0 ? " Cr" : " Dr"}`,
+        },
       ];
 
       const columns: PdfColumn[] = [
@@ -104,13 +118,13 @@ export async function POST(request: Request) {
         { header: "Balance", width: "16%", align: "right" },
       ];
 
-      const rows = data.rows.map(row => [
+      const rows = data.rows.map((row) => [
         formatDate(row.date),
         row.voucherNumber,
         row.description,
         row.debit ? formatRs(row.debit) : "-",
         row.credit ? formatRs(row.credit) : "-",
-        `${formatRs(row.runningBalance)}${row.runningBalance >= 0 ? " Cr" : " Dr"}`
+        `${formatRs(row.runningBalance)}${row.runningBalance >= 0 ? " Cr" : " Dr"}`,
       ]);
 
       const footerRow = [
@@ -119,21 +133,33 @@ export async function POST(request: Request) {
         "",
         formatRs(data.totalDebit),
         formatRs(data.totalCredit),
-        `${formatRs(data.closingBalance)}`
+        `${formatRs(data.closingBalance)}`,
       ];
 
-      children = <PdfTable columns={columns} rows={rows} footerRow={footerRow} />;
-    } 
+      children = (
+        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+      );
+    }
     // 2. Labour Contractor Ledger
     else if (reportType === "labour_ledger") {
-      const data = await getLabourContractorLedgerData(params.contactId, { ...params, limit: 2000, page: 1 });
+      const data = await getLabourContractorLedgerData(params.contactId, {
+        ...params,
+        limit: 2000,
+        page: 1,
+      });
       title = "Labour Contractor Ledger Statement";
       subtitle = `Contractor: ${data.contact.name} ${data.contact.phone ? `(Phone: ${data.contact.phone})` : ""}`;
       summaryItems = [
         { label: "Opening Balance", value: formatRs(data.openingBalance) },
-        { label: "Total Labour Supplied (Dr)", value: formatRs(data.totalDebit) },
+        {
+          label: "Total Labour Supplied (Dr)",
+          value: formatRs(data.totalDebit),
+        },
         { label: "Total Payments Out (Cr)", value: formatRs(data.totalCredit) },
-        { label: "Net Payable Balance", value: `${formatRs(data.closingBalance)}${data.closingBalance >= 0 ? " Dr" : " Cr"}` },
+        {
+          label: "Net Payable Balance",
+          value: `${formatRs(data.closingBalance)}${data.closingBalance >= 0 ? " Dr" : " Cr"}`,
+        },
       ];
 
       const columns: PdfColumn[] = [
@@ -145,13 +171,13 @@ export async function POST(request: Request) {
         { header: "Balance", width: "16%", align: "right" },
       ];
 
-      const rows = data.rows.map(row => [
+      const rows = data.rows.map((row) => [
         formatDate(row.date),
         row.voucherNumber,
         row.description,
         row.debit ? formatRs(row.debit) : "-",
         row.credit ? formatRs(row.credit) : "-",
-        `${formatRs(row.runningBalance)}`
+        `${formatRs(row.runningBalance)}`,
       ]);
 
       const footerRow = [
@@ -160,14 +186,20 @@ export async function POST(request: Request) {
         "",
         formatRs(data.totalDebit),
         formatRs(data.totalCredit),
-        `${formatRs(data.closingBalance)}`
+        `${formatRs(data.closingBalance)}`,
       ];
 
-      children = <PdfTable columns={columns} rows={rows} footerRow={footerRow} />;
-    } 
+      children = (
+        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+      );
+    }
     // 3. Client Ledger
     else if (reportType === "client_ledger") {
-      const data = await getClientLedgerData(params.clientId, { ...params, limit: 2000, page: 1 });
+      const data = await getClientLedgerData(params.clientId, {
+        ...params,
+        limit: 2000,
+        page: 1,
+      });
       title = "Client Statement of Accounts";
       subtitle = `Client: ${data.client.name} ${data.client.phone ? `(Phone: ${data.client.phone})` : ""}`;
       summaryItems = [
@@ -186,13 +218,13 @@ export async function POST(request: Request) {
         { header: "Balance", width: "16%", align: "right" },
       ];
 
-      const rows = data.rows.map(row => [
+      const rows = data.rows.map((row) => [
         formatDate(row.date),
         row.voucherNumber,
         row.description,
         row.debit ? formatRs(row.debit) : "-",
         row.credit ? formatRs(row.credit) : "-",
-        `${formatRs(row.runningBalance)}`
+        `${formatRs(row.runningBalance)}`,
       ]);
 
       const footerRow = [
@@ -201,21 +233,39 @@ export async function POST(request: Request) {
         "",
         formatRs(data.totalDebit),
         formatRs(data.totalCredit),
-        `${formatRs(data.closingBalance)}`
+        `${formatRs(data.closingBalance)}`,
       ];
 
-      children = <PdfTable columns={columns} rows={rows} footerRow={footerRow} />;
-    } 
+      children = (
+        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+      );
+    }
     // 4. Inventory Ledger
     else if (reportType === "inventory_ledger") {
-      const data = await getInventoryLedgerData(params.projectId, params.itemId, { ...params, limit: 2000, page: 1 });
+      const data = await getInventoryLedgerData(
+        params.projectId,
+        params.itemId,
+        { ...params, limit: 2000, page: 1 },
+      );
       title = "Material & Inventory Ledger";
       subtitle = `Item: ${data.item.name} (${data.item.unit}) | Project: ${data.project.name}`;
       summaryItems = [
-        { label: "Opening Stock", value: `${formatNum(data.openingQtyBalance)} ${data.item.unit}` },
-        { label: "Total In", value: `${formatNum(data.totalQtyIn)} ${data.item.unit}` },
-        { label: "Total Out / Used", value: `${formatNum(data.totalQtyOut)} ${data.item.unit}` },
-        { label: "Closing Stock", value: `${formatNum(data.closingQtyBalance)} ${data.item.unit} (${formatRs(data.closingValueBalance)})` },
+        {
+          label: "Opening Stock",
+          value: `${formatNum(data.openingQtyBalance)} ${data.item.unit}`,
+        },
+        {
+          label: "Total In",
+          value: `${formatNum(data.totalQtyIn)} ${data.item.unit}`,
+        },
+        {
+          label: "Total Out / Used",
+          value: `${formatNum(data.totalQtyOut)} ${data.item.unit}`,
+        },
+        {
+          label: "Closing Stock",
+          value: `${formatNum(data.closingQtyBalance)} ${data.item.unit} (${formatRs(data.closingValueBalance)})`,
+        },
       ];
 
       const columns: PdfColumn[] = [
@@ -228,14 +278,15 @@ export async function POST(request: Request) {
         { header: "Balance", width: "14%", align: "right" },
       ];
 
-      const rows = data.rows.map(row => [
+      const rows = data.rows.map((row) => [
         formatDate(row.date),
         row.voucherNumber,
         row.type,
-        row.description || (row.linkedProjectName ? `Linked: ${row.linkedProjectName}` : "-"),
+        row.description ||
+          (row.linkedProjectName ? `Linked: ${row.linkedProjectName}` : "-"),
         row.qtyIn ? formatNum(row.qtyIn) : "-",
         row.qtyOut ? formatNum(row.qtyOut) : "-",
-        `${formatNum(row.runningQtyBalance)} ${data.item.unit}`
+        `${formatNum(row.runningQtyBalance)} ${data.item.unit}`,
       ]);
 
       const footerRow = [
@@ -245,20 +296,35 @@ export async function POST(request: Request) {
         "",
         formatNum(data.totalQtyIn),
         formatNum(data.totalQtyOut),
-        formatNum(data.closingQtyBalance)
+        formatNum(data.closingQtyBalance),
       ];
 
-      children = <PdfTable columns={columns} rows={rows} footerRow={footerRow} />;
-    } 
+      children = (
+        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+      );
+    }
     // 5. Labour Report / Page
     else if (reportType === "labour_report") {
-      const data = await getDailyLabourReportData({ ...params, limit: 2000, page: 1 });
+      const data = await getDailyLabourReportData({
+        ...params,
+        limit: 2000,
+        page: 1,
+      });
       title = "Daily Labour Operations Report";
-      subtitle = params.groupBy && params.groupBy !== "none" ? `Grouped By: ${params.groupBy.toUpperCase()}` : `Comprehensive Labour Transactions Log`;
+      subtitle =
+        params.groupBy && params.groupBy !== "none"
+          ? `Grouped By: ${params.groupBy.toUpperCase()}`
+          : `Comprehensive Labour Transactions Log`;
       summaryItems = [
         { label: "Total Entries", value: formatNum(data.summary.entryCount) },
-        { label: "Total Mandays / Headcount", value: formatNum(data.summary.totalHeadcount) },
-        { label: "Total Labour Spend", value: formatRs(data.summary.totalSpend) },
+        {
+          label: "Total Mandays / Headcount",
+          value: formatNum(data.summary.totalHeadcount),
+        },
+        {
+          label: "Total Labour Spend",
+          value: formatRs(data.summary.totalSpend),
+        },
       ];
 
       if (data.isGrouped) {
@@ -274,18 +340,22 @@ export async function POST(request: Request) {
         ];
 
         const rows = data.data.map((r: any) => [
-          data.groupBy === "date" ? formatDate(r.date) : (r.workerType || r.projectName || "N/A"),
+          data.groupBy === "date"
+            ? formatDate(r.date)
+            : r.workerType || r.projectName || "N/A",
           formatNum(r.totalHeadcount),
-          formatRs(r.totalSpend)
+          formatRs(r.totalSpend),
         ]);
 
         const footerRow = [
           "TOTALS",
           formatNum(data.summary.totalHeadcount),
-          formatRs(data.summary.totalSpend)
+          formatRs(data.summary.totalSpend),
         ];
 
-        children = <PdfTable columns={columns} rows={rows} footerRow={footerRow} />;
+        children = (
+          <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+        );
       } else {
         const columns: PdfColumn[] = [
           { header: "Date", width: "13%" },
@@ -306,7 +376,7 @@ export async function POST(request: Request) {
           r.contractorName || "-",
           formatNum(r.headcount),
           formatRs(r.wageRate),
-          formatRs(r.totalSpend)
+          formatRs(r.totalSpend),
         ]);
 
         const footerRow = [
@@ -317,10 +387,12 @@ export async function POST(request: Request) {
           "",
           formatNum(data.summary.totalHeadcount),
           "",
-          formatRs(data.summary.totalSpend)
+          formatRs(data.summary.totalSpend),
         ];
 
-        children = <PdfTable columns={columns} rows={rows} footerRow={footerRow} />;
+        children = (
+          <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+        );
       }
     }
     // 6. Saturday View
@@ -329,9 +401,18 @@ export async function POST(request: Request) {
       title = "Saturday Financial Due Snapshot";
       subtitle = `Upcoming Saturday Reference: ${formatDate(data.comingSaturday)}`;
       summaryItems = [
-        { label: "Client Dues Coming In", value: formatRs(data.totalClientDues) },
-        { label: "Labour Payments Due Out", value: formatRs(data.totalLabourDues) },
-        { label: "Net Cash Position", value: formatRs(data.totalClientDues - data.totalLabourDues) },
+        {
+          label: "Client Dues Coming In",
+          value: formatRs(data.totalClientDues),
+        },
+        {
+          label: "Labour Payments Due Out",
+          value: formatRs(data.totalLabourDues),
+        },
+        {
+          label: "Net Cash Position",
+          value: formatRs(data.totalClientDues - data.totalLabourDues),
+        },
       ];
 
       const clientCols: PdfColumn[] = [
@@ -342,12 +423,12 @@ export async function POST(request: Request) {
         { header: "Pending Due", width: "18%", align: "right" },
       ];
 
-      const clientRows = data.dueClients.map(c => [
+      const clientRows = data.dueClients.map((c) => [
         formatDate(c.dueDate),
         c.clientName + (c.clientPhone ? ` (${c.clientPhone})` : ""),
         c.projectName,
         c.invoiceNumber,
-        formatRs(c.balance)
+        formatRs(c.balance),
       ]);
 
       const labourCols: PdfColumn[] = [
@@ -356,39 +437,50 @@ export async function POST(request: Request) {
         { header: "Payable Balance Due", width: "25%", align: "right" },
       ];
 
-      const labourRows = data.labourDues.map(d => [
+      const labourRows = data.labourDues.map((d) => [
         d.contractorName,
         d.contractorPhone || "N/A",
-        formatRs(d.payableBalance)
+        formatRs(d.payableBalance),
       ]);
 
       children = (
         <View>
-          <Text style={styles.sectionTitle}>1. Client Dues This Week (Inflow)</Text>
-          <PdfTable 
-            columns={clientCols} 
-            rows={clientRows} 
-            footerRow={["", "TOTAL CLIENT DUES", "", "", formatRs(data.totalClientDues)]} 
+          <Text style={styles.sectionTitle}>
+            1. Client Dues This Week (Inflow)
+          </Text>
+          <PdfTable
+            columns={clientCols}
+            rows={clientRows}
+            footerRow={[
+              "",
+              "TOTAL CLIENT DUES",
+              "",
+              "",
+              formatRs(data.totalClientDues),
+            ]}
             emptyText="No client dues pending for this Saturday."
           />
 
           <View style={{ marginTop: 12 }}>
-            <Text style={styles.sectionTitle}>2. Labour Contractor Payments Due (Outflow)</Text>
-            <PdfTable 
-              columns={labourCols} 
-              rows={labourRows} 
-              footerRow={["", "TOTAL PAYABLE", formatRs(data.totalLabourDues)]} 
+            <Text style={styles.sectionTitle}>
+              2. Labour Contractor Payments Due (Outflow)
+            </Text>
+            <PdfTable
+              columns={labourCols}
+              rows={labourRows}
+              footerRow={["", "TOTAL PAYABLE", formatRs(data.totalLabourDues)]}
               emptyText="No outstanding weekly labour payments due."
             />
           </View>
         </View>
       );
-    } 
+    }
     // 7. Top Usage Report
     else if (reportType === "top_usage") {
       const data = await getTopUsageReportData({ ...params });
       title = "Top Material Usage Report";
-      subtitle = "Consumption Summary (Excluding Historical Inter-Project Transfers)";
+      subtitle =
+        "Consumption Summary (Excluding Historical Inter-Project Transfers)";
       summaryItems = [
         { label: "Items Reported", value: formatNum(data.totalItems) },
         { label: "Total Consumed Value", value: formatRs(data.totalValue) },
@@ -402,12 +494,12 @@ export async function POST(request: Request) {
         { header: "Total Value Issued", width: "22%", align: "right" },
       ];
 
-      const rows = data.rows.map(r => [
+      const rows = data.rows.map((r) => [
         r.itemName,
         r.unit,
         formatRs(r.unitCost),
         `${formatNum(r.totalQtyIssued)} ${r.unit}`,
-        formatRs(r.totalValueIssued)
+        formatRs(r.totalValueIssued),
       ]);
 
       const footerRow = [
@@ -415,11 +507,13 @@ export async function POST(request: Request) {
         "",
         "",
         "",
-        formatRs(data.totalValue)
+        formatRs(data.totalValue),
       ];
 
-      children = <PdfTable columns={columns} rows={rows} footerRow={footerRow} />;
-    } 
+      children = (
+        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+      );
+    }
     // 8. Project Closure Report
     else if (reportType === "closure_report") {
       const data = await getClosureReportData(params.projectId);
@@ -427,9 +521,18 @@ export async function POST(request: Request) {
       subtitle = `Project: ${data.project.name} | Status: ${data.isClosed ? "CLOSED" : "PRE-CLOSURE AUDIT"}`;
       summaryItems = [
         { label: "Total Billed", value: formatRs(data.summary.totalBilled) },
-        { label: "Total Collected", value: formatRs(data.summary.totalCollected) },
-        { label: "Outstanding Receivables", value: formatRs(data.summary.outstandingReceivables) },
-        { label: "Total Site Expenses", value: formatRs(data.summary.totalSiteExpenses) },
+        {
+          label: "Total Collected",
+          value: formatRs(data.summary.totalCollected),
+        },
+        {
+          label: "Outstanding Receivables",
+          value: formatRs(data.summary.outstandingReceivables),
+        },
+        {
+          label: "Total Site Expenses",
+          value: formatRs(data.summary.totalSiteExpenses),
+        },
       ];
 
       const columns: PdfColumn[] = [
@@ -440,21 +543,40 @@ export async function POST(request: Request) {
       const rows = [
         ["Total Billed Invoices", formatRs(data.summary.totalBilled)],
         ["Total Collected Receipts", formatRs(data.summary.totalCollected)],
-        ["Net Outstanding Receivables", formatRs(data.summary.outstandingReceivables)],
-        ["Total Site & Operational Expenses", formatRs(data.summary.totalSiteExpenses)],
-        ["Billed Extra Work", formatRs(data.summary.totalExtraWork - data.summary.unbilledExtraWork)],
+        [
+          "Net Outstanding Receivables",
+          formatRs(data.summary.outstandingReceivables),
+        ],
+        [
+          "Total Site & Operational Expenses",
+          formatRs(data.summary.totalSiteExpenses),
+        ],
+        [
+          "Billed Extra Work",
+          formatRs(
+            data.summary.totalExtraWork - data.summary.unbilledExtraWork,
+          ),
+        ],
         ["Unbilled Extra Work Items", formatRs(data.summary.unbilledExtraWork)],
-        ["Estimated Consumed Material Cost", formatRs(data.summary.estimatedMaterialCost)],
-        ["Official Closure Date", formatDate(data.summary.closureDate || new Date())]
+        [
+          "Estimated Consumed Material Cost",
+          formatRs(data.summary.estimatedMaterialCost),
+        ],
+        [
+          "Official Closure Date",
+          formatDate(data.summary.closureDate || new Date()),
+        ],
       ];
 
       children = <PdfTable columns={columns} rows={rows} />;
-    } 
+    }
     // 9. BOQ / Client Quotation Report
     else if (reportType === "boq") {
       let boqVersionNumber: number | undefined = undefined;
       if (params.boqId) {
-        const target = await prisma.bOQ.findUnique({ where: { id: params.boqId } });
+        const target = await prisma.bOQ.findUnique({
+          where: { id: params.boqId },
+        });
         if (target) {
           boqVersionNumber = target.versionNumber;
         }
@@ -466,27 +588,47 @@ export async function POST(request: Request) {
       ]);
 
       if (!project || !boqData.current) {
-        return NextResponse.json({ error: "BOQ or Project not found for quotation export." }, { status: 404 });
+        return NextResponse.json(
+          { error: "BOQ or Project not found for quotation export." },
+          { status: 404 },
+        );
       }
 
       const boq = boqData.current;
       title = "Project Bill of Quantities / Quotation";
       subtitle = `Project: ${project.name} | Location: ${project.location} | Revision: Version ${boq.versionNumber} (${boq.status})`;
       summaryItems = [
-        { label: "Quotation Version", value: `v${boq.versionNumber} (${boq.status})` },
+        {
+          label: "Quotation Version",
+          value: `v${boq.versionNumber} (${boq.status})`,
+        },
         { label: "Total Sections", value: (boq.sections || []).length },
-        { label: "Target Budget Ceiling", value: boq.targetBudget ? formatRs(boq.targetBudget) : "N/A" },
+        {
+          label: "Target Budget Ceiling",
+          value: boq.targetBudget ? formatRs(boq.targetBudget) : "N/A",
+        },
         { label: "Grand Total (G-TOTAL)", value: formatRs(boq.grandTotal) },
       ];
 
-      children = <BOQPdfTable boq={boq} />;
+      children = children = (
+        <BOQPdfTable boq={boq} businessProfile={businessProfile} />
+      );
     } else {
-      return NextResponse.json({ error: `Unsupported reportType: ${reportType}` }, { status: 400 });
+      return NextResponse.json(
+        { error: `Unsupported reportType: ${reportType}` },
+        { status: 400 },
+      );
     }
 
     // Render through @react-pdf/renderer to buffer
     const pdfDocument = (
-      <ReportLayout title={title} subtitle={subtitle} dateRange={dateRange} summaryItems={summaryItems} businessProfile={businessProfile}>
+      <ReportLayout
+        title={title}
+        subtitle={subtitle}
+        dateRange={dateRange}
+        summaryItems={summaryItems}
+        businessProfile={businessProfile}
+      >
         {children}
       </ReportLayout>
     );
@@ -501,6 +643,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: signedUrl, expirySeconds: 3600 });
   } catch (error: any) {
     console.error("PDF Generation failed:", error);
-    return NextResponse.json({ error: error.message || "Failed to generate PDF report" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to generate PDF report" },
+      { status: 500 },
+    );
   }
 }
