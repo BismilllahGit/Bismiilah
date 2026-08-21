@@ -285,7 +285,7 @@ export default function VendorLedgerPage({
                       onSubmit={handleSaveLabourPayment}
                       className="space-y-4 mt-6"
                     >
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">
                             Amount (₹) *
@@ -558,7 +558,15 @@ export default function VendorLedgerPage({
           totalDebit={ledgerData.totalDebit}
           totalCredit={ledgerData.totalCredit}
           closingBalance={ledgerData.closingBalance}
-          debitLabel={isLabourContractor ? "Labour Supplied (₹)" : "Debit (₹)"}
+          debitLabel={
+            isLabourContractor ? (
+              <>
+                Labour <span className="hidden xl:inline"> Supplied </span> (₹)
+              </>
+            ) : (
+              "Debit (₹)"
+            )
+          }
           creditLabel={isLabourContractor ? "Paid (₹)" : "Credit (₹)"}
           currencyOrUnit="currency"
           onDateRangeChange={handleDateRangeChange}

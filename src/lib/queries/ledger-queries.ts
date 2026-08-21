@@ -9,13 +9,16 @@ export interface LedgerQueryParams {
   limit?: number;
 }
 
-export async function getVendorLedgerData(contactId: string, params: LedgerQueryParams) {
+export async function getVendorLedgerData(
+  contactId: string,
+  params: LedgerQueryParams,
+) {
   const { startDate, endDate, page = 1, limit = 50 } = params;
   const search = params.search?.trim();
 
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
-    select: { id: true, name: true, type: true, phone: true }
+    select: { id: true, name: true, type: true, phone: true },
   });
 
   if (!contact) {
@@ -42,7 +45,10 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
         FROM vendor_transactions
         WHERE contact_id = ${contactId} AND date < ${startDt}
       `;
-      openingBalance = (Number(creditRes[0]?.total_credit) || 0) - (Number(debitRes[0]?.total_debit) || 0) + (Number(vendorRes[0]?.opening_balance) || 0);
+      openingBalance =
+        (Number(creditRes[0]?.total_credit) || 0) -
+        (Number(debitRes[0]?.total_debit) || 0) +
+        (Number(vendorRes[0]?.opening_balance) || 0);
     } else {
       const result = await prisma.$queryRaw<{ opening_balance: number }[]>`
         SELECT COALESCE(SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE -amount END), 0) as opening_balance
@@ -51,6 +57,13 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
       `;
       openingBalance = Number(result[0]?.opening_balance) || 0;
     }
+  }
+
+  // Define the outer search filter to apply AFTER balances are calculated
+  let searchOuterFilter = Prisma.empty;
+  if (search) {
+    const searchStr = `%${search}%`;
+    searchOuterFilter = Prisma.sql`WHERE description ILIKE ${searchStr} OR "voucherNumber" ILIKE ${searchStr}`;
   }
 
   // 2. Build the main query with Prisma.sql for conditional date filtering
@@ -74,15 +87,6 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
       dateFilterVendor = Prisma.sql`AND date <= ${new Date(endDate)}`;
     }
 
-    let searchFilterLabour = Prisma.empty;
-    let searchFilterPayment = Prisma.empty;
-    let searchFilterVendor = Prisma.empty;
-    if (search) {
-      searchFilterLabour = Prisma.sql`AND (dle.title ILIKE ${`%${search}%`} OR dle.note ILIKE ${`%${search}%`})`;
-      searchFilterPayment = Prisma.sql`AND note ILIKE ${`%${search}%`}`;
-      searchFilterVendor = Prisma.sql`AND description ILIKE ${`%${search}%`}`;
-    }
-
     rows = await prisma.$queryRaw<any[]>`
       WITH contractor_ledger AS (
         SELECT 
@@ -97,7 +101,6 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
         LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
         WHERE dle.contractor_id = ${contactId} AND dle.paid_immediately = false
         ${dateFilterLabour}
-        ${searchFilterLabour}
 
         UNION ALL
 
@@ -112,7 +115,6 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
         FROM labour_payments
         WHERE contact_id = ${contactId}
         ${dateFilterPayment}
-        ${searchFilterPayment}
 
         UNION ALL
 
@@ -127,17 +129,21 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
         FROM vendor_transactions
         WHERE contact_id = ${contactId}
         ${dateFilterVendor}
-        ${searchFilterVendor}
+      ),
+      calculated AS (
+        SELECT 
+          id,
+          "voucherNumber",
+          date,
+          description,
+          debit,
+          credit,
+          created_at,
+          ${openingBalance} + SUM(credit - debit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
+        FROM contractor_ledger
       )
-      SELECT 
-        id,
-        "voucherNumber",
-        date,
-        description,
-        debit,
-        credit,
-        ${openingBalance} + SUM(credit - debit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
-      FROM contractor_ledger
+      SELECT * FROM calculated
+      ${searchOuterFilter}
       ORDER BY date, created_at, id
     `;
   } else {
@@ -150,38 +156,37 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
       dateFilter = Prisma.sql`AND date <= ${new Date(endDate)}`;
     }
 
-    let searchFilter = Prisma.empty;
-    if (search) {
-      searchFilter = Prisma.sql`AND description ILIKE ${`%${search}%`}`;
-    }
-
     rows = await prisma.$queryRaw<any[]>`
-      SELECT 
-        id,
-        voucher_number as "voucherNumber", 
-        date, 
-        description,
-        CASE WHEN type = 'PAYMENT' THEN amount ELSE 0 END AS debit,
-        CASE WHEN type = 'PURCHASE' THEN amount ELSE 0 END AS credit,
-        ${openingBalance} + SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE -amount END)
-          OVER (ORDER BY date, created_at, id) AS "runningBalance"
-      FROM vendor_transactions
-      WHERE contact_id = ${contactId}
-      ${dateFilter}
-      ${searchFilter}
+      WITH calculated AS (
+        SELECT 
+          id,
+          voucher_number as "voucherNumber", 
+          date, 
+          description,
+          CASE WHEN type = 'PAYMENT' THEN amount ELSE 0 END AS debit,
+          CASE WHEN type = 'PURCHASE' THEN amount ELSE 0 END AS credit,
+          created_at,
+          ${openingBalance} + SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE -amount END)
+            OVER (ORDER BY date, created_at, id) AS "runningBalance"
+        FROM vendor_transactions
+        WHERE contact_id = ${contactId}
+        ${dateFilter}
+      )
+      SELECT * FROM calculated
+      ${searchOuterFilter}
       ORDER BY date, created_at, id
     `;
   }
 
   let totalDebit = 0;
   let totalCredit = 0;
-  
-  const formattedRows = rows.map(row => {
+
+  const formattedRows = rows.map((row) => {
     const debit = Number(row.debit);
     const credit = Number(row.credit);
     totalDebit += debit;
     totalCredit += credit;
-    
+
     return {
       id: row.id,
       voucherNumber: row.voucherNumber,
@@ -189,7 +194,7 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
       description: row.description,
       debit,
       credit,
-      runningBalance: Number(row.runningBalance)
+      runningBalance: Number(row.runningBalance),
     };
   });
 
@@ -199,11 +204,12 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
   const totalPages = Math.ceil(total / limit) || 1;
   const offset = (page - 1) * limit;
 
-  const pageOpeningBalance = offset > 0 && offset <= formattedRows.length
-    ? formattedRows[offset - 1].runningBalance
-    : (offset > formattedRows.length && formattedRows.length > 0
+  const pageOpeningBalance =
+    offset > 0 && offset <= formattedRows.length
+      ? formattedRows[offset - 1].runningBalance
+      : offset > formattedRows.length && formattedRows.length > 0
         ? formattedRows[formattedRows.length - 1].runningBalance
-        : openingBalance);
+        : openingBalance;
 
   const paginatedRows = formattedRows.slice(offset, offset + limit);
 
@@ -218,17 +224,20 @@ export async function getVendorLedgerData(contactId: string, params: LedgerQuery
     totalPages,
     page,
     limit,
-    rawOpeningBalance: openingBalance
+    rawOpeningBalance: openingBalance,
   };
 }
 
-export async function getLabourContractorLedgerData(contactId: string, params: LedgerQueryParams) {
+export async function getLabourContractorLedgerData(
+  contactId: string,
+  params: LedgerQueryParams,
+) {
   const { startDate, endDate, page = 1, limit = 50 } = params;
   const search = params.search?.trim();
 
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
-    select: { id: true, name: true, type: true, phone: true }
+    select: { id: true, name: true, type: true, phone: true },
   });
 
   if (!contact) {
@@ -249,7 +258,9 @@ export async function getLabourContractorLedgerData(contactId: string, params: L
       FROM labour_payments
       WHERE contact_id = ${contactId} AND payment_date < ${startDt}
     `;
-    openingBalance = (Number(creditRes[0]?.total_labour) || 0) - (Number(debitRes[0]?.total_paid) || 0);
+    openingBalance =
+      (Number(creditRes[0]?.total_labour) || 0) -
+      (Number(debitRes[0]?.total_paid) || 0);
   }
 
   let dateFilterLabour = Prisma.empty;
@@ -266,11 +277,10 @@ export async function getLabourContractorLedgerData(contactId: string, params: L
     dateFilterPayment = Prisma.sql`AND payment_date <= ${new Date(endDate)}`;
   }
 
-  let searchFilterLabour = Prisma.empty;
-  let searchFilterPayment = Prisma.empty;
+  let searchOuterFilter = Prisma.empty;
   if (search) {
-    searchFilterLabour = Prisma.sql`AND (dle.title ILIKE ${`%${search}%`} OR dle.note ILIKE ${`%${search}%`} OR wt.name ILIKE ${`%${search}%`})`;
-    searchFilterPayment = Prisma.sql`AND note ILIKE ${`%${search}%`}`;
+    const searchStr = `%${search}%`;
+    searchOuterFilter = Prisma.sql`WHERE description ILIKE ${searchStr} OR "voucherNumber" ILIKE ${searchStr}`;
   }
 
   const rawRows = await prisma.$queryRaw<any[]>`
@@ -290,7 +300,6 @@ export async function getLabourContractorLedgerData(contactId: string, params: L
       LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
       WHERE dle.contractor_id = ${contactId} AND dle.paid_immediately = false
       ${dateFilterLabour}
-      ${searchFilterLabour}
 
       UNION ALL
 
@@ -308,25 +317,28 @@ export async function getLabourContractorLedgerData(contactId: string, params: L
       FROM labour_payments
       WHERE contact_id = ${contactId}
       ${dateFilterPayment}
-      ${searchFilterPayment}
+    ),
+    calculated AS (
+      SELECT 
+        id,
+        "voucherNumber",
+        date,
+        description,
+        debit,
+        credit,
+        created_at,
+        ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
+      FROM combined
     )
-    SELECT 
-      id,
-      "voucherNumber",
-      date,
-      description,
-      debit,
-      credit,
-      ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance",
-      ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS running_balance
-    FROM combined
+    SELECT * FROM calculated
+    ${searchOuterFilter}
     ORDER BY date, created_at, id
   `;
 
   let totalDebit = 0;
   let totalCredit = 0;
 
-  const formattedRows = rawRows.map(row => {
+  const formattedRows = rawRows.map((row) => {
     const debit = Number(row.debit);
     const credit = Number(row.credit);
     totalDebit += debit;
@@ -339,7 +351,7 @@ export async function getLabourContractorLedgerData(contactId: string, params: L
       description: row.description,
       debit,
       credit,
-      runningBalance: Number(row.runningBalance)
+      runningBalance: Number(row.runningBalance),
     };
   });
 
@@ -348,11 +360,12 @@ export async function getLabourContractorLedgerData(contactId: string, params: L
   const totalPages = Math.ceil(total / limit) || 1;
   const offset = (page - 1) * limit;
 
-  const pageOpeningBalance = offset > 0 && offset <= formattedRows.length
-    ? formattedRows[offset - 1].runningBalance
-    : (offset > formattedRows.length && formattedRows.length > 0
+  const pageOpeningBalance =
+    offset > 0 && offset <= formattedRows.length
+      ? formattedRows[offset - 1].runningBalance
+      : offset > formattedRows.length && formattedRows.length > 0
         ? formattedRows[formattedRows.length - 1].runningBalance
-        : openingBalance);
+        : openingBalance;
 
   const paginatedRows = formattedRows.slice(offset, offset + limit);
 
@@ -367,17 +380,20 @@ export async function getLabourContractorLedgerData(contactId: string, params: L
     totalPages,
     page,
     limit,
-    rawOpeningBalance: openingBalance
+    rawOpeningBalance: openingBalance,
   };
 }
 
-export async function getClientLedgerData(clientId: string, params: LedgerQueryParams) {
+export async function getClientLedgerData(
+  clientId: string,
+  params: LedgerQueryParams,
+) {
   const { startDate, endDate, page = 1, limit = 50 } = params;
   const search = params.search?.trim();
 
   const client = await prisma.client.findUnique({
     where: { id: clientId },
-    select: { id: true, name: true, phone: true }
+    select: { id: true, name: true, phone: true },
   });
 
   if (!client) {
@@ -404,26 +420,30 @@ export async function getClientLedgerData(clientId: string, params: LedgerQueryP
     openingBalance = Number(result[0]?.opening_balance) || 0;
   }
 
-  let dateFilter = Prisma.empty;
+  let dateFilterInvoices = Prisma.empty;
+  let dateFilterPayments = Prisma.empty;
+
   if (startDate && endDate) {
-    dateFilter = Prisma.sql`AND date >= ${new Date(startDate)} AND date <= ${new Date(endDate)}`;
+    dateFilterInvoices = Prisma.sql`AND issued_date >= ${new Date(startDate)} AND issued_date <= ${new Date(endDate)}`;
+    dateFilterPayments = Prisma.sql`AND payment_date >= ${new Date(startDate)} AND payment_date <= ${new Date(endDate)}`;
   } else if (startDate) {
-    dateFilter = Prisma.sql`AND date >= ${new Date(startDate)}`;
+    dateFilterInvoices = Prisma.sql`AND issued_date >= ${new Date(startDate)}`;
+    dateFilterPayments = Prisma.sql`AND payment_date >= ${new Date(startDate)}`;
   } else if (endDate) {
-    dateFilter = Prisma.sql`AND date <= ${new Date(endDate)}`;
+    dateFilterInvoices = Prisma.sql`AND issued_date <= ${new Date(endDate)}`;
+    dateFilterPayments = Prisma.sql`AND payment_date <= ${new Date(endDate)}`;
   }
 
-  let searchFilterInvoices = Prisma.empty;
-  let searchFilterPayments = Prisma.empty;
+  let searchOuterFilter = Prisma.empty;
   if (search) {
-    searchFilterInvoices = Prisma.sql`AND (notes ILIKE ${`%${search}%`} OR invoice_number ILIKE ${`%${search}%`})`;
-    searchFilterPayments = Prisma.sql`AND (note ILIKE ${`%${search}%`} OR voucher_number ILIKE ${`%${search}%`})`;
+    const searchStr = `%${search}%`;
+    searchOuterFilter = Prisma.sql`WHERE description ILIKE ${searchStr} OR "voucherNumber" ILIKE ${searchStr}`;
   }
 
   const rows = await prisma.$queryRaw<any[]>`
     WITH combined AS (
       SELECT 
-        invoice_number AS voucher_number, 
+        invoice_number AS "voucherNumber", 
         issued_date AS date,
         COALESCE(NULLIF(notes, ''), CONCAT('Invoice raised (', invoice_number, ')')) AS description, 
         amount AS debit, 
@@ -432,12 +452,12 @@ export async function getClientLedgerData(clientId: string, params: LedgerQueryP
         id
       FROM invoices 
       WHERE client_id = ${clientId} AND status != 'VOID'
-      ${searchFilterInvoices}
+      ${dateFilterInvoices}
       
       UNION ALL
       
       SELECT 
-        voucher_number, 
+        voucher_number AS "voucherNumber", 
         payment_date AS date,
         COALESCE(NULLIF(note, ''), CASE WHEN invoice_id IS NULL THEN 'Advance payment (unallocated)' ELSE 'Payment received' END) AS description,
         0 AS debit, 
@@ -446,30 +466,34 @@ export async function getClientLedgerData(clientId: string, params: LedgerQueryP
         id
       FROM client_payments 
       WHERE client_id = ${clientId}
-      ${searchFilterPayments}
+      ${dateFilterPayments}
+    ),
+    calculated AS (
+      SELECT 
+        id,
+        "voucherNumber",
+        date,
+        description,
+        debit,
+        credit,
+        created_at,
+        ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
+      FROM combined
     )
-    SELECT 
-      id,
-      voucher_number as "voucherNumber",
-      date,
-      description,
-      debit,
-      credit,
-      ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
-    FROM combined
-    WHERE 1=1 ${dateFilter}
+    SELECT * FROM calculated
+    ${searchOuterFilter}
     ORDER BY date, created_at, id
   `;
 
   let totalDebit = 0;
   let totalCredit = 0;
-  
-  const formattedRows = rows.map(row => {
+
+  const formattedRows = rows.map((row) => {
     const debit = Number(row.debit);
     const credit = Number(row.credit);
     totalDebit += debit;
     totalCredit += credit;
-    
+
     return {
       id: row.id,
       voucherNumber: row.voucherNumber,
@@ -477,7 +501,7 @@ export async function getClientLedgerData(clientId: string, params: LedgerQueryP
       description: row.description,
       debit,
       credit,
-      runningBalance: Number(row.runningBalance)
+      runningBalance: Number(row.runningBalance),
     };
   });
 
@@ -486,11 +510,12 @@ export async function getClientLedgerData(clientId: string, params: LedgerQueryP
   const totalPages = Math.ceil(total / limit) || 1;
   const offset = (page - 1) * limit;
 
-  const pageOpeningBalance = offset > 0 && offset <= formattedRows.length
-    ? formattedRows[offset - 1].runningBalance
-    : (offset > formattedRows.length && formattedRows.length > 0
+  const pageOpeningBalance =
+    offset > 0 && offset <= formattedRows.length
+      ? formattedRows[offset - 1].runningBalance
+      : offset > formattedRows.length && formattedRows.length > 0
         ? formattedRows[formattedRows.length - 1].runningBalance
-        : openingBalance);
+        : openingBalance;
 
   const paginatedRows = formattedRows.slice(offset, offset + limit);
 
@@ -505,16 +530,26 @@ export async function getClientLedgerData(clientId: string, params: LedgerQueryP
     totalPages,
     page,
     limit,
-    rawOpeningBalance: openingBalance
+    rawOpeningBalance: openingBalance,
   };
 }
 
-export async function getInventoryLedgerData(projectId: string, itemId: string, params: LedgerQueryParams) {
+export async function getInventoryLedgerData(
+  projectId: string,
+  itemId: string,
+  params: LedgerQueryParams,
+) {
   const { startDate, endDate, page = 1, limit = 50 } = params;
   const search = params.search?.trim();
 
-  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { name: true, id: true } });
-  const item = await prisma.item.findUnique({ where: { id: itemId }, select: { name: true, unit: true, unitCost: true } });
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { name: true, id: true },
+  });
+  const item = await prisma.item.findUnique({
+    where: { id: itemId },
+    select: { name: true, unit: true, unitCost: true },
+  });
 
   if (!project || !item) {
     throw new Error("Project or Item not found");
@@ -525,7 +560,9 @@ export async function getInventoryLedgerData(projectId: string, itemId: string, 
 
   if (startDate) {
     const startDt = new Date(startDate);
-    const result = await prisma.$queryRaw<{ opening_qty_balance: number, opening_value_balance: number }[]>`
+    const result = await prisma.$queryRaw<
+      { opening_qty_balance: number; opening_value_balance: number }[]
+    >`
       SELECT 
         COALESCE(SUM(CASE WHEN type IN ('BUY','RETURN','TRANSFER_IN') THEN quantity ELSE -quantity END), 0) AS opening_qty_balance,
         COALESCE(SUM((CASE WHEN type IN ('BUY','RETURN','TRANSFER_IN') THEN quantity ELSE -quantity END) * unit_cost), 0) AS opening_value_balance
@@ -545,45 +582,50 @@ export async function getInventoryLedgerData(projectId: string, itemId: string, 
     dateFilter = Prisma.sql`AND it.date <= ${new Date(endDate)}`;
   }
 
-  let searchFilter = Prisma.empty;
+  let searchOuterFilter = Prisma.empty;
   if (search) {
-    searchFilter = Prisma.sql`AND (it.note ILIKE ${`%${search}%`} OR it.voucher_number ILIKE ${`%${search}%`})`;
+    const searchStr = `%${search}%`;
+    searchOuterFilter = Prisma.sql`WHERE description ILIKE ${searchStr} OR "voucherNumber" ILIKE ${searchStr}`;
   }
 
   const rows = await prisma.$queryRaw<any[]>`
-    SELECT 
-      it.id,
-      it.voucher_number as "voucherNumber", 
-      it.date, 
-      it.note as description,
-      it.type,
-      CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE 0 END AS qty_in,
-      CASE WHEN it.type NOT IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE 0 END AS qty_out,
-      it.unit_cost as "unitCost",
-      it.transfer_group_id as "transferGroupId",
-      linked_project.name as "linkedProjectName",
-      ${openingQtyBalance} + SUM(CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE -it.quantity END)
-        OVER (ORDER BY it.date, it.created_at, it.id) AS "runningQtyBalance",
-      ${openingValueBalance} + SUM((CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE -it.quantity END) * it.unit_cost)
-        OVER (ORDER BY it.date, it.created_at, it.id) AS "runningValueBalance"
-    FROM inventory_transactions it
-    LEFT JOIN inventory_transactions linked_tx 
-      ON linked_tx.transfer_group_id = it.transfer_group_id 
-      AND linked_tx.id != it.id
-    LEFT JOIN projects linked_project
-      ON linked_project.id = linked_tx.project_id
-    WHERE it.project_id = ${projectId} AND it.item_id = ${itemId}
-    ${dateFilter}
-    ${searchFilter}
-    ORDER BY it.date, it.created_at, it.id
+    WITH calculated AS (
+      SELECT 
+        it.id,
+        it.voucher_number as "voucherNumber", 
+        it.date, 
+        it.note as description,
+        it.type,
+        CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE 0 END AS qty_in,
+        CASE WHEN it.type NOT IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE 0 END AS qty_out,
+        it.unit_cost as "unitCost",
+        it.transfer_group_id as "transferGroupId",
+        linked_project.name as "linkedProjectName",
+        it.created_at,
+        ${openingQtyBalance} + SUM(CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE -it.quantity END)
+          OVER (ORDER BY it.date, it.created_at, it.id) AS "runningQtyBalance",
+        ${openingValueBalance} + SUM((CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE -it.quantity END) * it.unit_cost)
+          OVER (ORDER BY it.date, it.created_at, it.id) AS "runningValueBalance"
+      FROM inventory_transactions it
+      LEFT JOIN inventory_transactions linked_tx 
+        ON linked_tx.transfer_group_id = it.transfer_group_id 
+        AND linked_tx.id != it.id
+      LEFT JOIN projects linked_project
+        ON linked_project.id = linked_tx.project_id
+      WHERE it.project_id = ${projectId} AND it.item_id = ${itemId}
+      ${dateFilter}
+    )
+    SELECT * FROM calculated
+    ${searchOuterFilter}
+    ORDER BY date, created_at, id
   `;
 
   let totalQtyIn = 0;
   let totalQtyOut = 0;
   let totalValueIn = 0;
   let totalValueOut = 0;
-  
-  const formattedRows = rows.map(row => {
+
+  const formattedRows = rows.map((row) => {
     const qtyIn = Number(row.qty_in);
     const qtyOut = Number(row.qty_out);
     const unitCost = Number(row.unitCost);
@@ -594,7 +636,7 @@ export async function getInventoryLedgerData(projectId: string, itemId: string, 
     totalQtyOut += qtyOut;
     totalValueIn += valueIn;
     totalValueOut += valueOut;
-    
+
     return {
       id: row.id,
       voucherNumber: row.voucherNumber,
@@ -607,28 +649,31 @@ export async function getInventoryLedgerData(projectId: string, itemId: string, 
       transferGroupId: row.transferGroupId,
       linkedProjectName: row.linkedProjectName,
       runningQtyBalance: Number(row.runningQtyBalance),
-      runningValueBalance: Number(row.runningValueBalance)
+      runningValueBalance: Number(row.runningValueBalance),
     };
   });
 
   const closingQtyBalance = openingQtyBalance + totalQtyIn - totalQtyOut;
-  const closingValueBalance = openingValueBalance + totalValueIn - totalValueOut;
+  const closingValueBalance =
+    openingValueBalance + totalValueIn - totalValueOut;
 
   const total = formattedRows.length;
   const totalPages = Math.ceil(total / limit) || 1;
   const offset = (page - 1) * limit;
 
-  const pageOpeningQtyBalance = offset > 0 && offset <= formattedRows.length
-    ? formattedRows[offset - 1].runningQtyBalance
-    : (offset > formattedRows.length && formattedRows.length > 0
+  const pageOpeningQtyBalance =
+    offset > 0 && offset <= formattedRows.length
+      ? formattedRows[offset - 1].runningQtyBalance
+      : offset > formattedRows.length && formattedRows.length > 0
         ? formattedRows[formattedRows.length - 1].runningQtyBalance
-        : openingQtyBalance);
+        : openingQtyBalance;
 
-  const pageOpeningValueBalance = offset > 0 && offset <= formattedRows.length
-    ? formattedRows[offset - 1].runningValueBalance
-    : (offset > formattedRows.length && formattedRows.length > 0
+  const pageOpeningValueBalance =
+    offset > 0 && offset <= formattedRows.length
+      ? formattedRows[offset - 1].runningValueBalance
+      : offset > formattedRows.length && formattedRows.length > 0
         ? formattedRows[formattedRows.length - 1].runningValueBalance
-        : openingValueBalance);
+        : openingValueBalance;
 
   const paginatedRows = formattedRows.slice(offset, offset + limit);
 
@@ -648,6 +693,6 @@ export async function getInventoryLedgerData(projectId: string, itemId: string, 
     totalPages,
     page,
     limit,
-    rawOpeningQtyBalance: openingQtyBalance
+    rawOpeningQtyBalance: openingQtyBalance,
   };
 }
