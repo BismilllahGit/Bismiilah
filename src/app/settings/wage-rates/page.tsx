@@ -32,7 +32,6 @@ export default function WageRatesSettingsPage() {
     {},
   );
 
-  // New worker type state
   const [newTypeName, setNewTypeName] = useState("");
   const [newTypeRate, setNewTypeRate] = useState("");
   const [newTypeCycle, setNewTypeCycle] = useState("WEEKLY");
@@ -66,30 +65,30 @@ export default function WageRatesSettingsPage() {
     }
   };
 
-  const handleSave = async (workerType: string) => {
-    const val = editingValues[workerType];
-    const cycle = editingCycles[workerType] || "WEEKLY";
+  const handleSave = async (id: string, typeName: string) => {
+    const val = editingValues[typeName];
+    const cycle = editingCycles[typeName] || "WEEKLY";
     if (!val || isNaN(Number(val)) || Number(val) < 0) {
       alert("Please enter a valid positive number for rate");
       return;
     }
 
-    setSavingMap((prev) => ({ ...prev, [workerType]: true }));
+    setSavingMap((prev) => ({ ...prev, [typeName]: true }));
     try {
-      const res = await fetch(`/api/worker-types/${workerType}`, {
+      const res = await fetch(`/api/worker-types/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ defaultRate: Number(val), paymentCycle: cycle }),
       });
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(err.error || "Failed to save.");
       }
     } catch (e) {
       alert("Error saving.");
     } finally {
-      setSavingMap((prev) => ({ ...prev, [workerType]: false }));
+      setSavingMap((prev) => ({ ...prev, [typeName]: false }));
     }
   };
 
@@ -122,7 +121,7 @@ export default function WageRatesSettingsPage() {
         setNewTypeCycle("WEEKLY");
         fetchPresets();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(err.error || "Failed to create worker type");
       }
     } catch (err) {
@@ -252,7 +251,7 @@ export default function WageRatesSettingsPage() {
                 const isSaving = savingMap[typeName];
                 return (
                   <div
-                    key={typeName}
+                    key={preset.id || typeName}
                     className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3.5"
                   >
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
@@ -285,7 +284,8 @@ export default function WageRatesSettingsPage() {
                             }))
                           }
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSave(typeName);
+                            if (e.key === "Enter")
+                              handleSave(preset.id, typeName);
                           }}
                         />
                       </div>
@@ -313,7 +313,7 @@ export default function WageRatesSettingsPage() {
 
                     <div className="pt-2 border-t border-slate-100 flex justify-end">
                       <Button
-                        onClick={() => handleSave(typeName)}
+                        onClick={() => handleSave(preset.id, typeName)}
                         disabled={isSaving}
                         size="sm"
                         className="w-full font-bold bg-green-600 hover:bg-green-700 text-white h-9 shadow-sm"
@@ -366,7 +366,7 @@ export default function WageRatesSettingsPage() {
                     const typeName = preset.workerType || preset.name;
                     return (
                       <TableRow
-                        key={typeName}
+                        key={preset.id || typeName}
                         className="hover:bg-slate-50/60 transition-colors"
                       >
                         <TableCell className="font-semibold text-slate-800">
@@ -386,7 +386,8 @@ export default function WageRatesSettingsPage() {
                               }))
                             }
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") handleSave(typeName);
+                              if (e.key === "Enter")
+                                handleSave(preset.id, typeName);
                             }}
                           />
                         </TableCell>
@@ -410,7 +411,7 @@ export default function WageRatesSettingsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleSave(typeName)}
+                            onClick={() => handleSave(preset.id, typeName)}
                             disabled={savingMap[typeName]}
                             className="text-green-600 hover:text-green-700 hover:bg-green-50/80 font-semibold"
                           >
