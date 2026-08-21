@@ -839,7 +839,7 @@ export function SaturdayViewClient({
           if (!val) setTimeout(() => setSuccessLabourData(null), 300);
         }}
       >
-        <SheetContent className="sm:max-w-md overflow-y-auto">
+        <SheetContent className="max-w-xl overflow-y-auto p-4">
           {successLabourData ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4 mt-6">
               <CheckCircle2 className="h-14 w-14 text-emerald-500" />
@@ -872,7 +872,7 @@ export function SaturdayViewClient({
             </div>
           ) : (
             <>
-              <SheetHeader>
+              <SheetHeader className="p-0">
                 <SheetTitle>Record Labour Payment</SheetTitle>
                 <SheetDescription>
                   Log an outgoing weekly settlement payment to labour contractor{" "}
@@ -900,7 +900,7 @@ export function SaturdayViewClient({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-700">
                       Payment Amount (₹) *
@@ -925,7 +925,7 @@ export function SaturdayViewClient({
                       type="date"
                       required
                       defaultValue={today.toISOString().split("T")[0]}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                   </div>
                 </div>
@@ -959,11 +959,21 @@ export function SaturdayViewClient({
 
                 <SheetFooter className="mt-6 pt-2 border-t flex items-center justify-end gap-2">
                   <SheetClose
-                    render={<Button variant="outline" type="button" />}
+                    render={
+                      <Button
+                        variant="outline"
+                        type="button"
+                        className="w-full bg-white"
+                      />
+                    }
                   >
                     Cancel
                   </SheetClose>
-                  <Button type="submit" disabled={savingLabour}>
+                  <Button
+                    className="w-full"
+                    type="submit"
+                    disabled={savingLabour}
+                  >
                     {savingLabour ? "Saving..." : "Log Payment"}
                   </Button>
                 </SheetFooter>
