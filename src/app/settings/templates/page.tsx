@@ -37,11 +37,11 @@ export default function TemplatesPage() {
   const [addingGroup, setAddingGroup] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isInitialRender = false) => {
+    if (isInitialRender) setLoading(true);
     try {
       const [tplRes, grpRes] = await Promise.all([
         fetch("/api/boq-templates"),
@@ -52,7 +52,7 @@ export default function TemplatesPage() {
     } catch (e) {
       console.error("Error fetching data:", e);
     } finally {
-      setLoading(false);
+      if (isInitialRender) setLoading(false);
     }
   };
 
@@ -221,7 +221,7 @@ export default function TemplatesPage() {
           body: JSON.stringify({ sortOrder: currentSection.sortOrder }),
         }),
       ]);
-      fetchData();
+      fetchData(); // Silently syncs state in the background
     } catch (e) {
       fetchData();
     }
@@ -351,7 +351,7 @@ export default function TemplatesPage() {
           body: JSON.stringify({ sortOrder: currentItem.sortOrder }),
         }),
       ]);
-      fetchData();
+      fetchData(); // Silently syncs state in the background
     } catch (e) {
       fetchData();
     }
