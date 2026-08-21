@@ -159,7 +159,7 @@ export default function SiteExpensesPage({
     totalPettyCash + totalLabour + totalMaterials + totalVendor;
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-2 md:p-4 max-w-7xl mx-auto space-y-6">
       <Link
         href={`/projects/${projectId}`}
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
@@ -347,56 +347,67 @@ export default function SiteExpensesPage({
       </div>
 
       {/* Categorized Line Item Tables */}
-      <Tabs defaultValue="labour" className="w-full space-y-4">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-slate-100 p-1.5 rounded-lg justify-start">
+      <Tabs defaultValue="labour" className="w-full space-y-6">
+        <TabsList className="grid !h-auto w-full grid-cols-2 lg:grid-cols-4 items-stretch gap-1.5 bg-slate-100 p-1.5 rounded-lg">
           <TabsTrigger
             value="labour"
-            className="flex items-center gap-2 py-2 px-4 max-sm:text-xs h-10 min-w-[140px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-orange-700"
+            className="flex h-auto min-w-0 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-xs sm:text-sm font-medium leading-tight whitespace-normal text-center cursor-pointer data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-orange-700"
           >
-            <HardHat className="h-4 w-4 text-orange-600" />
-            <span>Labour (Wages)</span>
+            <HardHat className="h-4 w-4 shrink-0 text-orange-600" />
+            <span>
+              Labour <span className="hidden xl:inline">(wages)</span>
+            </span>
             <Badge
               variant="secondary"
-              className="ml-1 text-xs bg-orange-100 text-orange-800"
+              className="shrink-0 text-[10px] bg-orange-100 text-orange-800 font-mono px-1.5"
             >
               {labourEntries.length}
             </Badge>
           </TabsTrigger>
+
           <TabsTrigger
             value="petty_cash"
-            className="flex items-center gap-2 py-2 px-4 max-sm:text-xs h-10 min-w-[140px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-red-700"
+            className="flex h-auto min-w-0 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-xs sm:text-sm font-medium leading-tight whitespace-normal text-center cursor-pointer data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-red-700"
           >
-            <Receipt className="h-4 w-4 text-red-600" />
-            <span>General Site Expenses</span>
+            <Receipt className="h-4 w-4 shrink-0 text-red-600" />
+            <span>
+              <span className="hidden xl:inline">General Site </span>Expenses
+            </span>
             <Badge
               variant="secondary"
-              className="ml-1 text-xs bg-red-100 text-red-800"
+              className="shrink-0 text-[10px] bg-red-100 text-red-800 font-mono px-1.5"
             >
               {expenses.length}
             </Badge>
           </TabsTrigger>
+
           <TabsTrigger
             value="materials"
-            className="flex items-center gap-2 py-2 px-4 max-sm:text-xs h-10 min-w-[140px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-700"
+            className="flex h-auto min-w-0 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-xs sm:text-sm font-medium leading-tight whitespace-normal text-center cursor-pointer data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-700"
           >
-            <Package className="h-4 w-4 text-blue-600" />
-            <span>Materials Issued</span>
+            <Package className="h-4 w-4 shrink-0 text-blue-600" />
+            <span>
+              Materials <span className="hidden xl:inline">Issued</span>
+            </span>
             <Badge
               variant="secondary"
-              className="ml-1 text-xs bg-blue-100 text-blue-800"
+              className="shrink-0 text-[10px] bg-blue-100 text-blue-800 font-mono px-1.5"
             >
               {materials.length}
             </Badge>
           </TabsTrigger>
+
           <TabsTrigger
             value="vendor"
-            className="flex items-center gap-2 py-2 px-4 max-sm:text-xs h-10 min-w-[140px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-amber-700"
+            className="flex h-auto min-w-0 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-xs sm:text-sm font-medium leading-tight whitespace-normal text-center cursor-pointer data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-amber-700"
           >
-            <Store className="h-4 w-4 text-amber-600" />
-            <span>Vendor Transactions</span>
+            <Store className="h-4 w-4 shrink-0 text-amber-600" />
+            <span>
+              <span className="hidden xl:inline">Vendor</span> Transactions
+            </span>
             <Badge
               variant="secondary"
-              className="ml-1 text-xs bg-amber-100 text-amber-800"
+              className="shrink-0 text-[10px] bg-amber-100 text-amber-800 font-mono px-1.5"
             >
               {vendorTxns.length}
             </Badge>
