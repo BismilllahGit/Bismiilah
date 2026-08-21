@@ -86,7 +86,7 @@ export default function ProjectTabNavigation({
     ) || tabs[0];
 
   return (
-    <div className="border-b bg-white">
+    <div className="border-b lg:bg-white">
       {/* Mobile & Tablet Dropdown Section Switcher (below lg breakpoint) */}
       <div className="lg:hidden py-3 px-2">
         <Select
