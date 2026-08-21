@@ -315,7 +315,7 @@ export default function DailyLabourPage({
             </Button>
             <SheetContent
               side="right"
-              className="w-full sm:max-w-xl overflow-y-auto p-4"
+              className="w-full sm:max-w-xl overflow-y-auto p-4 lg:min-w-2xl"
             >
               <SheetHeader className="p-0">
                 <SheetTitle>Log Daily Labour</SheetTitle>
@@ -342,7 +342,7 @@ export default function DailyLabourPage({
                       required
                       value={formDate}
                       onChange={(e) => setFormDate(e.target.value)}
-                      className="w-48"
+                      className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                   </div>
 
