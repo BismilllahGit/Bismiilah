@@ -172,7 +172,9 @@ export default function ProjectTasksClient({
   return (
     <div className="space-y-6 pb-20">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Project Checklist</h2>
+        <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">
+          Project Checklist
+        </h2>
         <Button onClick={() => setIsAddOpen(true)} className="gap-2 shadow-sm">
           <Plus className="h-4 w-4" /> Add Task
         </Button>

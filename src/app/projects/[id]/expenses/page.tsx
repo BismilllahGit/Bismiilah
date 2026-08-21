@@ -170,7 +170,7 @@ export default function SiteExpensesPage({
 
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Site Expenses & Buy-Side Costs
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -182,7 +182,7 @@ export default function SiteExpensesPage({
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
             render={
-              <Button className="flex items-center gap-2 max-sm:w-full justify-center h-10" />
+              <Button className="flex items-center gap-2 max-sm:w-full justify-center h-8" />
             }
           >
             <Plus className="h-4 w-4" /> Log Petty Cash Expense
