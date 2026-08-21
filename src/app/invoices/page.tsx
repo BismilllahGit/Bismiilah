@@ -822,10 +822,7 @@ export default function InvoicesPage() {
                     <h3 className="font-bold mb-2">Payment History</h3>
                     <div className="space-y-2 text-sm">
                       {selectedInvoice.clientPayments.map((p, idx) => (
-                        <div
-                          key={idx}
-                          className="flex justify-between border-b pb-1"
-                        >
+                        <div key={idx} className="flex justify-between pb-1">
                           <span>
                             {new Date(p.paymentDate).toLocaleDateString()} -{" "}
                             {p.method}
