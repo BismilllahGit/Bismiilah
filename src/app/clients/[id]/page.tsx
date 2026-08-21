@@ -273,7 +273,7 @@ export default function ClientDetailPage({
     ) || [];
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <Link
         href="/clients"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"

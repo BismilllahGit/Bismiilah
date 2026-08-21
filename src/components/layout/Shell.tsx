@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GlobalTaskNotification } from "./GlobalTaskNotification";
+import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Projects", href: "/projects", icon: Building2 },
@@ -37,6 +38,28 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Function to start the 5-second countdown
+  const startTimer = React.useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setIsCollapsed(true);
+    }, 5000);
+  }, []);
+
+  // Function to pause the countdown
+  const stopTimer = React.useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  }, []);
+
+  // Start the timer whenever the sidebar is open
+  React.useEffect(() => {
+    if (!isCollapsed) {
+      startTimer();
+    }
+    return () => stopTimer(); // Cleanup on unmount
+  }, [isCollapsed, startTimer, stopTimer]);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 md:flex-row">
@@ -98,6 +121,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       <div
+        onMouseEnter={stopTimer}
+        onMouseLeave={() => {
+          if (!isCollapsed) startTimer();
+        }}
         className={`hidden shrink-0 border-r bg-white md:block top-0 h-100vh transition-all duration-300 ease-in-out relative ${
           isCollapsed ? "w-16" : "w-56 lg:w-67.5"
         }`}
@@ -106,7 +133,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           variant="outline"
           size="icon"
           className="absolute -right-4 top-20 z-10 h-8 w-8 rounded-full bg-white shadow-sm cursor-pointer"
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => {
+            setIsCollapsed(!isCollapsed);
+            // Manually clicking it open resets the timer
+            if (isCollapsed) startTimer();
+          }}
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -136,13 +167,23 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {!isCollapsed && <GlobalTaskNotification />}
         </div>
         <ScrollArea className="h-[calc(100vh-60px)]">
-          <div className="flex-1 overflow-auto py-4">
+          <div
+            className={cn(
+              "flex-1 overflow-auto py-4",
+              !isCollapsed && "min-w-[253px]",
+            )}
+          >
             <nav className="grid items-start px-2 text-sm font-medium gap-1">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
                   title={isCollapsed ? item.name : undefined}
+                  onClick={(e) => {
+                    if (isCollapsed) {
+                      setIsCollapsed(false);
+                    }
+                  }}
                   className={`flex items-center rounded-lg py-2.5 transition-all hover:text-primary ${
                     pathname.startsWith(item.href)
                       ? "bg-muted text-primary font-semibold"

@@ -101,7 +101,7 @@ export default function ExtraWorkPage({
     .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <Link
         href={`/projects/${projectId}`}
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
