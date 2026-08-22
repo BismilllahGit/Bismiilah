@@ -44,11 +44,15 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  nativeButton,
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
     <ButtonPrimitive
       data-slot="button"
+      render={render}
+      nativeButton={nativeButton ?? render === undefined}
       className={cn(
         "cursor-pointer",
         buttonVariants({ variant, size, className }),
