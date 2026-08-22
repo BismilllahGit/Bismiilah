@@ -3,7 +3,16 @@
 import { useEffect, useState, use } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus } from "lucide-react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 import { CheckCircle2 } from "lucide-react";
@@ -24,33 +33,44 @@ type LedgerData = {
   limit?: number;
 };
 
-export default function VendorLedgerPage({ params }: { params: Promise<{ id: string }> }) {
+export default function VendorLedgerPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const resolvedParams = use(params);
   const vendorId = resolvedParams.id;
-  
+
   const [vendor, setVendor] = useState<Contact | null>(null);
   const [ledgerData, setLedgerData] = useState<LedgerData | null>(null);
-  const [projects, setProjects] = useState<{id: string, name: string}[]>([]);
-  
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  
+
   const [successTxnData, setSuccessTxnData] = useState<any>(null);
   const [successLabourData, setSuccessLabourData] = useState<any>(null);
-  
+
   const [currentStart, setCurrentStart] = useState("");
   const [currentEnd, setCurrentEnd] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [currentSearch, setCurrentSearch] = useState("");
 
-  const fetchLedger = async (start = currentStart, end = currentEnd, contactType = vendor?.type, p = currentPage, search = currentSearch) => {
+  const fetchLedger = async (
+    start = currentStart,
+    end = currentEnd,
+    contactType = vendor?.type,
+    p = currentPage,
+    search = currentSearch,
+  ) => {
     setLoading(true);
-    let url = contactType === "LABOUR_CONTRACTOR" 
-      ? `/api/contacts/${vendorId}/labour-ledger` 
-      : `/api/contacts/${vendorId}/ledger`;
-      
+    let url =
+      contactType === "LABOUR_CONTRACTOR"
+        ? `/api/contacts/${vendorId}/labour-ledger`
+        : `/api/contacts/${vendorId}/ledger`;
+
     const query = new URLSearchParams();
     if (start) query.append("startDate", start);
     if (end) query.append("endDate", end);
@@ -75,7 +95,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
   const handleSaveTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
-    
+
     const formData = new FormData(e.currentTarget);
     const payload = {
       type: formData.get("type"),
@@ -112,10 +132,12 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleSaveLabourPayment = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveLabourPayment = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
     setSaving(true);
-    
+
     const formData = new FormData(e.currentTarget);
     const payload = {
       amount: Number(formData.get("amount")),
@@ -176,40 +198,62 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
   const isLabourContractor = vendor?.type === "LABOUR_CONTRACTOR";
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-      <Link href="/vendors" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <Link
+        href="/vendors"
+        className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
+      >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Vendors & Contractors
       </Link>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">{vendor?.name || "Loading..."}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">
+            {vendor?.name || "Loading..."}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1.5 flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="text-xs">{vendor?.type}</Badge>
-            {vendor?.phone && <span className="text-xs sm:text-sm font-medium">{vendor.phone}</span>}
+            <Badge variant="outline" className="text-xs">
+              {vendor?.type}
+            </Badge>
+            {vendor?.phone && (
+              <span className="text-xs sm:text-sm font-medium">
+                {vendor.phone}
+              </span>
+            )}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {isLabourContractor ? (
-            <Sheet open={paymentOpen} onOpenChange={(val) => {
-              setPaymentOpen(val);
-              if (!val) setTimeout(() => setSuccessLabourData(null), 300);
-            }}>
-              <SheetTrigger render={<Button className="flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm" />}>
+            <Sheet
+              open={paymentOpen}
+              onOpenChange={(val) => {
+                setPaymentOpen(val);
+                if (!val) setTimeout(() => setSuccessLabourData(null), 300);
+              }}
+            >
+              <SheetTrigger
+                render={
+                  <Button className="flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm" />
+                }
+              >
                 <Plus className="h-4 w-4" /> Add Payment
               </SheetTrigger>
-              <SheetContent className="sm:max-w-md overflow-y-auto">
+              <SheetContent className="sm:max-w-md overflow-y-auto p-4">
                 {successLabourData ? (
                   <div className="flex flex-col items-center justify-center py-12 space-y-4 mt-6">
                     <CheckCircle2 className="h-14 w-14 text-emerald-500" />
-                    <h3 className="text-xl font-bold text-slate-800">Payment Recorded!</h3>
+                    <h3 className="text-xl font-bold text-slate-800">
+                      Payment Recorded!
+                    </h3>
                     <p className="text-slate-500 text-center text-sm px-4">
-                      Successfully logged ₹{successLabourData.amount.toLocaleString()} payment to {successLabourData.contractorName}.
+                      Successfully logged ₹
+                      {successLabourData.amount.toLocaleString()} payment to{" "}
+                      {successLabourData.contractorName}.
                     </p>
                     <div className="pt-6 w-full space-y-3">
-                      <ShareViaWhatsAppButton 
+                      <ShareViaWhatsAppButton
                         phone={successLabourData.contractorPhone}
                         message={`Hi ${successLabourData.contractorName}, I've paid ₹${successLabourData.amount} on ${new Date(successLabourData.paymentDate).toLocaleDateString()} for labour supplied. Thank you — Bismillah Construction`}
                         onShare={() => setPaymentOpen(false)}
@@ -219,31 +263,67 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
                         referenceId={successLabourData.id || "unknown"}
                         referenceType="DailyLabourEntry"
                       />
-                      <Button variant="outline" className="w-full font-bold h-11 shadow-sm" onClick={() => setPaymentOpen(false)}>Close</Button>
+                      <Button
+                        variant="outline"
+                        className="w-full font-bold h-11 shadow-sm"
+                        onClick={() => setPaymentOpen(false)}
+                      >
+                        Close
+                      </Button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <SheetHeader>
+                    <SheetHeader className="p-0">
                       <SheetTitle>Log Labour Payment</SheetTitle>
                       <SheetDescription>
-                        Record a payment out made to labour contractor {vendor?.name}.
+                        Record a payment out made to labour contractor{" "}
+                        {vendor?.name}.
                       </SheetDescription>
                     </SheetHeader>
-                    <form onSubmit={handleSaveLabourPayment} className="space-y-4 mt-6">
-                      <div className="grid grid-cols-2 gap-4">
+                    <form
+                      onSubmit={handleSaveLabourPayment}
+                      className="space-y-4 mt-6"
+                    >
+                      <div className="grid md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Amount (₹) *</label>
-                          <input name="amount" type="number" step="0.01" min="0.01" required className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm font-mono" placeholder="0.00" />
+                          <label className="text-sm font-medium">
+                            Amount (₹) *
+                          </label>
+                          <input
+                            name="amount"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            required
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm font-mono"
+                            placeholder="0.00"
+                          />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Payment Date *</label>
-                          <input name="paymentDate" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+                          <label className="text-sm font-medium">
+                            Payment Date *
+                          </label>
+                          <input
+                            name="paymentDate"
+                            type="date"
+                            required
+                            defaultValue={
+                              new Date().toISOString().split("T")[0]
+                            }
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                          />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Payment Method *</label>
-                        <select name="method" defaultValue="CASH" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                        <label className="text-sm font-medium">
+                          Payment Method *
+                        </label>
+                        <select
+                          name="method"
+                          defaultValue="CASH"
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                        >
                           <option value="CASH">Cash</option>
                           <option value="BANK_TRANSFER">Bank Transfer</option>
                           <option value="UPI">UPI</option>
@@ -251,11 +331,19 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Note / Description</label>
-                        <input name="note" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" placeholder="Weekly settlement advance..." />
+                        <label className="text-sm font-medium">
+                          Note / Description
+                        </label>
+                        <input
+                          name="note"
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                          placeholder="Weekly settlement advance..."
+                        />
                       </div>
                       <SheetFooter className="mt-6">
-                        <SheetClose render={<Button variant="outline" type="button" />}>
+                        <SheetClose
+                          render={<Button variant="outline" type="button" />}
+                        >
                           Cancel
                         </SheetClose>
                         <Button type="submit" disabled={saving}>
@@ -268,85 +356,164 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
               </SheetContent>
             </Sheet>
           ) : (
-            <Sheet open={open} onOpenChange={(val) => {
-              setOpen(val);
-              if (!val) setTimeout(() => setSuccessTxnData(null), 300);
-              if (val && projects.length === 0) {
-                fetch("/api/projects").then(r => { if (r.ok) r.json().then(setProjects); });
-              }
-            }}>
-              <SheetTrigger render={<Button className="flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm" />}>
+            <Sheet
+              open={open}
+              onOpenChange={(val) => {
+                setOpen(val);
+                if (!val) setTimeout(() => setSuccessTxnData(null), 300);
+                if (val && projects.length === 0) {
+                  fetch("/api/projects").then((r) => {
+                    if (r.ok) r.json().then(setProjects);
+                  });
+                }
+              }}
+            >
+              <SheetTrigger
+                render={
+                  <Button className="flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm" />
+                }
+              >
                 <Plus className="h-4 w-4" /> Add Transaction
               </SheetTrigger>
-              <SheetContent className="sm:max-w-md overflow-y-auto">
+              <SheetContent className="sm:max-w-md overflow-y-auto p-4">
                 {successTxnData ? (
                   <div className="flex flex-col items-center justify-center py-12 space-y-4 mt-6">
                     <CheckCircle2 className="h-14 w-14 text-emerald-500" />
-                    <h3 className="text-xl font-bold text-slate-800">Transaction Recorded!</h3>
+                    <h3 className="text-xl font-bold text-slate-800">
+                      Transaction Recorded!
+                    </h3>
                     <p className="text-slate-500 text-center text-sm px-4">
-                      Successfully logged {successTxnData.type === 'PAYMENT' ? `₹${successTxnData.amount.toLocaleString()} payment to` : `a purchase from`} {successTxnData.vendorName}.
+                      Successfully logged{" "}
+                      {successTxnData.type === "PAYMENT"
+                        ? `₹${successTxnData.amount.toLocaleString()} payment to`
+                        : `a purchase from`}{" "}
+                      {successTxnData.vendorName}.
                     </p>
                     <div className="pt-6 w-full space-y-3">
-                      <ShareViaWhatsAppButton 
+                      <ShareViaWhatsAppButton
                         phone={successTxnData.vendorPhone}
-                        message={successTxnData.type === 'PAYMENT' 
-                          ? `Hi ${successTxnData.vendorName}, I've paid ₹${successTxnData.amount} on ${new Date(successTxnData.date).toLocaleDateString()} for ${successTxnData.description || successTxnData.note || "materials"}. Thank you — Bismillah Construction`
-                          : `Hi ${successTxnData.vendorName}, I've purchased ${successTxnData.description || successTxnData.note || "materials"} from you — amount: ₹${successTxnData.amount}, on ${new Date(successTxnData.date).toLocaleDateString()}. — Bismillah Construction`}
+                        message={
+                          successTxnData.type === "PAYMENT"
+                            ? `Hi ${successTxnData.vendorName}, I've paid ₹${successTxnData.amount} on ${new Date(successTxnData.date).toLocaleDateString()} for ${successTxnData.description || successTxnData.note || "materials"}. Thank you — Bismillah Construction`
+                            : `Hi ${successTxnData.vendorName}, I've purchased ${successTxnData.description || successTxnData.note || "materials"} from you — amount: ₹${successTxnData.amount}, on ${new Date(successTxnData.date).toLocaleDateString()}. — Bismillah Construction`
+                        }
                         onShare={() => setOpen(false)}
                         className="w-full font-bold h-11"
                         size="lg"
-                        logType={successTxnData.type === 'PAYMENT' ? "VENDOR_PAYMENT" : "VENDOR_PURCHASE"}
+                        logType={
+                          successTxnData.type === "PAYMENT"
+                            ? "VENDOR_PAYMENT"
+                            : "VENDOR_PURCHASE"
+                        }
                         referenceId={successTxnData.id || "unknown"}
                         referenceType="VendorTransaction"
                       />
-                      <Button variant="outline" className="w-full font-bold h-11 shadow-sm" onClick={() => setOpen(false)}>Close</Button>
+                      <Button
+                        variant="outline"
+                        className="w-full font-bold h-11 shadow-sm"
+                        onClick={() => setOpen(false)}
+                      >
+                        Close
+                      </Button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <SheetHeader>
+                    <SheetHeader className="p-0">
                       <SheetTitle>Log Vendor Transaction</SheetTitle>
                       <SheetDescription>
-                        Record a material purchase or a payment made to {vendor?.name}.
+                        Record a material purchase or a payment made to{" "}
+                        {vendor?.name}.
                       </SheetDescription>
                     </SheetHeader>
-                    <form onSubmit={handleSaveTransaction} className="space-y-4 mt-6">
+                    <form
+                      onSubmit={handleSaveTransaction}
+                      className="space-y-4 mt-6"
+                    >
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Transaction Type *</label>
+                        <label className="text-sm font-medium">
+                          Transaction Type *
+                        </label>
                         <div className="flex gap-4">
                           <label className="flex items-center gap-2 text-sm">
-                            <input type="radio" name="type" value="PURCHASE" required defaultChecked />
+                            <input
+                              type="radio"
+                              name="type"
+                              value="PURCHASE"
+                              required
+                              defaultChecked
+                            />
                             Purchase (Bill)
                           </label>
                           <label className="flex items-center gap-2 text-sm">
-                            <input type="radio" name="type" value="PAYMENT" required />
+                            <input
+                              type="radio"
+                              name="type"
+                              value="PAYMENT"
+                              required
+                            />
                             Payment Out
                           </label>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Amount (₹) *</label>
-                          <input name="amount" type="number" step="0.01" min="0.01" required className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm font-mono" placeholder="0.00" />
+                          <label className="text-sm font-medium">
+                            Amount (₹) *
+                          </label>
+                          <input
+                            name="amount"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            required
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm font-mono"
+                            placeholder="0.00"
+                          />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Date *</label>
-                          <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+                          <input
+                            name="date"
+                            type="date"
+                            required
+                            defaultValue={
+                              new Date().toISOString().split("T")[0]
+                            }
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                          />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Project (Optional)</label>
-                        <select name="projectId" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                        <label className="text-sm font-medium">
+                          Project (Optional)
+                        </label>
+                        <select
+                          name="projectId"
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                        >
                           <option value="">-- No specific project --</option>
-                          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          {projects.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Description</label>
-                        <input name="description" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" placeholder="Bill number, items..." />
+                        <label className="text-sm font-medium">
+                          Description
+                        </label>
+                        <input
+                          name="description"
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                          placeholder="Bill number, items..."
+                        />
                       </div>
                       <SheetFooter className="mt-6">
-                        <SheetClose render={<Button variant="outline" type="button" />}>
+                        <SheetClose
+                          render={<Button variant="outline" type="button" />}
+                        >
                           Cancel
                         </SheetClose>
                         <Button type="submit" disabled={saving}>
@@ -366,14 +533,18 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
         <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              {isLabourContractor ? "Outstanding Payable Balance" : "Current Balance"}
+              {isLabourContractor
+                ? "Outstanding Payable Balance"
+                : "Current Balance"}
             </h3>
             <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 break-words">
                 {formatCurrency(ledgerData.closingBalance)}
               </span>
               <span className="text-xs sm:text-sm font-semibold text-slate-600">
-                {ledgerData.closingBalance >= 0 ? "(Payable)" : "(Receivable / Advance)"}
+                {ledgerData.closingBalance >= 0
+                  ? "(Payable)"
+                  : "(Receivable / Advance)"}
               </span>
             </div>
           </div>
@@ -387,7 +558,15 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
           totalDebit={ledgerData.totalDebit}
           totalCredit={ledgerData.totalCredit}
           closingBalance={ledgerData.closingBalance}
-          debitLabel={isLabourContractor ? "Labour Supplied (₹)" : "Debit (₹)"}
+          debitLabel={
+            isLabourContractor ? (
+              <>
+                Labour <span className="hidden xl:inline"> Supplied </span> (₹)
+              </>
+            ) : (
+              "Debit (₹)"
+            )
+          }
           creditLabel={isLabourContractor ? "Paid (₹)" : "Credit (₹)"}
           currencyOrUnit="currency"
           onDateRangeChange={handleDateRangeChange}
@@ -405,7 +584,9 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
           shareLinkType={isLabourContractor ? "labour_ledger" : "vendor_ledger"}
         />
       ) : (
-        <div className="text-center py-10 text-muted-foreground">Loading ledger...</div>
+        <div className="text-center py-10 text-muted-foreground">
+          Loading ledger...
+        </div>
       )}
     </div>
   );

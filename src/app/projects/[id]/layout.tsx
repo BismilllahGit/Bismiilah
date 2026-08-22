@@ -9,12 +9,12 @@ import { EditProjectDrawer } from "./ProjectClientActions";
 import ProjectTabNavigation from "./ProjectTabNavigation";
 import { getProjectBOQActuals } from "@/lib/queries/boq-queries";
 
-export default async function ProjectDetailLayout({ 
-  children, 
-  params 
-}: { 
-  children: React.ReactNode, 
-  params: Promise<{ id: string }> 
+export default async function ProjectDetailLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ id: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
@@ -25,9 +25,9 @@ export default async function ProjectDetailLayout({
     where: { id: resolvedParams.id },
     include: {
       projectTasks: {
-        where: { status: { not: "COMPLETED" } }
-      }
-    }
+        where: { status: { not: "COMPLETED" } },
+      },
+    },
   });
 
   if (!project) notFound();
@@ -35,17 +35,19 @@ export default async function ProjectDetailLayout({
   const unbilledExtraWorkCount = await prisma.extraWork.count({
     where: {
       projectId: project.id,
-      status: "UNBILLED"
-    }
+      status: "UNBILLED",
+    },
   });
 
   const boqActuals = await getProjectBOQActuals(project.id);
 
   const now = new Date();
-  const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const todayUTC = new Date(
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+  );
   let overdueCount = 0;
   let todayCount = 0;
-  project.projectTasks.forEach(task => {
+  project.projectTasks.forEach((task) => {
     const diffTime = new Date(task.targetDate).getTime() - todayUTC.getTime();
     const daysRemaining = Math.round(diffTime / (1000 * 60 * 60 * 24));
     if (daysRemaining < 0) overdueCount++;
@@ -62,39 +64,68 @@ export default async function ProjectDetailLayout({
       {/* Project Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="space-y-1">
-          <Link href="/projects" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary mb-2">
+          <Link
+            href="/projects"
+            className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary mb-2"
+          >
             <ArrowLeft className="mr-1 h-4 w-4" />
             Projects
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-            <Badge variant={project.status === "ACTIVE" ? "default" : project.status === "COMPLETED" ? "secondary" : "outline"}>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {project.name}
+            </h1>
+            <Badge
+              variant={
+                project.status === "ACTIVE"
+                  ? "default"
+                  : project.status === "COMPLETED"
+                    ? "secondary"
+                    : "outline"
+              }
+            >
               {project.status}
             </Badge>
             {unbilledExtraWorkCount > 0 && (
-              <Badge variant="destructive" className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200">
-                ⚠️ {unbilledExtraWorkCount} Unbilled Deviation{unbilledExtraWorkCount > 1 ? 's' : ''}
+              <Badge
+                variant="destructive"
+                className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200"
+              >
+                ⚠️ {unbilledExtraWorkCount} Unbilled Deviation
+                {unbilledExtraWorkCount > 1 ? "s" : ""}
               </Badge>
             )}
             {overdueCount > 0 && (
-              <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-300 hover:bg-red-200">
-                ⚠️ {overdueCount} task{overdueCount > 1 ? 's' : ''} overdue
+              <Badge
+                variant="destructive"
+                className="bg-red-100 text-red-800 border-red-300 hover:bg-red-200"
+              >
+                ⚠️ {overdueCount} task{overdueCount > 1 ? "s" : ""} overdue
               </Badge>
             )}
             {todayCount > 0 && (
-              <Badge variant="destructive" className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200">
-                📅 {todayCount} task{todayCount > 1 ? 's' : ''} due today
+              <Badge
+                variant="destructive"
+                className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200"
+              >
+                📅 {todayCount} task{todayCount > 1 ? "s" : ""} due today
               </Badge>
             )}
-            {(boqActuals.totalItemsOverBudget > 0 || boqActuals.isTargetBudgetExceeded) && (
-              <Badge variant="destructive" className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200">
+            {(boqActuals.totalItemsOverBudget > 0 ||
+              boqActuals.isTargetBudgetExceeded) && (
+              <Badge
+                variant="destructive"
+                className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200"
+              >
                 ⚠️{" "}
                 {boqActuals.totalItemsOverBudget > 0 && (
                   <span>
-                    {boqActuals.totalItemsOverBudget} BOQ item{boqActuals.totalItemsOverBudget > 1 ? "s" : ""} over budget
+                    {boqActuals.totalItemsOverBudget} BOQ item
+                    {boqActuals.totalItemsOverBudget > 1 ? "s" : ""} over budget
                   </span>
                 )}
-                {boqActuals.totalItemsOverBudget > 0 && boqActuals.isTargetBudgetExceeded && <span> • </span>}
+                {boqActuals.totalItemsOverBudget > 0 &&
+                  boqActuals.isTargetBudgetExceeded && <span> • </span>}
                 {boqActuals.isTargetBudgetExceeded && (
                   <span>Target budget ceiling exceeded</span>
                 )}
@@ -114,9 +145,7 @@ export default async function ProjectDetailLayout({
       <ProjectTabNavigation projectId={project.id} />
 
       {/* Tab Content */}
-      <div className="pt-2">
-        {children}
-      </div>
+      <div className="pt-2">{children}</div>
     </div>
   );
 }
