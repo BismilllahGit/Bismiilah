@@ -48,3 +48,10 @@ export interface EmptyStateProps {
   actionLabel: string;
   actionHref: string;
 }
+
+export interface Worker {
+  id: string;
+  name: string;
+  type: string;
+  isActive: boolean;
+}

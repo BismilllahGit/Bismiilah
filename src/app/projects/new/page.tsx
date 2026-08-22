@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import {
   Card,
   CardContent,
@@ -11,74 +14,45 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { useEffect } from "react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
+
+import { useWorkers } from "@/hooks/use-workers";
+import { useCreateProject } from "@/hooks/use-create-project";
+import {
+  projectFormSchema,
+  ProjectFormValues,
+} from "@/lib/schemas/project.schema";
+import { CheckboxCard } from "@/components/ui/checkbox-card";
 
 export default function NewProjectPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [workers, setWorkers] = useState<any[]>([]);
-  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
+  const { workers, isLoading: isLoadingWorkers } = useWorkers();
+  const { createProject, isSubmitting, error } = useCreateProject();
 
-  useEffect(() => {
-    fetch("/api/worker-types")
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error(`API returned status: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setWorkers(data.filter((w) => w.isActive));
-        } else {
-          console.warn("Expected array of workers, got:", data);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to fetch workers:", err);
-        setWorkers([]);
-      });
-  }, []);
+  const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: {
+      name: "",
+      location: "",
+      description: "",
+      budget: undefined,
+      startDate: "",
+      endDate: "",
+      assignedStaff: [],
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const formData = new FormData(e.currentTarget);
-    const payload = {
-      name: formData.get("name"),
-      location: formData.get("location"),
-      description: formData.get("description"),
-      budget: formData.get("budget")
-        ? Number(formData.get("budget"))
-        : undefined,
-      startDate: formData.get("startDate") || undefined,
-      endDate: formData.get("endDate") || undefined,
-      assignedStaff: selectedWorkers,
-    };
-
-    try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create project");
-      }
-
-      router.push("/projects");
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-    }
+  const onSubmit = (data: ProjectFormValues) => {
+    createProject(data);
   };
 
   return (
@@ -98,147 +72,198 @@ export default function NewProjectPage() {
             Enter the details for the new construction site.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" id="project-form">
-            {error && (
-              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                {error}
-              </div>
-            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="name">
-                  Project Name *
-                </label>
-                <input
-                  id="name"
+        <Form {...form}>
+          <CardContent>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              id="project-form"
+              className="space-y-4"
+            >
+              {error && (
+                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                  {error}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
                   name="name"
-                  required
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="e.g. Anna Nagar Site"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Project Name *
+                      </FormLabel>
+                      <FormControl>
+                        <CustomInput
+                          placeholder="e.g. Anna Nagar Site"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="location">
-                  Location *
-                </label>
-                <input
-                  id="location"
+                <FormField
+                  control={form.control}
                   name="location"
-                  required
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="e.g. Chennai, TN"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Location *
+                      </FormLabel>
+                      <FormControl>
+                        <CustomInput placeholder="e.g. Kochi, KL" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="description">
-                Description
-              </label>
-              <textarea
-                id="description"
+              <FormField
+                control={form.control}
                 name="description"
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Brief details about the project..."
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="budget">
-                  Estimated Budget (₹)
-                </label>
-                <input
-                  id="budget"
-                  name="budget"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="startDate">
-                  Start Date
-                </label>
-                <input
-                  id="startDate"
-                  name="startDate"
-                  type="date"
-                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="endDate">
-                  Expected End Date
-                </label>
-                <input
-                  id="endDate"
-                  name="endDate"
-                  type="date"
-                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-4 border-t">
-              <label className="text-sm font-medium">
-                Assign Staff (Initial)
-              </label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Select workers to assign to this site immediately. You can
-                always change this later.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto p-2 border rounded-md">
-                {workers.map((w) => (
-                  <label
-                    key={w.id}
-                    className="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded cursor-pointer border border-transparent hover:border-slate-200"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedWorkers.includes(w.id)}
-                      onChange={(e) => {
-                        if (e.target.checked)
-                          setSelectedWorkers((prev) => [...prev, w.id]);
-                        else
-                          setSelectedWorkers((prev) =>
-                            prev.filter((id) => id !== w.id),
-                          );
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{w.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {w.type}
-                      </span>
-                    </div>
-                  </label>
-                ))}
-                {workers.length === 0 && (
-                  <span className="text-sm text-muted-foreground">
-                    Loading workers...
-                  </span>
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">
+                      Description
+                    </FormLabel>
+                    <FormControl>
+                      <CustomTextarea
+                        placeholder="Brief details about the project..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="budget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Estimated Budget (₹)
+                      </FormLabel>
+                      <FormControl>
+                        <CustomInput
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Start Date
+                      </FormLabel>
+                      <FormControl>
+                        <CustomInput type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Expected End Date
+                      </FormLabel>
+                      <FormControl>
+                        <CustomInput type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-            </div>
-          </form>
-        </CardContent>
+
+              <FormField
+                control={form.control}
+                name="assignedStaff"
+                render={() => (
+                  <div className="pt-4 border-t space-y-2">
+                    <div>
+                      <FormLabel className="text-sm font-medium">
+                        Assign Staff (Initial)
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground mb-2 mt-1">
+                        Select workers to assign to this site immediately. You
+                        can always change this later.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-50 overflow-y-auto p-2 border rounded-md">
+                      {isLoadingWorkers ? (
+                        <span className="text-sm text-muted-foreground p-2">
+                          Loading workers...
+                        </span>
+                      ) : (
+                        workers.map((worker) => (
+                          <FormField
+                            key={worker.id}
+                            control={form.control}
+                            name="assignedStaff"
+                            render={({ field }) => (
+                              <CheckboxCard
+                                title={worker.name}
+                                subtitle={worker.type}
+                                checked={field.value?.includes(worker.id)}
+                                onChange={(e) => {
+                                  return e.target.checked
+                                    ? field.onChange([
+                                        ...(field.value || []),
+                                        worker.id,
+                                      ])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== worker.id,
+                                        ),
+                                      );
+                                }}
+                              />
+                            )}
+                          />
+                        ))
+                      )}
+                    </div>
+                    <FormMessage />
+                  </div>
+                )}
+              />
+            </form>
+          </CardContent>
+        </Form>
+
         <CardFooter className="flex justify-end gap-2">
           <Link href="/projects">
-            <Button variant="outline" type="button" disabled={loading}>
+            <Button variant="outline" type="button" disabled={isSubmitting}>
               Cancel
             </Button>
           </Link>
-          <Button type="submit" form="project-form" disabled={loading}>
-            {loading ? "Saving..." : "Create Project"}
+          <Button type="submit" form="project-form" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Create Project"}
           </Button>
         </CardFooter>
       </Card>
