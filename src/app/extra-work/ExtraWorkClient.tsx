@@ -32,7 +32,6 @@ export default function ExtraWorkClient({
   const [projectFilter, setProjectFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  // FIXED: Cast to String() to prevent silent integer-to-string strict equality failures
   const filteredWork = extraWork.filter((w) => {
     const pMatch =
       projectFilter === "ALL" || String(w.projectId) === String(projectFilter);
@@ -112,7 +111,6 @@ export default function ExtraWorkClient({
           }}
         >
           <SelectTrigger className="w-full sm:w-[250px] max-sm:h-11 max-sm:text-sm bg-white">
-            {/* FIXED: Explicitly dictate the text to render to prevent blank UI states */}
             <SelectValue placeholder="Filter by Project">
               {projectFilter === "ALL"
                 ? "All Projects"
@@ -143,7 +141,6 @@ export default function ExtraWorkClient({
           }}
         >
           <SelectTrigger className="w-full sm:w-[200px] max-sm:h-11 max-sm:text-sm bg-white">
-            {/* FIXED: Explicit display value for the status select */}
             <SelectValue placeholder="Filter by Status">
               {statusFilter === "ALL" ? "All Statuses" : statusFilter}
             </SelectValue>
@@ -183,15 +180,18 @@ export default function ExtraWorkClient({
               key={w.id}
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
             >
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
+              {/* FIXED: Changed alignment to items-start, added flex-1 and min-w-0 to the Link, and added break-all/line-clamp to the text span */}
+              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
                 <Link
                   href={`/projects/${w.projectId}`}
-                  className="flex items-center gap-1.5 font-bold text-slate-900 hover:text-blue-600 text-base break-words"
+                  className="flex items-start gap-1.5 font-bold text-slate-900 hover:text-blue-600 text-base flex-1 min-w-0"
                 >
-                  <MapPin className="h-4 w-4 text-slate-500 shrink-0" />
-                  {w.project?.name || "Unknown Project"}
+                  <MapPin className="h-4 w-4 text-slate-500 shrink-0 mt-0.5" />
+                  <span className="line-clamp-2 break-all">
+                    {w.project?.name || "Unknown Project"}
+                  </span>
                 </Link>
-                <span className="text-xs font-medium text-slate-500 shrink-0">
+                <span className="text-xs font-medium text-slate-500 shrink-0 mt-1 whitespace-nowrap">
                   {new Date(w.date).toLocaleDateString()}
                 </span>
               </div>
