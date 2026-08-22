@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { use, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, Plus, NotepadText } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import {
   Table,
   TableBody,
@@ -10,7 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, NotepadText } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,13 +25,24 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
-import Link from "next/link";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
-type Activity = {
-  id: string;
-  date: string;
-  description: string;
-};
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
+
+import { useActivities } from "@/hooks/use-activities";
+import { useCreateActivity } from "@/hooks/use-create-activity";
+import {
+  activityFormSchema,
+  ActivityFormValues,
+} from "@/lib/schemas/activity.schema";
 
 export default function SiteActivityPage({
   params,
@@ -37,50 +52,42 @@ export default function SiteActivityPage({
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
 
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const fetchActivities = async () => {
-    setLoading(true);
-    const res = await fetch(`/api/projects/${projectId}/activity`);
-    if (res.ok) setActivities(await res.json());
-    setLoading(false);
+  const { activities, isLoading, refetch } = useActivities(projectId);
+
+  const form = useForm<ActivityFormValues>({
+    resolver: zodResolver(activityFormSchema),
+    defaultValues: {
+      date: new Date().toISOString().split("T")[0],
+      description: "",
+    },
+  });
+
+  const { createActivity, isSubmitting, error } = useCreateActivity(
+    projectId,
+    () => {
+      setOpen(false);
+      form.reset({
+        date: new Date().toISOString().split("T")[0],
+        description: "",
+      });
+      refetch();
+    },
+  );
+
+  const onSubmit = (data: ActivityFormValues) => {
+    createActivity(data);
   };
 
-  useEffect(() => {
-    fetchActivities();
-  }, [projectId]);
-
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSaving(true);
-
-    const formData = new FormData(e.currentTarget);
-    const payload = {
-      date: formData.get("date"),
-      description: formData.get("description"),
-    };
-
-    try {
-      const res = await fetch(`/api/projects/${projectId}/activity`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+  // Reset form when modal closes without submitting
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      form.reset({
+        date: new Date().toISOString().split("T")[0],
+        description: "",
       });
-
-      if (res.ok) {
-        setOpen(false);
-        fetchActivities();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to log activity");
-      }
-    } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -104,10 +111,11 @@ export default function SiteActivityPage({
           </p>
         </div>
 
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet open={open} onOpenChange={handleOpenChange}>
           <SheetTrigger render={<Button className="flex items-center gap-2" />}>
             <Plus className="h-4 w-4" /> Log Activity
           </SheetTrigger>
+
           <SheetContent className="sm:max-w-md p-4">
             <SheetHeader className="p-0">
               <SheetTitle>Log Site Activity</SheetTitle>
@@ -115,44 +123,74 @@ export default function SiteActivityPage({
                 Record daily progress or incidents.
               </SheetDescription>
             </SheetHeader>
-            <form onSubmit={handleSave} className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Date *</label>
-                <input
+
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4 mt-6"
+              >
+                {error && (
+                  <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                    {error}
+                  </div>
+                )}
+
+                <FormField
+                  control={form.control}
                   name="date"
-                  type="date"
-                  required
-                  defaultValue={new Date().toISOString().split("T")[0]}
-                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Date *
+                      </FormLabel>
+                      <FormControl>
+                        <CustomInput type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description *</label>
-                <textarea
+
+                <FormField
+                  control={form.control}
                   name="description"
-                  required
-                  rows={5}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
-                  placeholder="e.g. Plastering completed on the second floor. Electrician started wiring..."
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Description *
+                      </FormLabel>
+                      <FormControl>
+                        <CustomTextarea
+                          rows={5}
+                          placeholder="e.g. Plastering completed on the second floor..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <SheetFooter className="mt-6">
-                <SheetClose
-                  render={
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={() => setOpen(false)}
-                    />
-                  }
-                >
-                  Cancel
-                </SheetClose>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Saving..." : "Save Log"}
-                </Button>
-              </SheetFooter>
-            </form>
+
+                <SheetFooter className="mt-6">
+                  {/* Base UI standard for close triggers */}
+                  <SheetClose
+                    render={
+                      <Button
+                        variant="outline"
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => setOpen(false)}
+                      />
+                    }
+                  >
+                    Cancel
+                  </SheetClose>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Saving..." : "Save Log"}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </Form>
           </SheetContent>
         </Sheet>
       </div>
@@ -166,7 +204,7 @@ export default function SiteActivityPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell
                   colSpan={2}
