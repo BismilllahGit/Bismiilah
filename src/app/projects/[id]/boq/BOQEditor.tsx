@@ -27,6 +27,7 @@ import {
   Layers,
   Settings,
   CheckCircle2,
+  Edit,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -605,6 +606,35 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
     }
   };
 
+  // NEW EDIT/UNLOCK FUNCTIONALITY
+  const handleUnlockBOQ = async () => {
+    if (!currentBOQ || isDraft || isMutating) return;
+    if (
+      !confirm(
+        "Unlocking will switch this active BOQ back to Draft mode for editing. Proceed?",
+      )
+    )
+      return;
+    setIsMutating(true);
+    try {
+      const res = await fetch(`/api/boq/${currentBOQ.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DRAFT" }),
+      });
+      if (res.ok) {
+        await fetchAllData(true);
+        showStatus("BOQ unlocked for editing", "success");
+      } else {
+        showStatus("Failed to unlock BOQ", "error");
+      }
+    } catch (e) {
+      showStatus("Failed to unlock BOQ", "error");
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="p-8 flex justify-center">
@@ -720,6 +750,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
               </select>
             </div>
           )}
+
           <Button
             variant="outline"
             onClick={handleDownloadQuotation}
@@ -733,13 +764,22 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
             )}{" "}
             PDF
           </Button>
-          {isDraft && (
+
+          {isDraft ? (
             <Button
               onClick={handleActivateBOQ}
               disabled={isMutating}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm flex-1 sm:flex-none disabled:opacity-50"
             >
               <CheckCircle2 className="mr-2 h-4 w-4" /> Activate BOQ
+            </Button>
+          ) : (
+            <Button
+              onClick={handleUnlockBOQ}
+              disabled={isMutating}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm flex-1 sm:flex-none disabled:opacity-50"
+            >
+              <Edit className="mr-2 h-4 w-4" /> Edit / Unlock BOQ
             </Button>
           )}
         </div>
