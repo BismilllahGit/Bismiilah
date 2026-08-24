@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 import { recalculateBOQMilestones } from "@/lib/boq-utils";
+import { requireSession } from "@/app/api/_lib/auth-guard";
+import { parseJsonBody } from "@/app/api/_lib/body";
+import { withApiHandler } from "@/app/api/_lib/handler";
+import { buildUpdateData } from "@/app/api/_lib/crud";
+import { ApiError } from "@/app/api/_lib/errors";
+
+type Params = { params: Promise<{ id: string }> };
 
 const updateMilestoneSchema = z.object({
   stageName: z.string().optional(),
@@ -12,66 +17,39 @@ const updateMilestoneSchema = z.object({
   sortOrder: z.coerce.number().optional(),
 });
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    if (process.env.SKIP_AUTH_FOR_TESTS !== "true") {
-      const session = await getServerSession(authOptions);
-      if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const PATCH = withApiHandler<Params>("Failed to update BOQ milestone", async (request, { params }) => {
+  await requireSession({ allowTestBypass: true });
+  const { id: milestoneId } = await params;
+  const parsed = await parseJsonBody(request, updateMilestoneSchema);
 
-    const { id: milestoneId } = await params;
-    const body = await request.json();
-    const parsed = updateMilestoneSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
-    }
+  // Deliberately no DRAFT-lock check here (assertMilestoneEditable exists but
+  // is intentionally unused) — the original route never checked BOQ status
+  // before editing milestones; only the separate reorder route did. Preserved
+  // as-is, not a gap to "fix" by wiring in the guard.
+  const existing = await prisma.bOQPaymentMilestone.findUnique({ where: { id: milestoneId } });
+  if (!existing) throw new ApiError("Milestone not found", 404);
 
-    const existing = await prisma.bOQPaymentMilestone.findUnique({ where: { id: milestoneId } });
-    if (!existing) return NextResponse.json({ error: "Milestone not found" }, { status: 404 });
-
-    const { stageName, targetDate, percentage, sortOrder } = parsed.data;
-
-    const updateData: any = {};
-    if (stageName !== undefined) updateData.stageName = stageName;
-    if (targetDate !== undefined) updateData.targetDate = targetDate ? new Date(targetDate) : null;
-    if (percentage !== undefined) updateData.percentage = percentage;
-    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
-
-    await prisma.bOQPaymentMilestone.update({
-      where: { id: milestoneId },
-      data: updateData,
-    });
-
-    // Recalculate to ensure amounts are synced if percentage changed
-    await recalculateBOQMilestones(existing.boqId);
-
-    const updated = await prisma.bOQPaymentMilestone.findUnique({ where: { id: milestoneId } });
-    return NextResponse.json(updated);
-  } catch (error) {
-    console.error("Failed to update BOQ milestone:", error);
-    return NextResponse.json({ error: "Failed to update BOQ milestone" }, { status: 500 });
+  const data = buildUpdateData(parsed);
+  if (typeof data.targetDate !== "undefined") {
+    data.targetDate = data.targetDate ? new Date(data.targetDate as string) : null;
   }
-}
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    if (process.env.SKIP_AUTH_FOR_TESTS !== "true") {
-      const session = await getServerSession(authOptions);
-      if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  await prisma.bOQPaymentMilestone.update({ where: { id: milestoneId }, data });
+  await recalculateBOQMilestones(existing.boqId);
 
-    const { id: milestoneId } = await params;
-    const existing = await prisma.bOQPaymentMilestone.findUnique({ where: { id: milestoneId } });
-    if (!existing) return NextResponse.json({ error: "Milestone not found" }, { status: 404 });
+  const updated = await prisma.bOQPaymentMilestone.findUnique({ where: { id: milestoneId } });
+  return NextResponse.json(updated);
+});
 
-    await prisma.bOQPaymentMilestone.delete({ where: { id: milestoneId } });
-    
-    // Recalculate remaining milestones
-    await recalculateBOQMilestones(existing.boqId);
+export const DELETE = withApiHandler<Params>("Failed to delete BOQ milestone", async (request, { params }) => {
+  await requireSession({ allowTestBypass: true });
+  const { id: milestoneId } = await params;
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Failed to delete BOQ milestone:", error);
-    return NextResponse.json({ error: "Failed to delete BOQ milestone" }, { status: 500 });
-  }
-}
+  const existing = await prisma.bOQPaymentMilestone.findUnique({ where: { id: milestoneId } });
+  if (!existing) throw new ApiError("Milestone not found", 404);
+
+  await prisma.bOQPaymentMilestone.delete({ where: { id: milestoneId } });
+  await recalculateBOQMilestones(existing.boqId);
+
+  return NextResponse.json({ success: true });
+});
