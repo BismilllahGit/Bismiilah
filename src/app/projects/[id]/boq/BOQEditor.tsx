@@ -686,8 +686,9 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
   const isMilestoneInvalid =
     milestones.length > 0 && Math.abs(totalMilestonePercentage - 100) > 0.01;
 
+  // KEY FIX: Added min-w-0 to prevent native inputs from enforcing a minimum width and blowing out the layout
   const tableInputClass =
-    "w-full bg-transparent outline-none px-2 py-1.5 focus:bg-white focus:ring-1 focus:ring-blue-500 hover:bg-slate-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+    "w-full min-w-0 bg-transparent outline-none px-2 py-1.5 focus:bg-white focus:ring-1 focus:ring-blue-500 hover:bg-slate-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
   const cardInputClass =
     "w-full bg-white border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md px-3 py-2 text-sm outline-none transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed";
   const labelClass =
@@ -898,18 +899,19 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
 
       {/* --- DESKTOP VIEW: FLUID SPACED TABLE (Visible only on xl screens) --- */}
       <div className="hidden xl:block bg-white border border-slate-200 shadow-sm rounded-xl overflow-x-auto">
-        <Table className="w-full min-w-[1200px] border-collapse text-sm">
+        {/* KEY FIX: Removed min-w-[1200px] entirely to force the table to stay strictly inside the container limit */}
+        <Table className="w-full border-collapse text-sm">
           <TableHeader className="bg-slate-800 [&_th]:text-slate-200 [&_th]:font-bold [&_th]:border-r [&_th]:border-slate-700">
             <TableRow className="hover:bg-slate-800">
               <TableHead className="w-[40px] text-center p-2">S.No</TableHead>
-              <TableHead className="w-[14%] p-2 min-w-[180px]">
+              <TableHead className="w-[16%] p-2">
                 Item Title / Description
               </TableHead>
-              <TableHead className="w-[9%] p-2">Make</TableHead>
-              <TableHead className="w-[8%] p-2 text-center">Type</TableHead>
-              <TableHead className="w-[7%] p-2 text-right">Qty</TableHead>
-              <TableHead className="w-[6%] p-2 text-center">Unit</TableHead>
-              <TableHead className="w-[9%] p-2 text-right">Rate (₹)</TableHead>
+              <TableHead className="w-[8%] p-2">Make</TableHead>
+              <TableHead className="w-[7%] p-2 text-center">Type</TableHead>
+              <TableHead className="w-[6%] p-2 text-right">Qty</TableHead>
+              <TableHead className="w-[5%] p-2 text-center">Unit</TableHead>
+              <TableHead className="w-[8%] p-2 text-right">Rate (₹)</TableHead>
               <TableHead className="w-[9%] p-2 text-right">
                 Est. Amount
               </TableHead>
@@ -922,7 +924,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                 Act. Amount
               </TableHead>
               {isDraft && (
-                <TableHead className="w-[50px] text-center p-2">
+                <TableHead className="w-[40px] text-center p-2">
                   <Settings className="h-4 w-4 mx-auto text-slate-400" />
                 </TableHead>
               )}
@@ -1093,7 +1095,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                             )}
                           </TableCell>
 
-                          <TableCell className="p-1.5 align-top">
+                          <TableCell className="p-1.5 align-top max-w-0">
                             {isDraft ? (
                               <div className="flex flex-col w-full h-full gap-2">
                                 <input
@@ -1138,12 +1140,18 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                 />
                               </div>
                             ) : (
-                              <div className="flex flex-col gap-1.5 p-2">
-                                <span className="font-bold text-sm text-slate-900">
+                              <div className="flex flex-col gap-1.5 p-2 overflow-hidden w-full">
+                                <span
+                                  className="font-bold text-sm text-slate-900 truncate"
+                                  title={li.title}
+                                >
                                   {li.title}
                                 </span>
                                 {li.description && (
-                                  <span className="text-xs text-slate-600 whitespace-pre-wrap">
+                                  <span
+                                    className="text-xs text-slate-600 truncate"
+                                    title={li.description}
+                                  >
                                     {li.description}
                                   </span>
                                 )}
@@ -1170,7 +1178,10 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                 placeholder="Make"
                               />
                             ) : (
-                              <div className="p-2 text-xs">
+                              <div
+                                className="p-2 text-xs truncate"
+                                title={li.make}
+                              >
                                 {li.make || "-"}
                               </div>
                             )}
@@ -1179,7 +1190,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                           <TableCell className="p-1.5 align-top text-center">
                             {isDraft ? (
                               <select
-                                className="w-full text-[10px] font-bold uppercase tracking-wider bg-slate-50 rounded border border-slate-200 outline-none p-2 focus:ring-1 focus:ring-blue-500 text-slate-700 hover:bg-slate-100 cursor-pointer disabled:opacity-50"
+                                className="w-full min-w-0 text-[10px] font-bold uppercase tracking-wider bg-slate-50 rounded border border-slate-200 outline-none p-2 focus:ring-1 focus:ring-blue-500 text-slate-700 hover:bg-slate-100 cursor-pointer disabled:opacity-50"
                                 value={li.lineType}
                                 onChange={(e) => {
                                   handleItemChange(
@@ -1342,11 +1353,11 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                             )}
                           </TableCell>
 
-                          <TableCell className="p-1.5 align-top">
+                          <TableCell className="p-1.5 align-top max-w-0">
                             {isDraft ? (
                               <div className="flex flex-col gap-2 w-full p-1">
                                 <select
-                                  className="w-full text-[11px] bg-slate-50 border border-slate-200 rounded outline-none p-1.5 focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+                                  className="w-full min-w-0 text-[11px] bg-slate-50 border border-slate-200 rounded outline-none p-1.5 focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
                                   value={li.itemId ?? ""}
                                   onChange={(e) => {
                                     handleItemChange(
@@ -1391,9 +1402,12 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                 />
                               </div>
                             ) : (
-                              <div className="flex flex-col gap-1.5 p-2">
+                              <div className="flex flex-col gap-1.5 p-2 overflow-hidden w-full">
                                 {li.item ? (
-                                  <span className="text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded truncate inline-block w-max">
+                                  <span
+                                    className="text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded truncate inline-block max-w-full"
+                                    title={li.item.name}
+                                  >
                                     ✓ {li.item.name}
                                   </span>
                                 ) : (
@@ -1402,7 +1416,10 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                   </span>
                                 )}
                                 {li.grade && (
-                                  <span className="text-[10px] font-bold uppercase text-slate-500 mt-0.5">
+                                  <span
+                                    className="text-[10px] font-bold uppercase text-slate-500 mt-0.5 truncate"
+                                    title={li.grade}
+                                  >
                                     {li.grade}
                                   </span>
                                 )}
@@ -1410,10 +1427,10 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                             )}
                           </TableCell>
 
-                          <TableCell className="p-1.5 align-top">
+                          <TableCell className="p-1.5 align-top max-w-0">
                             {isDraft ? (
                               <select
-                                className="w-full text-[11px] bg-slate-50 border border-slate-200 rounded outline-none p-1.5 focus:ring-1 focus:ring-blue-500 mt-1 cursor-pointer disabled:opacity-50"
+                                className="w-full min-w-0 text-[11px] bg-slate-50 border border-slate-200 rounded outline-none p-1.5 focus:ring-1 focus:ring-blue-500 mt-1 cursor-pointer disabled:opacity-50"
                                 value={li.workerTypeId ?? ""}
                                 onChange={(e) => {
                                   handleItemChange(
@@ -1439,9 +1456,12 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                   ))}
                               </select>
                             ) : (
-                              <div className="p-2">
+                              <div className="p-2 overflow-hidden w-full">
                                 {li.workerType ? (
-                                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded truncate flex items-center gap-1 w-max">
+                                  <span
+                                    className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded truncate flex items-center gap-1 max-w-full"
+                                    title={li.workerType.name}
+                                  >
                                     👷 {li.workerType.name}
                                   </span>
                                 ) : (
@@ -1752,7 +1772,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                 </div>
                               )}
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 overflow-hidden">
                               <span className={labelClass}>Item Title</span>
                               {isDraft ? (
                                 <input
@@ -1776,7 +1796,10 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                   placeholder="Item Title"
                                 />
                               ) : (
-                                <div className="text-base font-bold text-slate-900 py-1">
+                                <div
+                                  className="text-base font-bold text-slate-900 py-1 truncate"
+                                  title={li.title}
+                                >
                                   {li.title}
                                 </div>
                               )}
@@ -1808,7 +1831,10 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                 placeholder="Detailed description..."
                               />
                             ) : (
-                              <div className="text-sm text-slate-600 whitespace-pre-wrap">
+                              <div
+                                className="text-sm text-slate-600 truncate"
+                                title={li.description}
+                              >
                                 {li.description || (
                                   <span className="italic opacity-50">
                                     No description
