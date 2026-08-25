@@ -1,5 +1,10 @@
 import prisma from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import {
+  buildDateRangeFilter,
+  buildSearchFilter,
+  finalizeDebitCreditLedger,
+  paginateWithCarriedBalance,
+} from "./ledger-helpers";
 
 export interface LedgerQueryParams {
   startDate?: string | null;
@@ -60,32 +65,14 @@ export async function getVendorLedgerData(
   }
 
   // Define the outer search filter to apply AFTER balances are calculated
-  let searchOuterFilter = Prisma.empty;
-  if (search) {
-    const searchStr = `%${search}%`;
-    searchOuterFilter = Prisma.sql`WHERE description ILIKE ${searchStr} OR "voucherNumber" ILIKE ${searchStr}`;
-  }
+  const searchOuterFilter = buildSearchFilter(search);
 
-  // 2. Build the main query with Prisma.sql for conditional date filtering
+  // 2. Build the main query, applying the shared date/search filters
   let rows: any[] = [];
   if (contact.type === "LABOUR_CONTRACTOR") {
-    let dateFilterLabour = Prisma.empty;
-    let dateFilterPayment = Prisma.empty;
-    let dateFilterVendor = Prisma.empty;
-
-    if (startDate && endDate) {
-      dateFilterLabour = Prisma.sql`AND dle.date >= ${new Date(startDate)} AND dle.date <= ${new Date(endDate)}`;
-      dateFilterPayment = Prisma.sql`AND payment_date >= ${new Date(startDate)} AND payment_date <= ${new Date(endDate)}`;
-      dateFilterVendor = Prisma.sql`AND date >= ${new Date(startDate)} AND date <= ${new Date(endDate)}`;
-    } else if (startDate) {
-      dateFilterLabour = Prisma.sql`AND dle.date >= ${new Date(startDate)}`;
-      dateFilterPayment = Prisma.sql`AND payment_date >= ${new Date(startDate)}`;
-      dateFilterVendor = Prisma.sql`AND date >= ${new Date(startDate)}`;
-    } else if (endDate) {
-      dateFilterLabour = Prisma.sql`AND dle.date <= ${new Date(endDate)}`;
-      dateFilterPayment = Prisma.sql`AND payment_date <= ${new Date(endDate)}`;
-      dateFilterVendor = Prisma.sql`AND date <= ${new Date(endDate)}`;
-    }
+    const dateFilterLabour = buildDateRangeFilter("dle.date", startDate, endDate);
+    const dateFilterPayment = buildDateRangeFilter("payment_date", startDate, endDate);
+    const dateFilterVendor = buildDateRangeFilter("date", startDate, endDate);
 
     rows = await prisma.$queryRaw<any[]>`
       WITH contractor_ledger AS (
@@ -147,14 +134,7 @@ export async function getVendorLedgerData(
       ORDER BY date, created_at, id
     `;
   } else {
-    let dateFilter = Prisma.empty;
-    if (startDate && endDate) {
-      dateFilter = Prisma.sql`AND date >= ${new Date(startDate)} AND date <= ${new Date(endDate)}`;
-    } else if (startDate) {
-      dateFilter = Prisma.sql`AND date >= ${new Date(startDate)}`;
-    } else if (endDate) {
-      dateFilter = Prisma.sql`AND date <= ${new Date(endDate)}`;
-    }
+    const dateFilter = buildDateRangeFilter("date", startDate, endDate);
 
     rows = await prisma.$queryRaw<any[]>`
       WITH calculated AS (
@@ -178,54 +158,14 @@ export async function getVendorLedgerData(
     `;
   }
 
-  let totalDebit = 0;
-  let totalCredit = 0;
-
-  const formattedRows = rows.map((row) => {
-    const debit = Number(row.debit);
-    const credit = Number(row.credit);
-    totalDebit += debit;
-    totalCredit += credit;
-
-    return {
-      id: row.id,
-      voucherNumber: row.voucherNumber,
-      date: row.date,
-      description: row.description,
-      debit,
-      credit,
-      runningBalance: Number(row.runningBalance),
-    };
-  });
-
-  const closingBalance = openingBalance + totalCredit - totalDebit;
-
-  const total = formattedRows.length;
-  const totalPages = Math.ceil(total / limit) || 1;
-  const offset = (page - 1) * limit;
-
-  const pageOpeningBalance =
-    offset > 0 && offset <= formattedRows.length
-      ? formattedRows[offset - 1].runningBalance
-      : offset > formattedRows.length && formattedRows.length > 0
-        ? formattedRows[formattedRows.length - 1].runningBalance
-        : openingBalance;
-
-  const paginatedRows = formattedRows.slice(offset, offset + limit);
-
-  return {
-    contact,
-    openingBalance: pageOpeningBalance,
-    rows: paginatedRows,
-    totalDebit,
-    totalCredit,
-    closingBalance,
-    total,
-    totalPages,
+  const finalized = finalizeDebitCreditLedger(rows, {
+    openingBalance,
     page,
     limit,
-    rawOpeningBalance: openingBalance,
-  };
+    creditIncreasesBalance: true,
+  });
+
+  return { contact, ...finalized };
 }
 
 export async function getLabourContractorLedgerData(
@@ -263,25 +203,9 @@ export async function getLabourContractorLedgerData(
       (Number(debitRes[0]?.total_paid) || 0);
   }
 
-  let dateFilterLabour = Prisma.empty;
-  let dateFilterPayment = Prisma.empty;
-
-  if (startDate && endDate) {
-    dateFilterLabour = Prisma.sql`AND dle.date >= ${new Date(startDate)} AND dle.date <= ${new Date(endDate)}`;
-    dateFilterPayment = Prisma.sql`AND payment_date >= ${new Date(startDate)} AND payment_date <= ${new Date(endDate)}`;
-  } else if (startDate) {
-    dateFilterLabour = Prisma.sql`AND dle.date >= ${new Date(startDate)}`;
-    dateFilterPayment = Prisma.sql`AND payment_date >= ${new Date(startDate)}`;
-  } else if (endDate) {
-    dateFilterLabour = Prisma.sql`AND dle.date <= ${new Date(endDate)}`;
-    dateFilterPayment = Prisma.sql`AND payment_date <= ${new Date(endDate)}`;
-  }
-
-  let searchOuterFilter = Prisma.empty;
-  if (search) {
-    const searchStr = `%${search}%`;
-    searchOuterFilter = Prisma.sql`WHERE description ILIKE ${searchStr} OR "voucherNumber" ILIKE ${searchStr}`;
-  }
+  const dateFilterLabour = buildDateRangeFilter("dle.date", startDate, endDate);
+  const dateFilterPayment = buildDateRangeFilter("payment_date", startDate, endDate);
+  const searchOuterFilter = buildSearchFilter(search);
 
   const rawRows = await prisma.$queryRaw<any[]>`
     WITH combined AS (
@@ -335,53 +259,14 @@ export async function getLabourContractorLedgerData(
     ORDER BY date, created_at, id
   `;
 
-  let totalDebit = 0;
-  let totalCredit = 0;
-
-  const formattedRows = rawRows.map((row) => {
-    const debit = Number(row.debit);
-    const credit = Number(row.credit);
-    totalDebit += debit;
-    totalCredit += credit;
-
-    return {
-      id: row.id,
-      voucherNumber: row.voucherNumber,
-      date: row.date,
-      description: row.description,
-      debit,
-      credit,
-      runningBalance: Number(row.runningBalance),
-    };
-  });
-
-  const closingBalance = openingBalance + totalDebit - totalCredit;
-  const total = formattedRows.length;
-  const totalPages = Math.ceil(total / limit) || 1;
-  const offset = (page - 1) * limit;
-
-  const pageOpeningBalance =
-    offset > 0 && offset <= formattedRows.length
-      ? formattedRows[offset - 1].runningBalance
-      : offset > formattedRows.length && formattedRows.length > 0
-        ? formattedRows[formattedRows.length - 1].runningBalance
-        : openingBalance;
-
-  const paginatedRows = formattedRows.slice(offset, offset + limit);
-
-  return {
-    contact,
-    openingBalance: pageOpeningBalance,
-    rows: paginatedRows,
-    totalDebit,
-    totalCredit,
-    closingBalance,
-    total,
-    totalPages,
+  const finalized = finalizeDebitCreditLedger(rawRows, {
+    openingBalance,
     page,
     limit,
-    rawOpeningBalance: openingBalance,
-  };
+    creditIncreasesBalance: false,
+  });
+
+  return { contact, ...finalized };
 }
 
 export async function getClientLedgerData(
@@ -420,25 +305,9 @@ export async function getClientLedgerData(
     openingBalance = Number(result[0]?.opening_balance) || 0;
   }
 
-  let dateFilterInvoices = Prisma.empty;
-  let dateFilterPayments = Prisma.empty;
-
-  if (startDate && endDate) {
-    dateFilterInvoices = Prisma.sql`AND issued_date >= ${new Date(startDate)} AND issued_date <= ${new Date(endDate)}`;
-    dateFilterPayments = Prisma.sql`AND payment_date >= ${new Date(startDate)} AND payment_date <= ${new Date(endDate)}`;
-  } else if (startDate) {
-    dateFilterInvoices = Prisma.sql`AND issued_date >= ${new Date(startDate)}`;
-    dateFilterPayments = Prisma.sql`AND payment_date >= ${new Date(startDate)}`;
-  } else if (endDate) {
-    dateFilterInvoices = Prisma.sql`AND issued_date <= ${new Date(endDate)}`;
-    dateFilterPayments = Prisma.sql`AND payment_date <= ${new Date(endDate)}`;
-  }
-
-  let searchOuterFilter = Prisma.empty;
-  if (search) {
-    const searchStr = `%${search}%`;
-    searchOuterFilter = Prisma.sql`WHERE description ILIKE ${searchStr} OR "voucherNumber" ILIKE ${searchStr}`;
-  }
+  const dateFilterInvoices = buildDateRangeFilter("issued_date", startDate, endDate);
+  const dateFilterPayments = buildDateRangeFilter("payment_date", startDate, endDate);
+  const searchOuterFilter = buildSearchFilter(search);
 
   const rows = await prisma.$queryRaw<any[]>`
     WITH combined AS (
@@ -485,53 +354,14 @@ export async function getClientLedgerData(
     ORDER BY date, created_at, id
   `;
 
-  let totalDebit = 0;
-  let totalCredit = 0;
-
-  const formattedRows = rows.map((row) => {
-    const debit = Number(row.debit);
-    const credit = Number(row.credit);
-    totalDebit += debit;
-    totalCredit += credit;
-
-    return {
-      id: row.id,
-      voucherNumber: row.voucherNumber,
-      date: row.date,
-      description: row.description,
-      debit,
-      credit,
-      runningBalance: Number(row.runningBalance),
-    };
-  });
-
-  const closingBalance = openingBalance + totalDebit - totalCredit;
-  const total = formattedRows.length;
-  const totalPages = Math.ceil(total / limit) || 1;
-  const offset = (page - 1) * limit;
-
-  const pageOpeningBalance =
-    offset > 0 && offset <= formattedRows.length
-      ? formattedRows[offset - 1].runningBalance
-      : offset > formattedRows.length && formattedRows.length > 0
-        ? formattedRows[formattedRows.length - 1].runningBalance
-        : openingBalance;
-
-  const paginatedRows = formattedRows.slice(offset, offset + limit);
-
-  return {
-    client,
-    openingBalance: pageOpeningBalance,
-    rows: paginatedRows,
-    totalDebit,
-    totalCredit,
-    closingBalance,
-    total,
-    totalPages,
+  const finalized = finalizeDebitCreditLedger(rows, {
+    openingBalance,
     page,
     limit,
-    rawOpeningBalance: openingBalance,
-  };
+    creditIncreasesBalance: false,
+  });
+
+  return { client, ...finalized };
 }
 
 export async function getInventoryLedgerData(
@@ -573,20 +403,8 @@ export async function getInventoryLedgerData(
     openingValueBalance = Number(result[0]?.opening_value_balance) || 0;
   }
 
-  let dateFilter = Prisma.empty;
-  if (startDate && endDate) {
-    dateFilter = Prisma.sql`AND it.date >= ${new Date(startDate)} AND it.date <= ${new Date(endDate)}`;
-  } else if (startDate) {
-    dateFilter = Prisma.sql`AND it.date >= ${new Date(startDate)}`;
-  } else if (endDate) {
-    dateFilter = Prisma.sql`AND it.date <= ${new Date(endDate)}`;
-  }
-
-  let searchOuterFilter = Prisma.empty;
-  if (search) {
-    const searchStr = `%${search}%`;
-    searchOuterFilter = Prisma.sql`WHERE description ILIKE ${searchStr} OR "voucherNumber" ILIKE ${searchStr}`;
-  }
+  const dateFilter = buildDateRangeFilter("it.date", startDate, endDate);
+  const searchOuterFilter = buildSearchFilter(search);
 
   const rows = await prisma.$queryRaw<any[]>`
     WITH calculated AS (
@@ -657,31 +475,28 @@ export async function getInventoryLedgerData(
   const closingValueBalance =
     openingValueBalance + totalValueIn - totalValueOut;
 
-  const total = formattedRows.length;
-  const totalPages = Math.ceil(total / limit) || 1;
-  const offset = (page - 1) * limit;
-
-  const pageOpeningQtyBalance =
-    offset > 0 && offset <= formattedRows.length
-      ? formattedRows[offset - 1].runningQtyBalance
-      : offset > formattedRows.length && formattedRows.length > 0
-        ? formattedRows[formattedRows.length - 1].runningQtyBalance
-        : openingQtyBalance;
-
-  const pageOpeningValueBalance =
-    offset > 0 && offset <= formattedRows.length
-      ? formattedRows[offset - 1].runningValueBalance
-      : offset > formattedRows.length && formattedRows.length > 0
-        ? formattedRows[formattedRows.length - 1].runningValueBalance
-        : openingValueBalance;
-
-  const paginatedRows = formattedRows.slice(offset, offset + limit);
+  const qtyPage = paginateWithCarriedBalance(
+    formattedRows.map((r) => ({ runningBalance: r.runningQtyBalance })),
+    openingQtyBalance,
+    page,
+    limit,
+  );
+  const valuePage = paginateWithCarriedBalance(
+    formattedRows.map((r) => ({ runningBalance: r.runningValueBalance })),
+    openingValueBalance,
+    page,
+    limit,
+  );
+  const paginatedRows = formattedRows.slice(
+    qtyPage.offset,
+    qtyPage.offset + limit,
+  );
 
   return {
     project,
     item,
-    openingQtyBalance: pageOpeningQtyBalance,
-    openingValueBalance: pageOpeningValueBalance,
+    openingQtyBalance: qtyPage.pageOpeningBalance,
+    openingValueBalance: valuePage.pageOpeningBalance,
     rows: paginatedRows,
     totalQtyIn,
     totalQtyOut,
@@ -689,8 +504,8 @@ export async function getInventoryLedgerData(
     totalValueOut,
     closingQtyBalance,
     closingValueBalance,
-    total,
-    totalPages,
+    total: qtyPage.total,
+    totalPages: qtyPage.totalPages,
     page,
     limit,
     rawOpeningQtyBalance: openingQtyBalance,
