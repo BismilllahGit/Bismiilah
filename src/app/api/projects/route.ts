@@ -8,7 +8,11 @@ const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   location: z.string().min(1, "Location is required"),
   description: z.string().optional(),
-  budget: z.coerce.number().optional(),
+  budget: z.coerce
+    .number()
+    .min(0, "Budget cannot be negative")
+    .max(9999999999.99, "Budget cannot exceed ₹9,999,999,999.99")
+    .optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional()
 });

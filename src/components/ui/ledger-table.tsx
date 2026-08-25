@@ -190,7 +190,9 @@ export function LedgerTable({
                 </label>
                 <Select
                   value={datePreset}
-                  onValueChange={(val) => setDatePreset(val)}
+                  onValueChange={(val) => {
+                    if (val !== null) setDatePreset(val);
+                  }}
                 >
                   <SelectTrigger className="bg-white h-9 w-full">
                     <SelectValue placeholder="Select Range">

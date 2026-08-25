@@ -156,6 +156,7 @@ export default function NewProjectPage() {
                   name="budget"
                   type="number"
                   min="0"
+                  max="9999999999.99"
                   step="0.01"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   placeholder="0.00"
