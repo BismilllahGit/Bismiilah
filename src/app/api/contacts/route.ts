@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { requireSession } from "@/app/api/_lib/auth-guard";
+import { parseJsonBody } from "@/app/api/_lib/body";
+import { withApiHandler } from "@/app/api/_lib/handler";
 
 const createContactSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -12,52 +13,22 @@ const createContactSchema = z.object({
   address: z.string().optional(),
 });
 
-export async function GET(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const GET = withApiHandler("Failed to fetch contacts", async (request) => {
+  await requireSession();
+  const { searchParams } = new URL(request.url);
+  const includeInactive = searchParams.get("includeInactive") === "true";
 
-    const { searchParams } = new URL(request.url);
-    const includeInactive = searchParams.get('includeInactive') === 'true';
+  const contacts = await prisma.contact.findMany({
+    where: includeInactive ? undefined : { isActive: true },
+    orderBy: { name: "asc" },
+  });
 
-    const contacts = await prisma.contact.findMany({
-      where: includeInactive ? undefined : { isActive: true },
-      orderBy: { name: 'asc' }
-    });
+  return NextResponse.json(contacts);
+});
 
-    return NextResponse.json(contacts);
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch contacts" }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const body = await request.json();
-    const parsed = createContactSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
-    }
-
-    const { name, type, phone, specialty, address } = parsed.data;
-
-    const contact = await prisma.contact.create({
-      data: {
-        name,
-        type,
-        phone,
-        specialty,
-        address,
-      }
-    });
-
-    return NextResponse.json(contact, { status: 201 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Failed to create contact" }, { status: 500 });
-  }
-}
+export const POST = withApiHandler("Failed to create contact", async (request) => {
+  await requireSession();
+  const { name, type, phone, specialty, address } = await parseJsonBody(request, createContactSchema);
+  const contact = await prisma.contact.create({ data: { name, type, phone, specialty, address } });
+  return NextResponse.json(contact, { status: 201 });
+});

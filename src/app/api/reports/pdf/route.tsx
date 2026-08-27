@@ -6,21 +6,23 @@ import React from "react";
 import { ReportLayout, PdfTable, PdfColumn } from "@/lib/pdf/ReportLayout";
 import { uploadPdfAndGetSignedUrl } from "@/lib/storage";
 import {
-  getVendorLedgerData,
-  getLabourContractorLedgerData,
   getClientLedgerData,
   getInventoryLedgerData,
 } from "@/lib/queries/ledger-queries";
 import {
   getDailyLabourReportData,
   getSaturdayViewReportData,
-  getClosureReportData,
   getTopUsageReportData,
 } from "@/lib/queries/report-queries";
-import { getEnrichedProjectBOQ } from "@/lib/queries/boq-queries";
-import { BOQPdfTable } from "@/lib/pdf/BOQPdfTable";
 import prisma from "@/lib/prisma";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
+import { formatRs, formatNum, formatDate } from "@/lib/pdf/format";
+import {
+  renderVendorLedgerReport,
+  renderLabourLedgerReport,
+  renderClosureReport,
+  renderBoqReport,
+} from "@/lib/pdf/report-renderers";
 
 const styles = StyleSheet.create({
   sectionTitle: {
@@ -37,29 +39,6 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E2E8F0",
   },
 });
-
-const formatRs = (val: number | null | undefined) => {
-  if (val === null || val === undefined) return "Rs. 0.00";
-  return `Rs. ${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
-
-const formatNum = (val: number | null | undefined) => {
-  if (val === null || val === undefined) return "0";
-  return Number(val).toLocaleString("en-IN", { maximumFractionDigits: 2 });
-};
-
-const formatDate = (val: any) => {
-  if (!val) return "-";
-  try {
-    return new Date(val).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  } catch {
-    return String(val);
-  }
-};
 
 export async function POST(request: Request) {
   try {
@@ -89,111 +68,33 @@ export async function POST(request: Request) {
 
     // 1. Vendor Ledger
     if (reportType === "vendor_ledger") {
-      const data = await getVendorLedgerData(params.contactId, {
+      const report = await renderVendorLedgerReport({
+        id: params.contactId,
         ...params,
-        limit: 2000,
-        page: 1,
       });
-      title = "Vendor Ledger Statement";
-      subtitle = `Vendor: ${data.contact.name} ${data.contact.phone ? `(Phone: ${data.contact.phone})` : ""}`;
-      summaryItems = [
-        { label: "Opening Balance", value: formatRs(data.openingBalance) },
-        { label: "Total Debits (Payments)", value: formatRs(data.totalDebit) },
-        {
-          label: "Total Credits (Purchases)",
-          value: formatRs(data.totalCredit),
-        },
-        {
-          label: "Closing Balance",
-          value: `${formatRs(data.closingBalance)}${data.closingBalance >= 0 ? " Cr" : " Dr"}`,
-        },
-      ];
-
-      const columns: PdfColumn[] = [
-        { header: "Date", width: "15%" },
-        { header: "Voucher #", width: "18%" },
-        { header: "Particulars", flex: 1 },
-        { header: "Debit", width: "14%", align: "right" },
-        { header: "Credit", width: "14%", align: "right" },
-        { header: "Balance", width: "16%", align: "right" },
-      ];
-
-      const rows = data.rows.map((row) => [
-        formatDate(row.date),
-        row.voucherNumber,
-        row.description,
-        row.debit ? formatRs(row.debit) : "-",
-        row.credit ? formatRs(row.credit) : "-",
-        `${formatRs(row.runningBalance)}${row.runningBalance >= 0 ? " Cr" : " Dr"}`,
-      ]);
-
-      const footerRow = [
-        "",
-        "TOTALS",
-        "",
-        formatRs(data.totalDebit),
-        formatRs(data.totalCredit),
-        `${formatRs(data.closingBalance)}`,
-      ];
-
-      children = (
-        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
-      );
+      title = report.title;
+      subtitle = report.subtitle;
+      summaryItems = report.summaryItems;
+      children = report.children;
     }
     // 2. Labour Contractor Ledger
     else if (reportType === "labour_ledger") {
-      const data = await getLabourContractorLedgerData(params.contactId, {
-        ...params,
-        limit: 2000,
-        page: 1,
-      });
-      title = "Labour Contractor Ledger Statement";
-      subtitle = `Contractor: ${data.contact.name} ${data.contact.phone ? `(Phone: ${data.contact.phone})` : ""}`;
-      summaryItems = [
-        { label: "Opening Balance", value: formatRs(data.openingBalance) },
+      const report = await renderLabourLedgerReport(
         {
-          label: "Total Labour Supplied (Dr)",
-          value: formatRs(data.totalDebit),
+          id: params.contactId,
+          ...params,
         },
-        { label: "Total Payments Out (Cr)", value: formatRs(data.totalCredit) },
-        {
-          label: "Net Payable Balance",
-          value: `${formatRs(data.closingBalance)}${data.closingBalance >= 0 ? " Dr" : " Cr"}`,
-        },
-      ];
-
-      const columns: PdfColumn[] = [
-        { header: "Date", width: "15%" },
-        { header: "Voucher #", width: "18%" },
-        { header: "Particulars", flex: 1 },
-        { header: "Supplied", width: "14%", align: "right" },
-        { header: "Paid", width: "14%", align: "right" },
-        { header: "Balance", width: "16%", align: "right" },
-      ];
-
-      const rows = data.rows.map((row) => [
-        formatDate(row.date),
-        row.voucherNumber,
-        row.description,
-        row.debit ? formatRs(row.debit) : "-",
-        row.credit ? formatRs(row.credit) : "-",
-        `${formatRs(row.runningBalance)}`,
-      ]);
-
-      const footerRow = [
-        "",
-        "TOTALS",
-        "",
-        formatRs(data.totalDebit),
-        formatRs(data.totalCredit),
-        `${formatRs(data.closingBalance)}`,
-      ];
-
-      children = (
-        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+        "full",
       );
+      title = report.title;
+      subtitle = report.subtitle;
+      summaryItems = report.summaryItems;
+      children = report.children;
     }
-    // 3. Client Ledger
+    // 3. Client Ledger — UNCHANGED, not a shared branch: investigation during
+    // Task 4 found this report differs meaningfully between reports/pdf and
+    // the public share route (title, 3 of 6 column headers, row-level Dr/Cr
+    // suffix, 3 of 4 summary labels) — not safe to unify, left as-is.
     else if (reportType === "client_ledger") {
       const data = await getClientLedgerData(params.clientId, {
         ...params,
@@ -516,59 +417,11 @@ export async function POST(request: Request) {
     }
     // 8. Project Closure Report
     else if (reportType === "closure_report") {
-      const data = await getClosureReportData(params.projectId);
-      title = "Project Closure & Financial Audit Report";
-      subtitle = `Project: ${data.project.name} | Status: ${data.isClosed ? "CLOSED" : "PRE-CLOSURE AUDIT"}`;
-      summaryItems = [
-        { label: "Total Billed", value: formatRs(data.summary.totalBilled) },
-        {
-          label: "Total Collected",
-          value: formatRs(data.summary.totalCollected),
-        },
-        {
-          label: "Outstanding Receivables",
-          value: formatRs(data.summary.outstandingReceivables),
-        },
-        {
-          label: "Total Site Expenses",
-          value: formatRs(data.summary.totalSiteExpenses),
-        },
-      ];
-
-      const columns: PdfColumn[] = [
-        { header: "Financial Category / Metric", flex: 2 },
-        { header: "Amount / Status", width: "35%", align: "right" },
-      ];
-
-      const rows = [
-        ["Total Billed Invoices", formatRs(data.summary.totalBilled)],
-        ["Total Collected Receipts", formatRs(data.summary.totalCollected)],
-        [
-          "Net Outstanding Receivables",
-          formatRs(data.summary.outstandingReceivables),
-        ],
-        [
-          "Total Site & Operational Expenses",
-          formatRs(data.summary.totalSiteExpenses),
-        ],
-        [
-          "Billed Extra Work",
-          formatRs(
-            data.summary.totalExtraWork - data.summary.unbilledExtraWork,
-          ),
-        ],
-        ["Unbilled Extra Work Items", formatRs(data.summary.unbilledExtraWork)],
-        [
-          "Estimated Consumed Material Cost",
-          formatRs(data.summary.estimatedMaterialCost),
-        ],
-        [
-          "Official Closure Date",
-          formatDate(data.summary.closureDate || new Date()),
-        ],
-      ];
-
-      children = <PdfTable columns={columns} rows={rows} />;
+      const report = await renderClosureReport(params.projectId);
+      title = report.title;
+      subtitle = report.subtitle;
+      summaryItems = report.summaryItems;
+      children = report.children;
     }
     // 9. BOQ / Client Quotation Report
     else if (reportType === "boq") {
@@ -582,37 +435,22 @@ export async function POST(request: Request) {
         }
       }
 
-      const [project, boqData] = await Promise.all([
-        prisma.project.findUnique({ where: { id: params.projectId } }),
-        getEnrichedProjectBOQ(params.projectId, boqVersionNumber),
-      ]);
-
-      if (!project || !boqData.current) {
+      const report = await renderBoqReport({
+        projectId: params.projectId,
+        boqVersionNumber,
+        variant: "full",
+        businessProfile,
+      });
+      if (!report) {
         return NextResponse.json(
           { error: "BOQ or Project not found for quotation export." },
           { status: 404 },
         );
       }
-
-      const boq = boqData.current;
-      title = "Project Bill of Quantities / Quotation";
-      subtitle = `Project: ${project.name} | Location: ${project.location} | Revision: Version ${boq.versionNumber} (${boq.status})`;
-      summaryItems = [
-        {
-          label: "Quotation Version",
-          value: `v${boq.versionNumber} (${boq.status})`,
-        },
-        { label: "Total Sections", value: (boq.sections || []).length },
-        {
-          label: "Target Budget Ceiling",
-          value: boq.targetBudget ? formatRs(boq.targetBudget) : "N/A",
-        },
-        { label: "Grand Total (G-TOTAL)", value: formatRs(boq.grandTotal) },
-      ];
-
-      children = children = (
-        <BOQPdfTable boq={boq} businessProfile={businessProfile} />
-      );
+      title = report.title;
+      subtitle = report.subtitle;
+      summaryItems = report.summaryItems;
+      children = report.children;
     } else {
       return NextResponse.json(
         { error: `Unsupported reportType: ${reportType}` },

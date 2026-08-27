@@ -1,96 +1,50 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 import { recalculateBOQMilestones } from "@/lib/boq-utils";
+import { requireSession } from "@/app/api/_lib/auth-guard";
+import { parseJsonBody } from "@/app/api/_lib/body";
+import { withApiHandler } from "@/app/api/_lib/handler";
+import { buildUpdateData } from "@/app/api/_lib/crud";
+import { assertBoqSectionEditable } from "@/app/api/_lib/boq-guards";
+
+type Params = { params: Promise<{ id: string }> };
 
 const updateSectionSchema = z.object({
-  name: z.string().optional().transform(val => val ? val.trim() : undefined),
+  name: z.string().optional().transform((val) => (val ? val.trim() : undefined)),
   groupId: z.string().optional(),
   sortOrder: z.coerce.number().optional(),
 });
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const PATCH = withApiHandler<Params>("Failed to update BOQ section", async (request, { params }) => {
+  await requireSession();
+  const { id: sectionId } = await params;
+  const parsed = await parseJsonBody(request, updateSectionSchema);
+  await assertBoqSectionEditable(sectionId);
+  const data = buildUpdateData(parsed);
 
-    const { id: sectionId } = await params;
-    const body = await request.json();
-    const parsed = updateSectionSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
-    }
+  const updated = await prisma.bOQSection.update({
+    where: { id: sectionId },
+    data,
+    include: {
+      group: true,
+      lineItems: { orderBy: { sortOrder: "asc" }, include: { item: true, workerType: true } },
+    },
+  });
 
-    const section = await prisma.bOQSection.findUnique({
-      where: { id: sectionId },
-      include: { boq: true },
-    });
+  return NextResponse.json(updated);
+});
 
-    if (!section) return NextResponse.json({ error: "Section not found" }, { status: 404 });
-    if (section.boq.status !== "DRAFT") {
-      return NextResponse.json(
-        { error: "Cannot edit sections on an ACTIVE or SUPERSEDED BOQ. Only DRAFT BOQs can be modified." },
-        { status: 403 }
-      );
-    }
+export const DELETE = withApiHandler<Params>("Failed to delete BOQ section", async (request, { params }) => {
+  await requireSession();
+  const { id: sectionId } = await params;
+  const section = await assertBoqSectionEditable(sectionId);
 
-    const { name, groupId, sortOrder } = parsed.data;
-    const updateData: any = {};
-    if (name !== undefined) updateData.name = name;
-    if (groupId !== undefined) updateData.groupId = groupId;
-    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+  await prisma.$transaction(async (tx) => {
+    await tx.bOQLineItem.deleteMany({ where: { sectionId } });
+    await tx.bOQSection.delete({ where: { id: sectionId } });
+  });
 
-    const updated = await prisma.bOQSection.update({
-      where: { id: sectionId },
-      data: updateData,
-      include: {
-        group: true,
-        lineItems: {
-          orderBy: { sortOrder: "asc" },
-          include: { item: true, workerType: true },
-        },
-      },
-    });
-
-    return NextResponse.json(updated);
-  } catch (error) {
-    console.error("Failed to update BOQ section:", error);
-    return NextResponse.json({ error: "Failed to update BOQ section" }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { id: sectionId } = await params;
-    const section = await prisma.bOQSection.findUnique({
-      where: { id: sectionId },
-      include: { boq: true },
-    });
-
-    if (!section) return NextResponse.json({ error: "Section not found" }, { status: 404 });
-    if (section.boq.status !== "DRAFT") {
-      return NextResponse.json(
-        { error: "Cannot delete sections from an ACTIVE or SUPERSEDED BOQ. Only DRAFT BOQs can be modified." },
-        { status: 403 }
-      );
-    }
-
-    // Cascade delete line items
-    await prisma.$transaction(async (tx) => {
-      await tx.bOQLineItem.deleteMany({ where: { sectionId } });
-      await tx.bOQSection.delete({ where: { id: sectionId } });
-    });
-
-    await recalculateBOQMilestones(section.boqId);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Failed to delete BOQ section:", error);
-    return NextResponse.json({ error: "Failed to delete BOQ section" }, { status: 500 });
-  }
-}
+  await recalculateBOQMilestones(section.boqId);
+  return NextResponse.json({ success: true });
+});

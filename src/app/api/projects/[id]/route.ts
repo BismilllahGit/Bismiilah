@@ -10,7 +10,11 @@ const updateProjectSchema = z.object({
   notes: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  agreedValue: z.string().optional(),
+  agreedValue: z.coerce
+    .number()
+    .min(0, "Budget cannot be negative")
+    .max(9999999999.99, "Budget cannot exceed ₹9,999,999,999.99")
+    .optional(),
   status: z.enum(["ACTIVE", "COMPLETED", "CLOSED"]).optional(),
 });
 
@@ -51,9 +55,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (dataToUpdate.endDate) {
       dataToUpdate.endDate = new Date(dataToUpdate.endDate).toISOString();
     }
-    if (dataToUpdate.agreedValue) {
-      dataToUpdate.agreedValue = Number(dataToUpdate.agreedValue);
-    }
+    // agreedValue is already a number here — z.coerce.number() in the schema
+    // handles the string-to-number conversion.
 
     const project = await prisma.project.update({
       where: { id: (await params).id },

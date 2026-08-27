@@ -60,7 +60,6 @@ export async function PATCH(req: Request) {
         website: body.website,
         gstNumber: body.gstNumber,
         tanNumber: body.tanNumber,
-        logoUrl: body.logoUrl,
         bankAccountName: body.bankAccountName,
         bankAccountNumber: body.bankAccountNumber,
         bankIfsc: body.bankIfsc,

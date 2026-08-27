@@ -40,18 +40,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    fetch("/api/business-profile")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.logoUrl) {
-          setLogoUrl(data.logoUrl);
-        }
-      })
-      .catch((err) => console.error("Failed to load logo:", err));
-  }, []);
 
   // Function to start the 5-second countdown
   const startTimer = React.useCallback(() => {
@@ -169,17 +157,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
               !isCollapsed ? "pr-2" : ""
             }`}
           >
-            {logoUrl ? (
-              <Image
-                src={logoUrl}
-                alt="Company Logo"
-                width={24}
-                height={24}
-                className="h-6 w-6 shrink-0 object-contain rounded-sm"
-              />
-            ) : (
-              <Building2 className="h-6 w-6 shrink-0" />
-            )}
+            <Image
+              src="/logo.jpg"
+              alt="Company Logo"
+              width={24}
+              height={24}
+              className="h-6 w-6 shrink-0 object-contain rounded-sm"
+            />
             {!isCollapsed && (
               <span className="truncate text-sm lg:text-base">
                 Bismillah Construction

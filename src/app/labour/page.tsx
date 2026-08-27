@@ -34,19 +34,17 @@ export default function LabourLedgerPage() {
 
   // Options
   const [projects, setProjects] = useState<any[]>([]);
-  const [workerTypes, setWorkerTypes] = useState<string[]>([]);
+  const [workerTypes, setWorkerTypes] = useState<any[]>([]);
 
   useEffect(() => {
-    // Initial fetch for filter options
     Promise.all([
       fetch("/api/projects").then((r) => r.json()),
       fetch("/api/worker-types").then((r) => r.json()),
     ])
       .then(([projData, presetsData]) => {
         setProjects(projData);
-        setWorkerTypes(
-          presetsData.map((p: any) => p.workerType || p.name).sort(),
-        );
+        // Store the full objects so we have access to the IDs
+        setWorkerTypes(presetsData);
       })
       .catch(console.error);
   }, []);
@@ -149,13 +147,13 @@ export default function LabourLedgerPage() {
       </div>
 
       <div className="bg-white p-4 rounded-lg border shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+        <div className="grid grid-cols-2 md:flex flex-col sm:flex-row gap-4 flex-wrap items-start">
           <div className="space-y-1">
-            <label className="text-xs max-sm:text-sm font-medium text-slate-500">
+            <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
               Date Range
             </label>
             <select
-              className="flex h-9 w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              className="flex h-9 w-full md:w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={datePreset}
               onChange={(e) => setDatePreset(e.target.value)}
             >
@@ -169,23 +167,23 @@ export default function LabourLedgerPage() {
           {datePreset === "CUSTOM" && (
             <>
               <div className="space-y-1">
-                <label className="text-xs max-sm:text-sm font-medium text-slate-500">
+                <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
                   Start Date
                 </label>
                 <Input
                   type="date"
-                  className="w-[140px] max-sm:w-full max-sm:h-11 max-sm:text-base"
+                  className="relative flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer shadow-sm"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs max-sm:text-sm font-medium text-slate-500">
+                <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
                   End Date
                 </label>
                 <Input
                   type="date"
-                  className="w-[140px] max-sm:w-full max-sm:h-11 max-sm:text-base"
+                  className="relative flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer shadow-sm"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                 />
@@ -194,7 +192,7 @@ export default function LabourLedgerPage() {
           )}
 
           <div className="space-y-1">
-            <label className="text-xs max-sm:text-sm font-medium text-slate-500">
+            <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
               Worker Type
             </label>
             <select
@@ -204,19 +202,19 @@ export default function LabourLedgerPage() {
             >
               <option value="ALL">All Types</option>
               {workerTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+                <option key={t.id} value={t.id}>
+                  {t.name || t.workerType}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs max-sm:text-sm font-medium text-slate-500">
+            <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
               Project
             </label>
             <select
-              className="flex h-9 w-55 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              className="flex h-9 w-full md:w-56 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
             >
@@ -230,11 +228,11 @@ export default function LabourLedgerPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs max-sm:text-sm font-medium text-slate-500">
+            <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
               Group By
             </label>
             <select
-              className="flex h-9 w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              className="flex h-9 w-full md:w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value)}
             >
