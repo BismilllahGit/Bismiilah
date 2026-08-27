@@ -23,17 +23,12 @@ export const authOptions: NextAuthOptions = {
         let user = await prisma.user.findUnique({
           where: { email: credentials.email }
         });
-        console.log("Found user in DB:", !!user);
 
         if (!user) {
-          console.log("Checking fallback. Env Email:", process.env.ADMIN_EMAIL, "Provided:", credentials.email);
           // fallback to env vars if it matches the first time login for admin
           if (credentials.email === process.env.ADMIN_EMAIL) {
-            console.log("Email matches. Checking password hash.");
             const isMatch = await bcrypt.compare(credentials.password, process.env.ADMIN_PASSWORD_HASH || "");
-            console.log("Hash match:", isMatch);
             if (isMatch) {
-              console.log("Seeding user...");
               // auto seed the user
               user = await prisma.user.create({
                 data: {
