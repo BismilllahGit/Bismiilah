@@ -163,6 +163,13 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
 
   const handleAddSection = async () => {
     if (!currentBOQ || !isDraft || isMutating) return;
+    if (boqGroups.length === 0) {
+      showStatus(
+        "No BOQ Groups exist yet. Add one in Settings → Templates before adding a section.",
+        "error",
+      );
+      return;
+    }
     setIsMutating(true);
     try {
       const res = await fetch("/api/boq/sections", {
