@@ -2,14 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Card,
   CardContent,
   CardHeader,
@@ -18,9 +10,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
+import { WageRatesMobileList } from "./WageRatesMobileList";
+import { WageRatesDesktopTable } from "./WageRatesDesktopTable";
 
 export default function WageRatesSettingsPage() {
   const { data: presetsData, loading, refetch } = useApiResource<any[]>(
@@ -227,196 +220,28 @@ export default function WageRatesSettingsPage() {
         </CardHeader>
         <CardContent>
           {/* Mobile & Tablet Cards View (below lg breakpoint) */}
-          <div className="lg:hidden space-y-3.5">
-            {loading ? (
-              <div className="text-center py-12 text-muted-foreground text-sm border rounded-xl bg-white shadow-sm">
-                Loading worker types...
-              </div>
-            ) : (
-              sortedPresets.map((preset) => {
-                const typeName = preset.workerType || preset.name;
-                const isSaving = savingMap[typeName];
-                return (
-                  <div
-                    key={preset.id || typeName}
-                    className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3.5"
-                  >
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                      <h3 className="font-bold text-slate-900 text-base break-words">
-                        {typeName}
-                      </h3>
-                      <Badge
-                        variant="outline"
-                        className="text-xs font-semibold bg-slate-50"
-                      >
-                        {editingCycles[typeName] ?? "WEEKLY"}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                          Daily Rate (₹)
-                        </label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="w-full font-mono font-semibold text-slate-900 h-10 text-sm shadow-sm"
-                          value={editingValues[typeName] ?? ""}
-                          onChange={(e) =>
-                            setEditingValues((prev) => ({
-                              ...prev,
-                              [typeName]: e.target.value,
-                            }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter")
-                              handleSave(preset.id, typeName);
-                          }}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                          Payment Cycle
-                        </label>
-                        <select
-                          className="flex h-10 w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm font-medium text-slate-800 shadow-sm"
-                          value={editingCycles[typeName] ?? "WEEKLY"}
-                          onChange={(e) => {
-                            const newCycle = e.target.value;
-                            setEditingCycles((prev) => ({
-                              ...prev,
-                              [typeName]: newCycle,
-                            }));
-                          }}
-                        >
-                          <option value="WEEKLY">Weekly</option>
-                          <option value="DAILY">Daily</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100 flex justify-end">
-                      <Button
-                        onClick={() => handleSave(preset.id, typeName)}
-                        disabled={isSaving}
-                        size="sm"
-                        className="w-full font-bold bg-green-600 hover:bg-green-700 text-white h-9 shadow-sm"
-                      >
-                        {isSaving ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <Check className="h-4 w-4 mr-1.5" />
-                        )}
-                        {isSaving ? "Saving..." : "Save Rate & Cycle"}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+          <WageRatesMobileList
+            loading={loading}
+            sortedPresets={sortedPresets}
+            savingMap={savingMap}
+            editingValues={editingValues}
+            setEditingValues={setEditingValues}
+            editingCycles={editingCycles}
+            setEditingCycles={setEditingCycles}
+            handleSave={handleSave}
+          />
 
           {/* Desktop Table View (lg breakpoint and above) */}
-          <div className="hidden lg:block rounded-xl border bg-white shadow-sm overflow-hidden">
-            <Table className="min-w-[600px]">
-              <TableHeader className="bg-slate-50/80 border-b border-slate-200">
-                <TableRow>
-                  <TableHead className="w-[240px] font-semibold text-slate-700">
-                    Worker Type
-                  </TableHead>
-                  <TableHead className="w-[220px] font-semibold text-slate-700">
-                    Default Daily Rate (₹)
-                  </TableHead>
-                  <TableHead className="w-[180px] font-semibold text-slate-700">
-                    Payment Cycle
-                  </TableHead>
-                  <TableHead className="w-[120px] text-right font-semibold text-slate-700">
-                    Action
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center py-12 text-muted-foreground"
-                    >
-                      Loading worker types...
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  sortedPresets.map((preset) => {
-                    const typeName = preset.workerType || preset.name;
-                    return (
-                      <TableRow
-                        key={preset.id || typeName}
-                        className="hover:bg-slate-50/60 transition-colors"
-                      >
-                        <TableCell className="font-semibold text-slate-800">
-                          {typeName}
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="max-w-[150px] font-mono font-semibold"
-                            value={editingValues[typeName] ?? ""}
-                            onChange={(e) =>
-                              setEditingValues((prev) => ({
-                                ...prev,
-                                [typeName]: e.target.value,
-                              }))
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter")
-                                handleSave(preset.id, typeName);
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <select
-                            className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-2.5 py-1 text-sm font-medium text-slate-700 shadow-sm"
-                            value={editingCycles[typeName] ?? "WEEKLY"}
-                            onChange={(e) => {
-                              const newCycle = e.target.value;
-                              setEditingCycles((prev) => ({
-                                ...prev,
-                                [typeName]: newCycle,
-                              }));
-                            }}
-                          >
-                            <option value="WEEKLY">Weekly</option>
-                            <option value="DAILY">Daily</option>
-                          </select>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSave(preset.id, typeName)}
-                            disabled={savingMap[typeName]}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50/80 font-semibold"
-                          >
-                            {savingMap[typeName] ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                            ) : (
-                              <Check className="h-4 w-4 mr-1" />
-                            )}
-                            {savingMap[typeName] ? "" : "Save"}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <WageRatesDesktopTable
+            loading={loading}
+            sortedPresets={sortedPresets}
+            savingMap={savingMap}
+            editingValues={editingValues}
+            setEditingValues={setEditingValues}
+            editingCycles={editingCycles}
+            setEditingCycles={setEditingCycles}
+            handleSave={handleSave}
+          />
         </CardContent>
       </Card>
     </div>
