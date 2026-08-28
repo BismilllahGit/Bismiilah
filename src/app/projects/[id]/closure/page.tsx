@@ -1,51 +1,36 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LockKeyhole, CheckCircle, FileText, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 
 export default function ProjectClosurePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
-  const router = useRouter();
-  
-  const [report, setReport] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+
+  const {
+    data: report,
+    loading,
+    refetch,
+  } = useApiResource<any>(`/api/projects/${projectId}/closure`);
   const [closing, setClosing] = useState(false);
-
-  const fetchReport = async () => {
-    setLoading(true);
-    const res = await fetch(`/api/projects/${projectId}/closure`);
-    if (res.ok) {
-      setReport(await res.json());
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchReport();
-  }, [projectId]);
+  const closeProject = useApiMutation<undefined, unknown>("POST");
 
   const handleCloseProject = async () => {
     if (!confirm("Are you sure you want to close this project? This will generate a final snapshot of the financials and lock the project.")) return;
-    
+
     setClosing(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/closure`, { method: "POST" });
-      if (res.ok) {
-        fetchReport();
-        alert("Project successfully closed!");
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to close project");
-      }
+      await closeProject.mutate(`/api/projects/${projectId}/closure`);
+      refetch();
+      alert("Project successfully closed!");
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to close project");
     } finally {
       setClosing(false);
     }
@@ -103,10 +88,10 @@ export default function ProjectClosurePage({ params }: { params: Promise<{ id: s
               </div>
             </div>
             <div className="pt-4 flex flex-col sm:flex-row items-center gap-2">
-              <DownloadPdfButton 
-                reportType="closure_report" 
-                params={{ projectId }} 
-                buttonText="Download PDF Report" 
+              <DownloadPdfButton
+                reportType="closure_report"
+                params={{ projectId }}
+                buttonText="Download PDF Report"
                 variant="outline"
                 className="w-full sm:w-auto"
               />
@@ -133,7 +118,7 @@ export default function ProjectClosurePage({ params }: { params: Promise<{ id: s
       <Link href={`/projects/${projectId}`} className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary">
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Project
       </Link>
-      
+
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-red-600">Close Project</h1>
         <p className="text-muted-foreground">You are about to generate a final closure report and lock this project.</p>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -33,23 +34,15 @@ type Item = {
 };
 
 export default function ItemsPage() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: items,
+    loading,
+    refetch: refetchItems,
+  } = useApiResource<Item[]>("/api/items");
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-
-  const fetchItems = async () => {
-    setLoading(true);
-    const res = await fetch("/api/items");
-    if (res.ok) {
-      setItems(await res.json());
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchItems();
-  }, []);
+  const createItem = useApiMutation<Record<string, unknown>, Item>("POST");
+  const deactivateItem = useApiMutation<undefined, void>("DELETE");
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,21 +58,11 @@ export default function ItemsPage() {
     };
 
     try {
-      const res = await fetch("/api/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        fetchItems();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to save item");
-      }
+      await createItem.mutate("/api/items", payload);
+      setOpen(false);
+      refetchItems();
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to save item");
     } finally {
       setSaving(false);
     }
@@ -93,15 +76,10 @@ export default function ItemsPage() {
     )
       return;
     try {
-      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        fetchItems();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to deactivate item");
-      }
+      await deactivateItem.mutate(`/api/items/${id}`);
+      refetchItems();
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to deactivate item");
     }
   };
 
@@ -206,7 +184,7 @@ export default function ItemsPage() {
           <div className="text-center py-12 text-muted-foreground text-sm border rounded-xl bg-white shadow-sm">
             Loading items...
           </div>
-        ) : items.length === 0 ? (
+        ) : (items || []).length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
             <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
             <p className="text-muted-foreground font-medium text-sm">
@@ -214,7 +192,7 @@ export default function ItemsPage() {
             </p>
           </div>
         ) : (
-          items.map((item) => (
+          (items || []).map((item) => (
             <div
               key={item.id}
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -310,7 +288,7 @@ export default function ItemsPage() {
                   Loading items...
                 </TableCell>
               </TableRow>
-            ) : items.length === 0 ? (
+            ) : (items || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-14">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
@@ -320,7 +298,7 @@ export default function ItemsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => (
+              (items || []).map((item) => (
                 <TableRow
                   key={item.id}
                   className="hover:bg-slate-50/60 transition-colors"

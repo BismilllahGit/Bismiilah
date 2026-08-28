@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -26,7 +27,18 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function TemplatesPage() {
-  const [loading, setLoading] = useState(true);
+  const {
+    data: templatesData,
+    loading: templatesLoading,
+    refetch: refetchTemplates,
+  } = useApiResource<any[]>("/api/boq-templates");
+  const {
+    data: groupsData,
+    loading: groupsLoading,
+    refetch: refetchGroups,
+  } = useApiResource<any[]>("/api/boq-groups?all=true");
+  const loading = templatesLoading || groupsLoading;
+
   const [templates, setTemplates] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [expandedTemplates, setExpandedTemplates] = useState<
@@ -37,24 +49,44 @@ export default function TemplatesPage() {
   const [addingGroup, setAddingGroup] = useState(false);
 
   useEffect(() => {
-    fetchData(true);
-  }, []);
+    setTemplates(templatesData || []);
+  }, [templatesData]);
 
-  const fetchData = async (isInitialRender = false) => {
-    if (isInitialRender) setLoading(true);
-    try {
-      const [tplRes, grpRes] = await Promise.all([
-        fetch("/api/boq-templates"),
-        fetch("/api/boq-groups?all=true"),
-      ]);
-      if (tplRes.ok) setTemplates(await tplRes.json());
-      if (grpRes.ok) setGroups(await grpRes.json());
-    } catch (e) {
-      console.error("Error fetching data:", e);
-    } finally {
-      if (isInitialRender) setLoading(false);
-    }
+  useEffect(() => {
+    setGroups(groupsData || []);
+  }, [groupsData]);
+
+  const refetchAll = (opts?: { silent?: boolean }) => {
+    refetchTemplates(opts);
+    refetchGroups(opts);
   };
+
+  const addTemplateMutation = useApiMutation<Record<string, unknown>, any>(
+    "POST",
+  );
+  const templateMutation = useApiMutation<Record<string, unknown>, any>(
+    "PATCH",
+  );
+  const deleteTemplateMutation = useApiMutation<undefined, any>("DELETE");
+
+  const addSectionMutation = useApiMutation<Record<string, unknown>, any>(
+    "POST",
+  );
+  const sectionMutation = useApiMutation<Record<string, unknown>, any>(
+    "PATCH",
+  );
+  const deleteSectionMutation = useApiMutation<undefined, any>("DELETE");
+
+  const addItemMutation = useApiMutation<Record<string, unknown>, any>(
+    "POST",
+  );
+  const itemMutation = useApiMutation<Record<string, unknown>, any>("PATCH");
+  const deleteItemMutation = useApiMutation<undefined, any>("DELETE");
+
+  const addGroupMutation = useApiMutation<Record<string, unknown>, any>(
+    "POST",
+  );
+  const groupMutation = useApiMutation<Record<string, unknown>, any>("PATCH");
 
   const toggleExpand = (id: string) => {
     setExpandedTemplates((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -63,16 +95,12 @@ export default function TemplatesPage() {
   // --- TEMPLATES ---
   const handleAddTemplate = async () => {
     try {
-      const res = await fetch("/api/boq-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "New Template", category: "General" }),
+      const t = await addTemplateMutation.mutate("/api/boq-templates", {
+        name: "New Template",
+        category: "General",
       });
-      if (res.ok) {
-        const t = await res.json();
-        setExpandedTemplates((prev) => ({ ...prev, [t.id]: true }));
-        fetchData();
-      }
+      setExpandedTemplates((prev) => ({ ...prev, [t.id]: true }));
+      refetchAll({ silent: true });
     } catch (e) {}
   };
 
@@ -88,10 +116,8 @@ export default function TemplatesPage() {
     value: string,
   ) => {
     try {
-      await fetch(`/api/boq-templates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value }),
+      await templateMutation.mutate(`/api/boq-templates/${id}`, {
+        [field]: value,
       });
     } catch (e) {}
   };
@@ -99,8 +125,8 @@ export default function TemplatesPage() {
   const handleDeleteTemplate = async (id: string) => {
     if (!confirm("Delete this template?")) return;
     try {
-      await fetch(`/api/boq-templates/${id}`, { method: "DELETE" });
-      fetchData();
+      await deleteTemplateMutation.mutate(`/api/boq-templates/${id}`);
+      refetchAll({ silent: true });
     } catch (e) {}
   };
 
@@ -110,15 +136,14 @@ export default function TemplatesPage() {
       return alert("You need at least one active BOQ Group first.");
     const firstActiveGroup = groups.find((g) => g.isActive);
     try {
-      await fetch(`/api/boq-templates/${templateId}/sections`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await addSectionMutation.mutate(
+        `/api/boq-templates/${templateId}/sections`,
+        {
           name: "New Section",
           groupId: firstActiveGroup.id,
-        }),
-      });
-      fetchData();
+        },
+      );
+      refetchAll({ silent: true });
     } catch (e) {}
   };
 
@@ -149,10 +174,8 @@ export default function TemplatesPage() {
     value: string,
   ) => {
     try {
-      await fetch(`/api/boq-template-sections/${sectionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value }),
+      await sectionMutation.mutate(`/api/boq-template-sections/${sectionId}`, {
+        [field]: value,
       });
     } catch (e) {}
   };
@@ -160,10 +183,10 @@ export default function TemplatesPage() {
   const handleDeleteSection = async (sectionId: string) => {
     if (!confirm("Delete this section?")) return;
     try {
-      await fetch(`/api/boq-template-sections/${sectionId}`, {
-        method: "DELETE",
-      });
-      fetchData();
+      await deleteSectionMutation.mutate(
+        `/api/boq-template-sections/${sectionId}`,
+      );
+      refetchAll({ silent: true });
     } catch (e) {}
   };
 
@@ -210,32 +233,28 @@ export default function TemplatesPage() {
 
     try {
       await Promise.all([
-        fetch(`/api/boq-template-sections/${sectionId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sortOrder: targetSection.sortOrder }),
+        sectionMutation.mutate(`/api/boq-template-sections/${sectionId}`, {
+          sortOrder: targetSection.sortOrder,
         }),
-        fetch(`/api/boq-template-sections/${targetSection.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sortOrder: currentSection.sortOrder }),
-        }),
+        sectionMutation.mutate(
+          `/api/boq-template-sections/${targetSection.id}`,
+          { sortOrder: currentSection.sortOrder },
+        ),
       ]);
-      fetchData(); // Silently syncs state in the background
+      refetchAll({ silent: true }); // Silently syncs state in the background
     } catch (e) {
-      fetchData();
+      refetchAll({ silent: true });
     }
   };
 
   // --- ITEMS ---
   const handleAddItem = async (sectionId: string) => {
     try {
-      await fetch(`/api/boq-template-sections/${sectionId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "New Item" }),
-      });
-      fetchData();
+      await addItemMutation.mutate(
+        `/api/boq-template-sections/${sectionId}/items`,
+        { title: "New Item" },
+      );
+      refetchAll({ silent: true });
     } catch (e) {}
   };
 
@@ -270,10 +289,8 @@ export default function TemplatesPage() {
 
   const handleItemBlur = async (itemId: string, value: string) => {
     try {
-      await fetch(`/api/boq-template-line-items/${itemId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: value }),
+      await itemMutation.mutate(`/api/boq-template-line-items/${itemId}`, {
+        title: value,
       });
     } catch (e) {}
   };
@@ -281,10 +298,10 @@ export default function TemplatesPage() {
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm("Delete this item?")) return;
     try {
-      await fetch(`/api/boq-template-line-items/${itemId}`, {
-        method: "DELETE",
-      });
-      fetchData();
+      await deleteItemMutation.mutate(
+        `/api/boq-template-line-items/${itemId}`,
+      );
+      refetchAll({ silent: true });
     } catch (e) {}
   };
 
@@ -340,20 +357,16 @@ export default function TemplatesPage() {
 
     try {
       await Promise.all([
-        fetch(`/api/boq-template-line-items/${itemId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sortOrder: targetItem.sortOrder }),
+        itemMutation.mutate(`/api/boq-template-line-items/${itemId}`, {
+          sortOrder: targetItem.sortOrder,
         }),
-        fetch(`/api/boq-template-line-items/${targetItem.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sortOrder: currentItem.sortOrder }),
+        itemMutation.mutate(`/api/boq-template-line-items/${targetItem.id}`, {
+          sortOrder: currentItem.sortOrder,
         }),
       ]);
-      fetchData(); // Silently syncs state in the background
+      refetchAll({ silent: true }); // Silently syncs state in the background
     } catch (e) {
-      fetchData();
+      refetchAll({ silent: true });
     }
   };
 
@@ -363,13 +376,11 @@ export default function TemplatesPage() {
     if (!newGroupName.trim()) return;
     setAddingGroup(true);
     try {
-      await fetch("/api/boq-groups", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newGroupName }),
+      await addGroupMutation.mutate("/api/boq-groups", {
+        name: newGroupName,
       });
       setNewGroupName("");
-      fetchData();
+      refetchAll({ silent: true });
     } catch (e) {
     } finally {
       setAddingGroup(false);
@@ -384,14 +395,9 @@ export default function TemplatesPage() {
 
   const handleGroupBlur = async (id: string, value: string) => {
     try {
-      const res = await fetch(`/api/boq-groups/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: value }),
-      });
-      if (!res.ok) fetchData();
+      await groupMutation.mutate(`/api/boq-groups/${id}`, { name: value });
     } catch (e) {
-      fetchData();
+      refetchAll({ silent: true });
     }
   };
 
@@ -400,14 +406,10 @@ export default function TemplatesPage() {
       setGroups((prev) =>
         prev.map((g) => (g.id === id ? { ...g, isActive } : g)),
       );
-      await fetch(`/api/boq-groups/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive }),
-      });
-      fetchData();
+      await groupMutation.mutate(`/api/boq-groups/${id}`, { isActive });
+      refetchAll({ silent: true });
     } catch (e) {
-      fetchData();
+      refetchAll({ silent: true });
     }
   };
 

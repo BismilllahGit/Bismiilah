@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -67,6 +68,15 @@ type VendorTxn = {
   contact: { name: string };
 };
 
+type ExpensesResponse =
+  | Expense[]
+  | {
+      siteExpenses: Expense[];
+      labourEntries: LabourEntry[];
+      materials: MaterialEntry[];
+      vendorTransactions: VendorTxn[];
+    };
+
 export default function SiteExpensesPage({
   params,
 }: {
@@ -75,38 +85,39 @@ export default function SiteExpensesPage({
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
 
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [labourEntries, setLabourEntries] = useState<LabourEntry[]>([]);
-  const [materials, setMaterials] = useState<MaterialEntry[]>([]);
-  const [vendorTxns, setVendorTxns] = useState<VendorTxn[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const fetchExpenses = async () => {
-    setLoading(true);
-    const res = await fetch(`/api/projects/${projectId}/expenses`);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setExpenses(data);
-      } else {
-        setExpenses(data.siteExpenses || []);
-        setLabourEntries(data.labourEntries || []);
-        setMaterials(data.materials || []);
-        setVendorTxns(data.vendorTransactions || []);
-      }
-    }
-    setLoading(false);
-  };
+  const {
+    data: expensesResult,
+    loading,
+    refetch: refetchExpenses,
+  } = useApiResource<ExpensesResponse>(`/api/projects/${projectId}/expenses`);
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [projectId]);
+  const expenses = Array.isArray(expensesResult)
+    ? expensesResult
+    : expensesResult?.siteExpenses || [];
+  const labourEntries = Array.isArray(expensesResult)
+    ? []
+    : expensesResult?.labourEntries || [];
+  const materials = Array.isArray(expensesResult)
+    ? []
+    : expensesResult?.materials || [];
+  const vendorTxns = Array.isArray(expensesResult)
+    ? []
+    : expensesResult?.vendorTransactions || [];
+
+  const { mutate: createExpense, mutating: saving } = useApiMutation<
+    {
+      category: FormDataEntryValue | null;
+      amount: number;
+      date: FormDataEntryValue | null;
+      description: FormDataEntryValue | undefined;
+    },
+    Expense
+  >("POST");
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSaving(true);
 
     const formData = new FormData(e.currentTarget);
     const payload = {
@@ -117,23 +128,11 @@ export default function SiteExpensesPage({
     };
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/expenses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        fetchExpenses();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to log expense");
-      }
-    } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSaving(false);
+      await createExpense(`/api/projects/${projectId}/expenses`, payload);
+      setOpen(false);
+      refetchExpenses();
+    } catch (err: any) {
+      alert(err?.message || "Failed to log expense");
     }
   };
 

@@ -13,35 +13,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [workers, setWorkers] = useState<any[]>([]);
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
-
-  useEffect(() => {
-    fetch("/api/worker-types")
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error(`API returned status: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setWorkers(data.filter((w) => w.isActive));
-        } else {
-          console.warn("Expected array of workers, got:", data);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to fetch workers:", err);
-        setWorkers([]);
-      });
-  }, []);
+  const { data: rawWorkers } = useApiResource<any[]>("/api/worker-types");
+  const workers = Array.isArray(rawWorkers)
+    ? rawWorkers.filter((w) => w.isActive)
+    : [];
+  const createProject = useApiMutation<any, any>("POST");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,21 +45,12 @@ export default function NewProjectPage() {
     };
 
     try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create project");
-      }
+      await createProject.mutate("/api/projects", payload);
 
       router.push("/projects");
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create project");
       setLoading(false);
     }
   };

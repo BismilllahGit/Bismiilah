@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -46,15 +47,32 @@ export default function ProjectInventoryPage({
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
 
-  const [inventory, setInventory] = useState<InventoryBalance[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: inventoryData,
+    loading: invLoading,
+    refetch: refetchInventory,
+  } = useApiResource<InventoryBalance[]>(
+    `/api/projects/${projectId}/inventory`,
+  );
+  const {
+    data: itemsData,
+    loading: itemsLoading,
+    refetch: refetchItems,
+  } = useApiResource<Item[]>("/api/items");
+  const { data: allProjectsData, loading: projectsLoading } =
+    useApiResource<any[]>("/api/projects");
 
-  const [savingTxn, setSavingTxn] = useState(false);
+  const inventory = inventoryData || [];
+  const items = itemsData || [];
+  const projects = (allProjectsData || []).filter(
+    (p: any) => p.id !== projectId && p.status === "ACTIVE",
+  );
+  const loading = invLoading || itemsLoading || projectsLoading;
+
+  const logTransaction = useApiMutation<any, any>("POST");
   const [txnOpen, setTxnOpen] = useState(false);
 
-  const [savingTransfer, setSavingTransfer] = useState(false);
+  const transferStock = useApiMutation<any, any>("POST");
   const [transferOpen, setTransferOpen] = useState(false);
 
   // Combobox state for Transaction
@@ -67,26 +85,6 @@ export default function ProjectInventoryPage({
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [currentStart, setCurrentStart] = useState("");
   const [currentEnd, setCurrentEnd] = useState("");
-
-  const fetchData = async () => {
-    setLoading(true);
-    const [invRes, itemRes, projRes] = await Promise.all([
-      fetch(`/api/projects/${projectId}/inventory`),
-      fetch("/api/items"),
-      fetch("/api/projects"),
-    ]);
-    if (invRes.ok) setInventory(await invRes.json());
-    if (itemRes.ok) setItems(await itemRes.json());
-    if (projRes.ok) {
-      const allProjs = await projRes.json();
-      setProjects(
-        allProjs.filter(
-          (p: any) => p.id !== projectId && p.status === "ACTIVE",
-        ),
-      );
-    }
-    setLoading(false);
-  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const [currentSearch, setCurrentSearch] = useState("");
@@ -115,10 +113,6 @@ export default function ProjectInventoryPage({
     setLedgerLoading(false);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [projectId]);
-
   // Handle auto-fill cost when typing/selecting item name
   const handleItemNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -131,7 +125,6 @@ export default function ProjectInventoryPage({
 
   const handleLogTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSavingTxn(true);
 
     const formData = new FormData(e.currentTarget);
     const payload = {
@@ -144,34 +137,27 @@ export default function ProjectInventoryPage({
     };
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/inventory`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setTxnOpen(false);
-        setItemName("");
-        setItemCost("");
-        fetchData();
-        if (selectedItem) {
-          fetchLedger(selectedItem.id);
-        }
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to log transaction");
+      await logTransaction.mutate(
+        `/api/projects/${projectId}/inventory`,
+        payload,
+      );
+      setTxnOpen(false);
+      setItemName("");
+      setItemCost("");
+      refetchInventory();
+      refetchItems({ silent: true });
+      if (selectedItem) {
+        fetchLedger(selectedItem.id);
       }
     } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSavingTxn(false);
+      alert(
+        err instanceof Error ? err.message : "Failed to log transaction",
+      );
     }
   };
 
   const handleTransfer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSavingTransfer(true);
 
     const formData = new FormData(e.currentTarget);
     const payload = {
@@ -183,26 +169,17 @@ export default function ProjectInventoryPage({
     };
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/inventory/transfer`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setTransferOpen(false);
-        fetchData();
-        if (selectedItem) {
-          fetchLedger(selectedItem.id);
-        }
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to transfer");
+      await transferStock.mutate(
+        `/api/projects/${projectId}/inventory/transfer`,
+        payload,
+      );
+      setTransferOpen(false);
+      refetchInventory();
+      if (selectedItem) {
+        fetchLedger(selectedItem.id);
       }
     } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSavingTransfer(false);
+      alert(err instanceof Error ? err.message : "Failed to transfer");
     }
   };
 
@@ -405,8 +382,8 @@ export default function ProjectInventoryPage({
                   >
                     Cancel
                   </SheetClose>
-                  <Button type="submit" disabled={savingTransfer}>
-                    {savingTransfer ? "Transferring..." : "Transfer Stock"}
+                  <Button type="submit" disabled={transferStock.mutating}>
+                    {transferStock.mutating ? "Transferring..." : "Transfer Stock"}
                   </Button>
                 </SheetFooter>
               </form>
@@ -516,8 +493,8 @@ export default function ProjectInventoryPage({
                   >
                     Cancel
                   </SheetClose>
-                  <Button type="submit" disabled={savingTxn}>
-                    {savingTxn ? "Saving..." : "Log Transaction"}
+                  <Button type="submit" disabled={logTransaction.mutating}>
+                    {logTransaction.mutating ? "Saving..." : "Log Transaction"}
                   </Button>
                 </SheetFooter>
               </form>

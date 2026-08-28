@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -20,10 +20,20 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, Plus } from "lucide-react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 
 export default function WageRatesSettingsPage() {
-  const [presets, setPresets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: presetsData, loading, refetch } = useApiResource<any[]>(
+    "/api/worker-types",
+  );
+  const presets = presetsData ?? [];
+  const sortedPresets = useMemo(
+    () =>
+      [...presets].sort((a: any, b: any) =>
+        (a.workerType || a.name).localeCompare(b.workerType || b.name),
+      ),
+    [presets],
+  );
   const [savingMap, setSavingMap] = useState<Record<string, boolean>>({});
   const [editingValues, setEditingValues] = useState<Record<string, string>>(
     {},
@@ -37,33 +47,25 @@ export default function WageRatesSettingsPage() {
   const [newTypeCycle, setNewTypeCycle] = useState("WEEKLY");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    fetchPresets();
-  }, []);
+  const updateWorkerType = useApiMutation<Record<string, unknown>, any>(
+    "PATCH",
+  );
+  const createWorkerType = useApiMutation<Record<string, unknown>, any>(
+    "POST",
+  );
 
-  const fetchPresets = async () => {
-    try {
-      const res = await fetch("/api/worker-types");
-      if (res.ok) {
-        const data = await res.json();
-        data.sort((a: any, b: any) =>
-          (a.workerType || a.name).localeCompare(b.workerType || b.name),
-        );
-        setPresets(data);
-        const ev: Record<string, string> = {};
-        const ec: Record<string, string> = {};
-        data.forEach((d: any) => {
-          const typeName = d.workerType || d.name;
-          ev[typeName] = d.defaultRate?.toString() || "0";
-          ec[typeName] = d.paymentCycle || "WEEKLY";
-        });
-        setEditingValues(ev);
-        setEditingCycles(ec);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    if (!presetsData) return;
+    const ev: Record<string, string> = {};
+    const ec: Record<string, string> = {};
+    presetsData.forEach((d: any) => {
+      const typeName = d.workerType || d.name;
+      ev[typeName] = d.defaultRate?.toString() || "0";
+      ec[typeName] = d.paymentCycle || "WEEKLY";
+    });
+    setEditingValues(ev);
+    setEditingCycles(ec);
+  }, [presetsData]);
 
   const handleSave = async (id: string, typeName: string) => {
     const val = editingValues[typeName];
@@ -75,18 +77,12 @@ export default function WageRatesSettingsPage() {
 
     setSavingMap((prev) => ({ ...prev, [typeName]: true }));
     try {
-      const res = await fetch(`/api/worker-types/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultRate: Number(val), paymentCycle: cycle }),
+      await updateWorkerType.mutate(`/api/worker-types/${id}`, {
+        defaultRate: Number(val),
+        paymentCycle: cycle,
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || "Failed to save.");
-      }
-    } catch (e) {
-      alert("Error saving.");
+    } catch (e: any) {
+      alert(e?.message || "Failed to save.");
     } finally {
       setSavingMap((prev) => ({ ...prev, [typeName]: false }));
     }
@@ -106,26 +102,17 @@ export default function WageRatesSettingsPage() {
 
     setCreating(true);
     try {
-      const res = await fetch("/api/worker-types", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newTypeName.trim(),
-          defaultRate: rateVal,
-          paymentCycle: newTypeCycle,
-        }),
+      await createWorkerType.mutate("/api/worker-types", {
+        name: newTypeName.trim(),
+        defaultRate: rateVal,
+        paymentCycle: newTypeCycle,
       });
-      if (res.ok) {
-        setNewTypeName("");
-        setNewTypeRate("");
-        setNewTypeCycle("WEEKLY");
-        fetchPresets();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || "Failed to create worker type");
-      }
-    } catch (err) {
-      alert("An error occurred while creating worker type.");
+      setNewTypeName("");
+      setNewTypeRate("");
+      setNewTypeCycle("WEEKLY");
+      refetch({ silent: true });
+    } catch (err: any) {
+      alert(err?.message || "An error occurred while creating worker type.");
     } finally {
       setCreating(false);
     }
@@ -246,7 +233,7 @@ export default function WageRatesSettingsPage() {
                 Loading worker types...
               </div>
             ) : (
-              presets.map((preset) => {
+              sortedPresets.map((preset) => {
                 const typeName = preset.workerType || preset.name;
                 const isSaving = savingMap[typeName];
                 return (
@@ -362,7 +349,7 @@ export default function WageRatesSettingsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  presets.map((preset) => {
+                  sortedPresets.map((preset) => {
                     const typeName = preset.workerType || preset.name;
                     return (
                       <TableRow

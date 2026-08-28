@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -59,12 +60,29 @@ type Invoice = {
 };
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const {
+    data: invoicesData,
+    loading: invoicesLoading,
+    refetch: refetchInvoices,
+  } = useApiResource<Invoice[]>("/api/invoices");
+  const { data: clientsData, loading: clientsLoading } =
+    useApiResource<{ id: string; name: string }[]>("/api/clients");
+  const { data: projectsData, loading: projectsLoading } =
+    useApiResource<{ id: string; name: string }[]>("/api/projects");
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const invoices = invoicesData || [];
+  const clients = clientsData || [];
+  const projects = projectsData || [];
+  const loading = invoicesLoading || clientsLoading || projectsLoading;
+
+  const createInvoice = useApiMutation<any, Invoice>("POST");
+  const recordPayment = useApiMutation<any, { id: string }>("POST");
+  const changeInvoiceStatus = useApiMutation<any, Invoice>("PATCH");
+  const saving =
+    createInvoice.mutating ||
+    recordPayment.mutating ||
+    changeInvoiceStatus.mutating;
+
   const [successPaymentData, setSuccessPaymentData] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -76,23 +94,6 @@ export default function InvoicesPage() {
     { description: "", quantity: 1, unitPrice: 0 },
   ]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [invRes, cliRes, projRes] = await Promise.all([
-      fetch("/api/invoices"),
-      fetch("/api/clients"),
-      fetch("/api/projects"),
-    ]);
-    if (invRes.ok) setInvoices(await invRes.json());
-    if (cliRes.ok) setClients(await cliRes.json());
-    if (projRes.ok) setProjects(await projRes.json());
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const handleSaveInvoice = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (lineItems.length === 0) {
@@ -100,7 +101,6 @@ export default function InvoicesPage() {
       return;
     }
 
-    setSaving(true);
     const formData = new FormData(e.currentTarget);
     const payload = {
       clientId: formData.get("clientId"),
@@ -115,24 +115,12 @@ export default function InvoicesPage() {
     };
 
     try {
-      const res = await fetch("/api/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        setLineItems([{ description: "", quantity: 1, unitPrice: 0 }]);
-        fetchData();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to create invoice");
-      }
+      await createInvoice.mutate("/api/invoices", payload);
+      setOpen(false);
+      setLineItems([{ description: "", quantity: 1, unitPrice: 0 }]);
+      refetchInvoices();
     } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSaving(false);
+      alert(err instanceof Error ? err.message : "Failed to create invoice");
     }
   };
 
@@ -140,7 +128,6 @@ export default function InvoicesPage() {
     e.preventDefault();
     if (!selectedInvoice) return;
 
-    setSaving(true);
     const formData = new FormData(e.currentTarget);
     const payload = {
       amount: Number(formData.get("amount")),
@@ -150,65 +137,47 @@ export default function InvoicesPage() {
     };
 
     try {
-      const res = await fetch(`/api/invoices/${selectedInvoice.id}/payments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const createdTxn = await recordPayment.mutate(
+        `/api/invoices/${selectedInvoice.id}/payments`,
+        payload,
+      );
+      const totalPaidBefore =
+        selectedInvoice.clientPayments.reduce(
+          (a, p) => a + Number(p.amount),
+          0,
+        ) +
+        selectedInvoice.paymentAllocations.reduce(
+          (a, p) => a + Number(p.allocatedAmount),
+          0,
+        );
+      const balanceAfter =
+        Number(selectedInvoice.amount) - (totalPaidBefore + payload.amount);
+
+      setSuccessPaymentData({
+        ...payload,
+        id: createdTxn.id,
+        clientName: selectedInvoice.client.name,
+        clientPhone: selectedInvoice.client.phone,
+        projectName: selectedInvoice.project.name,
+        balance: balanceAfter > 0 ? balanceAfter : 0,
       });
-
-      if (res.ok) {
-        const createdTxn = await res.json();
-        const totalPaidBefore =
-          selectedInvoice.clientPayments.reduce(
-            (a, p) => a + Number(p.amount),
-            0,
-          ) +
-          selectedInvoice.paymentAllocations.reduce(
-            (a, p) => a + Number(p.allocatedAmount),
-            0,
-          );
-        const balanceAfter =
-          Number(selectedInvoice.amount) - (totalPaidBefore + payload.amount);
-
-        setSuccessPaymentData({
-          ...payload,
-          id: createdTxn.id,
-          clientName: selectedInvoice.client.name,
-          clientPhone: selectedInvoice.client.phone,
-          projectName: selectedInvoice.project.name,
-          balance: balanceAfter > 0 ? balanceAfter : 0,
-        });
-        fetchData();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to log payment");
-      }
+      refetchInvoices();
     } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSaving(false);
+      alert(err instanceof Error ? err.message : "Failed to log payment");
     }
   };
 
   const handleChangeStatus = async (status: string, voidReason?: string) => {
     if (!selectedInvoice) return;
-    setSaving(true);
     try {
-      const res = await fetch(`/api/invoices/${selectedInvoice.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, voidReason }),
+      await changeInvoiceStatus.mutate(`/api/invoices/${selectedInvoice.id}`, {
+        status,
+        voidReason,
       });
-      if (res.ok) {
-        fetchData();
-        setDetailOpen(false);
-      } else {
-        alert("Failed to update status");
-      }
+      refetchInvoices();
+      setDetailOpen(false);
     } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSaving(false);
+      alert(err instanceof Error ? err.message : "Failed to update status");
     }
   };
 

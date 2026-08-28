@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,8 +38,12 @@ export default function ProjectTasksClient({
 }: {
   projectId: string;
 }) {
+  const {
+    data: tasksData,
+    loading,
+    refetch,
+  } = useApiResource<Task[]>(`/api/projects/${projectId}/tasks`);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,23 +54,13 @@ export default function ProjectTasksClient({
 
   const router = useRouter();
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/projects/${projectId}/tasks`);
-      if (res.ok) {
-        const data = await res.json();
-        setTasks(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch tasks", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
+  const createTask = useApiMutation<Record<string, unknown>, Task>("POST");
+  const updateTask = useApiMutation<Record<string, unknown>, Task>("PATCH");
+  const deleteTask = useApiMutation<undefined, void>("DELETE");
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    setTasks(tasksData || []);
+  }, [tasksData]);
 
   const notifyUpdate = () => {
     window.dispatchEvent(new Event("tasks-updated"));
@@ -76,19 +71,17 @@ export default function ProjectTasksClient({
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/tasks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, targetDate }),
+      await createTask.mutate(`/api/projects/${projectId}/tasks`, {
+        title,
+        description,
+        targetDate,
       });
-      if (res.ok) {
-        setIsAddOpen(false);
-        setTitle("");
-        setDescription("");
-        setTargetDate("");
-        fetchTasks();
-        notifyUpdate();
-      }
+      setIsAddOpen(false);
+      setTitle("");
+      setDescription("");
+      setTargetDate("");
+      refetch({ silent: true });
+      notifyUpdate();
     } catch (err) {
       console.error(err);
     } finally {
@@ -103,18 +96,10 @@ export default function ProjectTasksClient({
       ),
     );
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!res.ok) {
-        fetchTasks();
-      } else {
-        notifyUpdate();
-      }
+      await updateTask.mutate(`/api/tasks/${taskId}`, { status: newStatus });
+      notifyUpdate();
     } catch (err) {
-      fetchTasks();
+      refetch({ silent: true });
     }
   };
 
@@ -122,10 +107,10 @@ export default function ProjectTasksClient({
     if (!confirm("Are you sure you want to delete this task?")) return;
     setTasks((current) => current.filter((t) => t.id !== taskId));
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
-      if (res.ok) notifyUpdate();
+      await deleteTask.mutate(`/api/tasks/${taskId}`);
+      notifyUpdate();
     } catch (err) {
-      fetchTasks();
+      refetch({ silent: true });
     }
   };
 

@@ -23,6 +23,7 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 
 type EntryRow = {
   id: string;
@@ -45,17 +46,6 @@ export default function DailyLabourPage({
   const projectId = resolvedParams.id;
 
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [entries, setEntries] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>({
-    totalHeadcount: 0,
-    totalSpend: 0,
-  });
-  const [loading, setLoading] = useState(false);
-
-  const [presets, setPresets] = useState<
-    Record<string, { defaultRate: number; paymentCycle: string }>
-  >({});
-  const [contractors, setContractors] = useState<any[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -65,53 +55,52 @@ export default function DailyLabourPage({
   const [formRows, setFormRows] = useState<EntryRow[]>([]);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const fetchPresets = async () => {
-    const res = await fetch("/api/worker-types");
-    if (res.ok) {
-      const data = await res.json();
-      const map: Record<string, { defaultRate: number; paymentCycle: string }> =
-        {};
-      data.forEach((d: any) => {
-        const typeName = d.workerType || d.name;
-        map[typeName] = {
-          defaultRate: Number(d.defaultRate || 0),
-          paymentCycle: d.paymentCycle || "WEEKLY",
-        };
-      });
-      setPresets(map);
-    }
+  const { data: presetsData, refetch: refetchPresets } = useApiResource<any[]>(
+    "/api/worker-types",
+  );
+  const { data: contractorsRaw } = useApiResource<any[]>("/api/contacts");
+  const contractors = (contractorsRaw || []).filter(
+    (c: any) => c.type === "LABOUR_CONTRACTOR",
+  );
+
+  const {
+    data: entriesResult,
+    loading,
+    refetch: refetchEntries,
+  } = useApiResource<{
+    data: any[];
+    summary: { totalHeadcount: number; totalSpend: number };
+  }>(
+    projectId
+      ? `/api/projects/${projectId}/daily-labour?startDate=${date}&endDate=${date}&limit=1000`
+      : null,
+  );
+  const entries = entriesResult?.data || [];
+  const summary = entriesResult?.summary || {
+    totalHeadcount: 0,
+    totalSpend: 0,
   };
 
-  const fetchEntries = async () => {
-    if (!projectId) return;
-    setLoading(true);
-    const res = await fetch(
-      `/api/projects/${projectId}/daily-labour?startDate=${date}&endDate=${date}&limit=1000`,
-    );
-    if (res.ok) {
-      const data = await res.json();
-      setEntries(data.data || []);
-      setSummary(data.summary || { totalHeadcount: 0, totalSpend: 0 });
-    }
-    setLoading(false);
-  };
-
-  const fetchContractors = async () => {
-    const res = await fetch("/api/contacts");
-    if (res.ok) {
-      const data = await res.json();
-      setContractors(data.filter((c: any) => c.type === "LABOUR_CONTRACTOR"));
-    }
-  };
+  const [presets, setPresets] = useState<
+    Record<string, { defaultRate: number; paymentCycle: string }>
+  >({});
 
   useEffect(() => {
-    fetchPresets();
-    fetchContractors();
-  }, []);
+    if (!presetsData) return;
+    const map: Record<string, { defaultRate: number; paymentCycle: string }> =
+      {};
+    presetsData.forEach((d: any) => {
+      const typeName = d.workerType || d.name;
+      map[typeName] = {
+        defaultRate: Number(d.defaultRate || 0),
+        paymentCycle: d.paymentCycle || "WEEKLY",
+      };
+    });
+    setPresets(map);
+  }, [presetsData]);
 
-  useEffect(() => {
-    fetchEntries();
-  }, [projectId, date]);
+  const createWorkerType = useApiMutation<any, any>("POST");
+  const logDailyLabour = useApiMutation<any, any>("POST");
 
   const handleOpenSheet = () => {
     setFormDate(date);
@@ -169,53 +158,39 @@ export default function DailyLabourPage({
     if (!name.trim()) return;
     updateRow(rowId, "creatingCustom", true);
     try {
-      const res = await fetch("/api/worker-types", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          defaultRate: 0,
-          paymentCycle: "WEEKLY",
-        }),
+      const data = await createWorkerType.mutate("/api/worker-types", {
+        name: name.trim(),
+        defaultRate: 0,
+        paymentCycle: "WEEKLY",
       });
-      const data = await res.json();
-      if (res.ok || res.status === 201) {
-        const createdName = data.workerType || data.name;
-        setPresets((prev) => ({
-          ...prev,
-          [createdName]: {
-            defaultRate: Number(data.defaultRate || 0),
-            paymentCycle: data.paymentCycle || "WEEKLY",
-          },
-        }));
-        setFormRows((prev) =>
-          prev.map((r) => {
-            if (r.id === rowId) {
-              return {
-                ...r,
-                workerType: createdName,
-                wageRate: r.wageRate || data.defaultRate?.toString() || "0",
-                paidImmediately: data.paymentCycle === "DAILY",
-                customTypeName: undefined,
-                creatingCustom: false,
-              };
-            }
-            return r;
-          }),
-        );
-      } else if (res.status === 409) {
-        alert(data.error || "A worker type with this name already exists.");
-        updateRow(rowId, "creatingCustom", false);
-      } else {
-        alert(
-          data.error?.name?._errors?.[0] ||
-            data.error ||
-            "Failed to create worker type",
-        );
-        updateRow(rowId, "creatingCustom", false);
-      }
-    } catch (err) {
-      alert("Error creating worker type");
+      const createdName = data.workerType || data.name;
+      // Optimistically merge into presets so this row's dropdown shows the
+      // new type immediately, without waiting for the refetch below.
+      setPresets((prev) => ({
+        ...prev,
+        [createdName]: {
+          defaultRate: Number(data.defaultRate || 0),
+          paymentCycle: data.paymentCycle || "WEEKLY",
+        },
+      }));
+      setFormRows((prev) =>
+        prev.map((r) => {
+          if (r.id === rowId) {
+            return {
+              ...r,
+              workerType: createdName,
+              wageRate: r.wageRate || data.defaultRate?.toString() || "0",
+              paidImmediately: data.paymentCycle === "DAILY",
+              customTypeName: undefined,
+              creatingCustom: false,
+            };
+          }
+          return r;
+        }),
+      );
+      refetchPresets({ silent: true });
+    } catch (err: any) {
+      alert(err.message || "Failed to create worker type");
       updateRow(rowId, "creatingCustom", false);
     }
   };
@@ -252,40 +227,38 @@ export default function DailyLabourPage({
     };
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/daily-labour`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const result = await logDailyLabour.mutate(
+        `/api/projects/${projectId}/daily-labour`,
+        payload,
+      );
+      const types = Array.from(
+        new Set(payload.entries.map((e) => e.workerType)),
+      );
 
-      if (res.ok) {
-        const result = await res.json();
-        const types = Array.from(
-          new Set(payload.entries.map((e) => e.workerType)),
-        );
+      // e.g., "Logged 10 Masons and 6 Helpers — Total: ₹18,300 for 14 June"
+      setSuccessMessage(
+        `Logged ${result.totalHeadcount} workers (${types.join(", ")}) — Total: ₹${result.totalSpend.toLocaleString("en-IN")} for ${new Date(formDate).toLocaleDateString()}`,
+      );
 
-        // e.g., "Logged 10 Masons and 6 Helpers — Total: ₹18,300 for 14 June"
-        setSuccessMessage(
-          `Logged ${result.totalHeadcount} workers (${types.join(", ")}) — Total: ₹${result.totalSpend.toLocaleString("en-IN")} for ${new Date(formDate).toLocaleDateString()}`,
-        );
-
-        // Immediately trigger re-fetch or date change so entries appear instantly without waiting for timeout
-        if (formDate === date) {
-          fetchEntries();
-        } else {
-          setDate(formDate); // will trigger refetch via useEffect
-        }
-
-        // Automatically close after a short delay
-        setTimeout(() => {
-          setIsSheetOpen(false);
-        }, 2000);
+      // Immediately trigger re-fetch or date change so entries appear instantly without waiting for timeout
+      if (formDate === date) {
+        refetchEntries();
       } else {
-        const err = await res.json();
-        alert(err.error || "Failed to log daily labour.");
+        setDate(formDate); // will trigger refetch via the hook's url change
       }
-    } catch (error) {
-      alert("An error occurred");
+
+      // The daily-labour endpoint can silently create a new worker type
+      // on the fly (when the submitted name doesn't match an existing
+      // record). Refetch presets so it shows up in the dropdown without
+      // requiring a page reload.
+      refetchPresets({ silent: true });
+
+      // Automatically close after a short delay
+      setTimeout(() => {
+        setIsSheetOpen(false);
+      }, 2000);
+    } catch (error: any) {
+      alert(error.message || "Failed to log daily labour.");
     } finally {
       setSaving(false);
     }

@@ -14,16 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Users, IndianRupee } from "lucide-react";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { Badge } from "@/components/ui/badge";
+import { useApiResource } from "@/hooks/useApiResource";
 
 export default function LabourLedgerPage() {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any[]>([]);
-  const [summary, setSummary] = useState({
-    totalHeadcount: 0,
-    totalSpend: 0,
-    entryCount: 0,
-  });
-
   // Filters
   const [datePreset, setDatePreset] = useState("THIS_MONTH");
   const [startDate, setStartDate] = useState("");
@@ -33,21 +26,10 @@ export default function LabourLedgerPage() {
   const [groupBy, setGroupBy] = useState("NONE"); // NONE, date, workerType, project
 
   // Options
-  const [projects, setProjects] = useState<any[]>([]);
-  const [workerTypes, setWorkerTypes] = useState<any[]>([]);
-
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/projects").then((r) => r.json()),
-      fetch("/api/worker-types").then((r) => r.json()),
-    ])
-      .then(([projData, presetsData]) => {
-        setProjects(projData);
-        // Store the full objects so we have access to the IDs
-        setWorkerTypes(presetsData);
-      })
-      .catch(console.error);
-  }, []);
+  const { data: projectsData } = useApiResource<any[]>("/api/projects");
+  const { data: workerTypesData } = useApiResource<any[]>("/api/worker-types");
+  const projects = projectsData || [];
+  const workerTypes = workerTypesData || [];
 
   useEffect(() => {
     const now = new Date();
@@ -67,30 +49,31 @@ export default function LabourLedgerPage() {
     }
   }, [datePreset]);
 
-  useEffect(() => {
-    // Only fetch if custom dates are ready, or if using preset
-    if (datePreset === "CUSTOM" && (!startDate || !endDate)) return;
+  // Only fetch if custom dates are ready, or if using preset
+  const labourUrl =
+    datePreset === "CUSTOM" && (!startDate || !endDate)
+      ? null
+      : (() => {
+          let url = `/api/daily-labour?limit=1000`; // High limit for flat list since pagination isn't strictly requested in UI yet, just API
+          if (startDate) url += `&startDate=${startDate}`;
+          if (endDate) url += `&endDate=${endDate}`;
+          if (projectId !== "ALL") url += `&projectId=${projectId}`;
+          if (workerType !== "ALL") url += `&workerType=${workerType}`;
+          if (groupBy !== "NONE") url += `&groupBy=${groupBy}`;
+          return url;
+        })();
 
-    setLoading(true);
-    let url = `/api/daily-labour?limit=1000`; // High limit for flat list since pagination isn't strictly requested in UI yet, just API
+  const { data: labourResult, loading } = useApiResource<{
+    data: any[];
+    summary: { totalHeadcount: number; totalSpend: number; entryCount: number };
+  }>(labourUrl);
 
-    if (startDate) url += `&startDate=${startDate}`;
-    if (endDate) url += `&endDate=${endDate}`;
-    if (projectId !== "ALL") url += `&projectId=${projectId}`;
-    if (workerType !== "ALL") url += `&workerType=${workerType}`;
-    if (groupBy !== "NONE") url += `&groupBy=${groupBy}`;
-
-    fetch(url)
-      .then((r) => r.json())
-      .then((res) => {
-        setData(res.data || []);
-        setSummary(
-          res.summary || { totalHeadcount: 0, totalSpend: 0, entryCount: 0 },
-        );
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [startDate, endDate, projectId, workerType, groupBy, datePreset]);
+  const data = labourResult?.data || [];
+  const summary = labourResult?.summary || {
+    totalHeadcount: 0,
+    totalSpend: 0,
+    entryCount: 0,
+  };
 
   const formatCurrency = (val: number) => {
     return `₹${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
