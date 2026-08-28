@@ -12,24 +12,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Save, Loader2, Building2, Landmark, FileText } from "lucide-react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 
 export default function BusinessProfileClient() {
+  const { data: fetchedProfile, loading } = useApiResource<any>(
+    "/api/business-profile",
+  );
   const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const updateProfile = useApiMutation<any, any>("PATCH");
 
   useEffect(() => {
-    fetch("/api/business-profile")
-      .then((res) => res.json())
-      .then((data) => {
-        setProfile(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load profile:", err);
-        setLoading(false);
-      });
-  }, []);
+    if (fetchedProfile) setProfile(fetchedProfile);
+  }, [fetchedProfile]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -41,19 +36,10 @@ export default function BusinessProfileClient() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/business-profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile),
-      });
-      if (res.ok) {
-        alert("Business profile updated successfully");
-      } else {
-        alert("Failed to update profile");
-      }
+      await updateProfile.mutate("/api/business-profile", profile);
+      alert("Business profile updated successfully");
     } catch (err) {
-      console.error(err);
-      alert("Error saving profile");
+      alert("Failed to update profile");
     } finally {
       setSaving(false);
     }

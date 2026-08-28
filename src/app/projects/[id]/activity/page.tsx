@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -37,21 +38,16 @@ export default function SiteActivityPage({
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
 
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: activities,
+    loading,
+    refetch,
+  } = useApiResource<Activity[]>(`/api/projects/${projectId}/activity`);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-
-  const fetchActivities = async () => {
-    setLoading(true);
-    const res = await fetch(`/api/projects/${projectId}/activity`);
-    if (res.ok) setActivities(await res.json());
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchActivities();
-  }, [projectId]);
+  const createActivity = useApiMutation<Record<string, unknown>, Activity>(
+    "POST",
+  );
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,21 +60,14 @@ export default function SiteActivityPage({
     };
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/activity`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        fetchActivities();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to log activity");
-      }
+      await createActivity.mutate(
+        `/api/projects/${projectId}/activity`,
+        payload,
+      );
+      setOpen(false);
+      refetch();
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to log activity");
     } finally {
       setSaving(false);
     }
@@ -175,7 +164,7 @@ export default function SiteActivityPage({
                   Loading activity logs...
                 </TableCell>
               </TableRow>
-            ) : activities.length === 0 ? (
+            ) : (activities || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center py-10">
                   <NotepadText className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
@@ -185,7 +174,7 @@ export default function SiteActivityPage({
                 </TableCell>
               </TableRow>
             ) : (
-              activities.map((act) => (
+              (activities || []).map((act) => (
                 <TableRow key={act.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium align-top">
                     {new Date(act.date).toLocaleDateString()}

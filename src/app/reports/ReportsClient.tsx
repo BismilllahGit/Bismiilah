@@ -3,14 +3,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +26,8 @@ import {
   DueClient,
   DueContractor,
 } from "./saturday-view/SaturdayViewClient";
+import { CashFlowDesktopTable } from "./CashFlowDesktopTable";
+import { CashFlowMobileList } from "./CashFlowMobileList";
 
 export interface OverviewData {
   totalCollected: number;
@@ -405,110 +399,10 @@ export function ReportsClient({
             </h2>
 
             {/* DESKTOP VIEW: Hidden on mobile, visible on medium screens and up */}
-            <div className="hidden md:block border rounded-md bg-white shadow-sm overflow-hidden">
-              <Table>
-                <TableHeader className="bg-slate-50">
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount (₹)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cashFlowData.transactions.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No financial transactions recorded yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    cashFlowData.transactions.map((txn) => (
-                      <TableRow key={txn.id} className="hover:bg-slate-50/50">
-                        <TableCell className="font-medium">
-                          {new Date(txn.date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          {txn.type === "IN" ? (
-                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                              <ArrowUpRight className="h-3 w-3 mr-1" /> IN
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
-                              <ArrowDownRight className="h-3 w-3 mr-1" /> OUT
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-medium text-sm">
-                          {txn.category}
-                        </TableCell>
-                        <TableCell className="text-sm text-slate-600">
-                          {txn.description}
-                        </TableCell>
-                        <TableCell
-                          className={`text-right font-mono font-bold ${txn.type === "IN" ? "text-green-600" : "text-orange-600"}`}
-                        >
-                          {txn.type === "IN" ? "+" : "-"}{" "}
-                          {txn.amount.toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <CashFlowDesktopTable transactions={cashFlowData.transactions} />
 
             {/* MOBILE VIEW: Visible on mobile, hidden on medium screens and up */}
-            <div className="grid gap-3 md:hidden">
-              {cashFlowData.transactions.length === 0 ? (
-                <div className="border rounded-md bg-white shadow-sm p-8 text-center text-muted-foreground text-sm">
-                  No financial transactions recorded yet.
-                </div>
-              ) : (
-                cashFlowData.transactions.map((txn) => (
-                  <div
-                    key={txn.id}
-                    className="border rounded-md bg-white shadow-sm p-4 flex flex-col gap-3"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-semibold text-slate-900 leading-none">
-                          {txn.category}
-                        </span>
-                        <span className="text-xs font-medium text-slate-500">
-                          {new Date(txn.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span
-                          className={`font-mono font-bold leading-none ${txn.type === "IN" ? "text-green-600" : "text-orange-600"}`}
-                        >
-                          {txn.type === "IN" ? "+" : "-"}{" "}
-                          {txn.amount.toLocaleString()}
-                        </span>
-                        {txn.type === "IN" ? (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-[10px] px-1.5 py-0">
-                            <ArrowUpRight className="h-2.5 w-2.5 mr-0.5" /> IN
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100 text-[10px] px-1.5 py-0">
-                            <ArrowDownRight className="h-2.5 w-2.5 mr-0.5" />{" "}
-                            OUT
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-sm text-slate-600 border-t pt-2">
-                      {txn.description}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <CashFlowMobileList transactions={cashFlowData.transactions} />
           </div>
         </TabsContent>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Plus, Users, Phone, Trash2 } from "lucide-react";
 import {
   Sheet,
@@ -34,23 +36,20 @@ type Contact = {
 };
 
 export default function VendorsPage() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: contacts,
+    loading,
+    refetch: refetchContacts,
+  } = useApiResource<Contact[]>("/api/contacts");
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-
-  const fetchContacts = async () => {
-    setLoading(true);
-    const res = await fetch("/api/contacts");
-    if (res.ok) {
-      setContacts(await res.json());
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchContacts();
-  }, []);
+  const [deactivateTarget, setDeactivateTarget] = useState<string | null>(
+    null,
+  );
+  const createContact = useApiMutation<Record<string, unknown>, Contact>(
+    "POST",
+  );
+  const deactivateContact = useApiMutation<undefined, void>("DELETE");
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -66,43 +65,22 @@ export default function VendorsPage() {
     };
 
     try {
-      const res = await fetch("/api/contacts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        fetchContacts();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to save contact");
-      }
+      await createContact.mutate("/api/contacts", payload);
+      setOpen(false);
+      refetchContacts();
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to save contact");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeactivate = async (id: string) => {
-    if (
-      !confirm(
-        "This will hide the record but preserve historical data. Are you sure?",
-      )
-    )
-      return;
     try {
-      const res = await fetch(`/api/contacts/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        fetchContacts();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to deactivate vendor");
-      }
+      await deactivateContact.mutate(`/api/contacts/${id}`);
+      refetchContacts();
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to deactivate vendor");
     }
   };
 
@@ -199,7 +177,7 @@ export default function VendorsPage() {
           <div className="text-center py-12 text-muted-foreground text-sm border rounded-xl bg-white shadow-sm">
             Loading vendors...
           </div>
-        ) : contacts.length === 0 ? (
+        ) : (contacts || []).length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
             <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
             <p className="text-muted-foreground text-sm font-medium">
@@ -207,7 +185,7 @@ export default function VendorsPage() {
             </p>
           </div>
         ) : (
-          contacts.map((contact) => (
+          (contacts || []).map((contact) => (
             <div
               key={contact.id}
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -255,7 +233,7 @@ export default function VendorsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDeactivate(contact.id)}
+                  onClick={() => setDeactivateTarget(contact.id)}
                   className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 px-3 border border-slate-200/70 rounded-lg shrink-0"
                   title="Remove Vendor"
                 >
@@ -299,7 +277,7 @@ export default function VendorsPage() {
                   Loading vendors...
                 </TableCell>
               </TableRow>
-            ) : contacts.length === 0 ? (
+            ) : (contacts || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-14">
                   <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
@@ -309,7 +287,7 @@ export default function VendorsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              contacts.map((contact) => (
+              (contacts || []).map((contact) => (
                 <TableRow
                   key={contact.id}
                   className="hover:bg-slate-50/60 transition-colors"
@@ -352,7 +330,7 @@ export default function VendorsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeactivate(contact.id)}
+                        onClick={() => setDeactivateTarget(contact.id)}
                         className="text-red-500 hover:text-red-600 hover:bg-red-50/80"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -365,6 +343,15 @@ export default function VendorsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        open={deactivateTarget !== null}
+        onOpenChange={(open) => !open && setDeactivateTarget(null)}
+        title="Deactivate this vendor?"
+        description="This will hide the record but preserve historical data."
+        confirmLabel="Deactivate"
+        onConfirm={() => handleDeactivate(deactivateTarget!)}
+      />
     </div>
   );
 }

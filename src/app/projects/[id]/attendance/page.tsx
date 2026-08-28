@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save } from "lucide-react";
@@ -20,27 +21,22 @@ export default function AttendancePage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
-  
-  const [workers, setWorkers] = useState<Worker[]>([]);
+
+  const { data: workers, loading } = useApiResource<Worker[]>("/api/workers");
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [attendance, setAttendance] = useState<Record<string, "PRESENT" | "HALF_DAY" | "ABSENT">>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const saveAttendance = useApiMutation<AttendanceRecord[], unknown>("POST");
 
   useEffect(() => {
-    fetch("/api/workers")
-      .then(res => res.json())
-      .then(data => {
-        setWorkers(data);
-        // Default everyone to PRESENT
-        const initialMap: Record<string, "PRESENT" | "HALF_DAY" | "ABSENT"> = {};
-        data.forEach((w: Worker) => {
-          initialMap[w.id] = "PRESENT";
-        });
-        setAttendance(initialMap);
-        setLoading(false);
-      });
-  }, []);
+    if (!workers) return;
+    // Default everyone to PRESENT
+    const initialMap: Record<string, "PRESENT" | "HALF_DAY" | "ABSENT"> = {};
+    workers.forEach((w) => {
+      initialMap[w.id] = "PRESENT";
+    });
+    setAttendance(initialMap);
+  }, [workers]);
 
   const handleStatusChange = (workerId: string, status: "PRESENT" | "HALF_DAY" | "ABSENT") => {
     setAttendance(prev => ({ ...prev, [workerId]: status }));
@@ -48,7 +44,7 @@ export default function AttendancePage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const payload: AttendanceRecord[] = workers.map(w => ({
+    const payload: AttendanceRecord[] = (workers || []).map(w => ({
       projectId,
       workerId: w.id,
       date: new Date(date).toISOString(),
@@ -56,20 +52,11 @@ export default function AttendancePage() {
     }));
 
     try {
-      const res = await fetch("/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        alert("Attendance saved successfully!");
-        router.push(`/projects/${projectId}`);
-      } else {
-        alert("Failed to save attendance.");
-      }
+      await saveAttendance.mutate("/api/attendance", payload);
+      alert("Attendance saved successfully!");
+      router.push(`/projects/${projectId}`);
     } catch (e) {
-      alert("An error occurred.");
+      alert(e instanceof Error ? e.message : "Failed to save attendance.");
     } finally {
       setSaving(false);
     }
@@ -92,8 +79,8 @@ export default function AttendancePage() {
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Date:</label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
@@ -116,32 +103,32 @@ export default function AttendancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {workers.map(worker => (
+                  {(workers || []).map(worker => (
                     <TableRow key={worker.id}>
                       <TableCell className="font-medium">{worker.name}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">{worker.type}</TableCell>
                       <TableCell className="text-center">
-                        <input 
-                          type="radio" 
-                          name={`status-${worker.id}`} 
+                        <input
+                          type="radio"
+                          name={`status-${worker.id}`}
                           checked={attendance[worker.id] === "PRESENT"}
                           onChange={() => handleStatusChange(worker.id, "PRESENT")}
                           className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
                         />
                       </TableCell>
                       <TableCell className="text-center">
-                        <input 
-                          type="radio" 
-                          name={`status-${worker.id}`} 
+                        <input
+                          type="radio"
+                          name={`status-${worker.id}`}
                           checked={attendance[worker.id] === "HALF_DAY"}
                           onChange={() => handleStatusChange(worker.id, "HALF_DAY")}
                           className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300"
                         />
                       </TableCell>
                       <TableCell className="text-center">
-                        <input 
-                          type="radio" 
-                          name={`status-${worker.id}`} 
+                        <input
+                          type="radio"
+                          name={`status-${worker.id}`}
                           checked={attendance[worker.id] === "ABSENT"}
                           onChange={() => handleStatusChange(worker.id, "ABSENT")}
                           className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
@@ -149,7 +136,7 @@ export default function AttendancePage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {workers.length === 0 && (
+                  {(workers || []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                         No active workers found in the directory.
@@ -162,7 +149,7 @@ export default function AttendancePage() {
           )}
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving || workers.length === 0} className="flex items-center gap-2">
+          <Button onClick={handleSave} disabled={saving || (workers || []).length === 0} className="flex items-center gap-2">
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save Attendance"}
           </Button>

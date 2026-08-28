@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -41,21 +42,16 @@ export default function ExtraWorkPage({
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
 
-  const [works, setWorks] = useState<ExtraWork[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: works,
+    loading,
+    refetch,
+  } = useApiResource<ExtraWork[]>(`/api/projects/${projectId}/extra-work`);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-
-  const fetchExtraWork = async () => {
-    setLoading(true);
-    const res = await fetch(`/api/projects/${projectId}/extra-work`);
-    if (res.ok) setWorks(await res.json());
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchExtraWork();
-  }, [projectId]);
+  const createExtraWork = useApiMutation<Record<string, unknown>, ExtraWork>(
+    "POST",
+  );
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,33 +66,26 @@ export default function ExtraWorkPage({
     };
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/extra-work`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        fetchExtraWork();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to log extra work");
-      }
+      await createExtraWork.mutate(
+        `/api/projects/${projectId}/extra-work`,
+        payload,
+      );
+      setOpen(false);
+      refetch();
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to log extra work");
     } finally {
       setSaving(false);
     }
   };
 
-  const totalUnbilled = works
+  const totalUnbilled = (works || [])
     .filter((w) => w.status === "UNBILLED")
     .reduce((acc, curr) => acc + Number(curr.amount), 0);
-  const totalBilled = works
+  const totalBilled = (works || [])
     .filter((w) => w.status === "BILLED")
     .reduce((acc, curr) => acc + Number(curr.amount), 0);
-  const totalCollected = works
+  const totalCollected = (works || [])
     .filter((w) => w.status === "COLLECTED")
     .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
@@ -245,7 +234,7 @@ export default function ExtraWorkPage({
           <div className="text-center py-10 text-muted-foreground text-sm border rounded-lg bg-white">
             Loading extra work...
           </div>
-        ) : works.length === 0 ? (
+        ) : (works || []).length === 0 ? (
           <div className="text-center py-10 border rounded-lg bg-white p-4">
             <Hammer className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
             <p className="text-muted-foreground text-sm">
@@ -253,7 +242,7 @@ export default function ExtraWorkPage({
             </p>
           </div>
         ) : (
-          works.map((w) => (
+          (works || []).map((w) => (
             <div
               key={w.id}
               className="bg-white border rounded-lg p-3.5 shadow-sm space-y-2"
@@ -318,7 +307,7 @@ export default function ExtraWorkPage({
                   Loading extra work...
                 </TableCell>
               </TableRow>
-            ) : works.length === 0 ? (
+            ) : (works || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-10">
                   <Hammer className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
@@ -328,7 +317,7 @@ export default function ExtraWorkPage({
                 </TableCell>
               </TableRow>
             ) : (
-              works.map((w) => (
+              (works || []).map((w) => (
                 <TableRow key={w.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium whitespace-nowrap">
                     {new Date(w.date).toLocaleDateString()}

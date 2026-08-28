@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -19,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, ExternalLink, Calendar, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useApiResource } from "@/hooks/useApiResource";
 
 interface ShareLog {
   id: string;
@@ -30,27 +30,9 @@ interface ShareLog {
 }
 
 export default function ShareLogsPage() {
-  const [logs, setLogs] = useState<ShareLog[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchLogs();
-  }, []);
-
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/share-logs?limit=200");
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch share logs", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: logs, loading } = useApiResource<ShareLog[]>(
+    "/api/share-logs?limit=200",
+  );
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -158,7 +140,7 @@ export default function ShareLogsPage() {
                     Loading logs...
                   </TableCell>
                 </TableRow>
-              ) : logs.length === 0 ? (
+              ) : (logs || []).length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={4}
@@ -168,7 +150,7 @@ export default function ShareLogsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                logs.map((log) => (
+                (logs || []).map((log) => (
                   <TableRow
                     key={log.id}
                     className="hover:bg-slate-50/50 transition-colors"

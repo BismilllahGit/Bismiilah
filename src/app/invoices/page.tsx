@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -10,31 +11,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Plus,
-  ReceiptIndianRupee,
-  IndianRupee,
-  Trash2,
-  Eye,
-  CheckCircle2,
-  Loader2,
-} from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
-import { cn } from "@/lib/utils";
+import { InvoiceFormSheet } from "./InvoiceFormSheet";
+import { InvoicesMobileList } from "./InvoicesMobileList";
+import { InvoicesDesktopTable } from "./InvoicesDesktopTable";
 
-type InvoiceLineItem = {
+export type InvoiceLineItem = {
   id: string;
   description: string;
   quantity: number;
@@ -42,7 +36,7 @@ type InvoiceLineItem = {
   total: number;
 };
 
-type Invoice = {
+export type Invoice = {
   id: string;
   invoiceNumber: string;
   amount: number;
@@ -59,12 +53,29 @@ type Invoice = {
 };
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const {
+    data: invoicesData,
+    loading: invoicesLoading,
+    refetch: refetchInvoices,
+  } = useApiResource<Invoice[]>("/api/invoices");
+  const { data: clientsData, loading: clientsLoading } =
+    useApiResource<{ id: string; name: string }[]>("/api/clients");
+  const { data: projectsData, loading: projectsLoading } =
+    useApiResource<{ id: string; name: string }[]>("/api/projects");
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const invoices = invoicesData || [];
+  const clients = clientsData || [];
+  const projects = projectsData || [];
+  const loading = invoicesLoading || clientsLoading || projectsLoading;
+
+  const createInvoice = useApiMutation<any, Invoice>("POST");
+  const recordPayment = useApiMutation<any, { id: string }>("POST");
+  const changeInvoiceStatus = useApiMutation<any, Invoice>("PATCH");
+  const saving =
+    createInvoice.mutating ||
+    recordPayment.mutating ||
+    changeInvoiceStatus.mutating;
+
   const [successPaymentData, setSuccessPaymentData] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -76,23 +87,6 @@ export default function InvoicesPage() {
     { description: "", quantity: 1, unitPrice: 0 },
   ]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [invRes, cliRes, projRes] = await Promise.all([
-      fetch("/api/invoices"),
-      fetch("/api/clients"),
-      fetch("/api/projects"),
-    ]);
-    if (invRes.ok) setInvoices(await invRes.json());
-    if (cliRes.ok) setClients(await cliRes.json());
-    if (projRes.ok) setProjects(await projRes.json());
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const handleSaveInvoice = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (lineItems.length === 0) {
@@ -100,7 +94,6 @@ export default function InvoicesPage() {
       return;
     }
 
-    setSaving(true);
     const formData = new FormData(e.currentTarget);
     const payload = {
       clientId: formData.get("clientId"),
@@ -115,24 +108,12 @@ export default function InvoicesPage() {
     };
 
     try {
-      const res = await fetch("/api/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        setLineItems([{ description: "", quantity: 1, unitPrice: 0 }]);
-        fetchData();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to create invoice");
-      }
+      await createInvoice.mutate("/api/invoices", payload);
+      setOpen(false);
+      setLineItems([{ description: "", quantity: 1, unitPrice: 0 }]);
+      refetchInvoices();
     } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSaving(false);
+      alert(err instanceof Error ? err.message : "Failed to create invoice");
     }
   };
 
@@ -140,7 +121,6 @@ export default function InvoicesPage() {
     e.preventDefault();
     if (!selectedInvoice) return;
 
-    setSaving(true);
     const formData = new FormData(e.currentTarget);
     const payload = {
       amount: Number(formData.get("amount")),
@@ -150,65 +130,47 @@ export default function InvoicesPage() {
     };
 
     try {
-      const res = await fetch(`/api/invoices/${selectedInvoice.id}/payments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const createdTxn = await recordPayment.mutate(
+        `/api/invoices/${selectedInvoice.id}/payments`,
+        payload,
+      );
+      const totalPaidBefore =
+        selectedInvoice.clientPayments.reduce(
+          (a, p) => a + Number(p.amount),
+          0,
+        ) +
+        selectedInvoice.paymentAllocations.reduce(
+          (a, p) => a + Number(p.allocatedAmount),
+          0,
+        );
+      const balanceAfter =
+        Number(selectedInvoice.amount) - (totalPaidBefore + payload.amount);
+
+      setSuccessPaymentData({
+        ...payload,
+        id: createdTxn.id,
+        clientName: selectedInvoice.client.name,
+        clientPhone: selectedInvoice.client.phone,
+        projectName: selectedInvoice.project.name,
+        balance: balanceAfter > 0 ? balanceAfter : 0,
       });
-
-      if (res.ok) {
-        const createdTxn = await res.json();
-        const totalPaidBefore =
-          selectedInvoice.clientPayments.reduce(
-            (a, p) => a + Number(p.amount),
-            0,
-          ) +
-          selectedInvoice.paymentAllocations.reduce(
-            (a, p) => a + Number(p.allocatedAmount),
-            0,
-          );
-        const balanceAfter =
-          Number(selectedInvoice.amount) - (totalPaidBefore + payload.amount);
-
-        setSuccessPaymentData({
-          ...payload,
-          id: createdTxn.id,
-          clientName: selectedInvoice.client.name,
-          clientPhone: selectedInvoice.client.phone,
-          projectName: selectedInvoice.project.name,
-          balance: balanceAfter > 0 ? balanceAfter : 0,
-        });
-        fetchData();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to log payment");
-      }
+      refetchInvoices();
     } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSaving(false);
+      alert(err instanceof Error ? err.message : "Failed to log payment");
     }
   };
 
   const handleChangeStatus = async (status: string, voidReason?: string) => {
     if (!selectedInvoice) return;
-    setSaving(true);
     try {
-      const res = await fetch(`/api/invoices/${selectedInvoice.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, voidReason }),
+      await changeInvoiceStatus.mutate(`/api/invoices/${selectedInvoice.id}`, {
+        status,
+        voidReason,
       });
-      if (res.ok) {
-        fetchData();
-        setDetailOpen(false);
-      } else {
-        alert("Failed to update status");
-      }
+      refetchInvoices();
+      setDetailOpen(false);
     } catch (err) {
-      alert("An error occurred");
-    } finally {
-      setSaving(false);
+      alert(err instanceof Error ? err.message : "Failed to update status");
     }
   };
 
@@ -217,6 +179,16 @@ export default function InvoicesPage() {
     if (reason) {
       handleChangeStatus("VOID", reason);
     }
+  };
+
+  const handleOpenPayment = (inv: Invoice) => {
+    setSelectedInvoice(inv);
+    setPaymentOpen(true);
+  };
+
+  const handleOpenDetail = (inv: Invoice) => {
+    setSelectedInvoice(inv);
+    setDetailOpen(true);
   };
 
   const totalReceivables = invoices
@@ -246,172 +218,16 @@ export default function InvoicesPage() {
           </p>
         </div>
 
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger render={<Button className="flex items-center gap-2" />}>
-            <Plus className="h-4 w-4" /> Create Invoice
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl overflow-y-auto p-4">
-            <SheetHeader className="p-0">
-              <SheetTitle>Generate Invoice</SheetTitle>
-              <SheetDescription>
-                Bill a client for a specific project with detailed line items.
-              </SheetDescription>
-            </SheetHeader>
-            <form onSubmit={handleSaveInvoice} className="space-y-4 mt-6">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Client *</label>
-                  <select
-                    name="clientId"
-                    required
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  >
-                    <option value="">Select Client...</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Project *</label>
-                  <select
-                    name="projectId"
-                    required
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  >
-                    <option value="">Select Project...</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Issued Date *</label>
-                <input
-                  name="date"
-                  type="date"
-                  required
-                  defaultValue={new Date().toISOString().split("T")[0]}
-                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-              </div>
-
-              <div className="border rounded-md p-4 space-y-3 bg-slate-50">
-                <div className="flex justify-between items-center">
-                  <label className="text-sm font-bold">Line Items</label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setLineItems([
-                        ...lineItems,
-                        { description: "", quantity: 1, unitPrice: 0 },
-                      ])
-                    }
-                  >
-                    <Plus className="h-4 w-4 mr-1" /> Add Row
-                  </Button>
-                </div>
-                {lineItems.map((item, index) => (
-                  <div key={index} className="flex flex-col items-start gap-2">
-                    {/* <div className="flex-1"> */}
-                    <input
-                      required
-                      placeholder="Description"
-                      className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm"
-                      value={item.description}
-                      onChange={(e) => {
-                        const newItems = [...lineItems];
-                        newItems[index].description = e.target.value;
-                        setLineItems(newItems);
-                      }}
-                    />
-                    {/* </div> */}
-                    <div className="flex flex-row gap-x-4">
-                      <input
-                        type="number"
-                        min="0.01"
-                        step="any"
-                        required
-                        placeholder="Qty"
-                        className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const newItems = [...lineItems];
-                          newItems[index].quantity = Number(e.target.value);
-                          setLineItems(newItems);
-                        }}
-                      />
-                      {/* </div> */}
-                      {/* <div className="w-28"> */}
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        required
-                        placeholder="Price"
-                        className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm"
-                        value={item.unitPrice}
-                        onChange={(e) => {
-                          const newItems = [...lineItems];
-                          newItems[index].unitPrice = Number(e.target.value);
-                          setLineItems(newItems);
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-red-500"
-                        onClick={() =>
-                          setLineItems(lineItems.filter((_, i) => i !== index))
-                        }
-                        disabled={lineItems.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                <div className="text-right font-bold pt-2 border-t mt-2">
-                  Total: ₹
-                  {lineItems
-                    .reduce(
-                      (acc, curr) => acc + curr.quantity * curr.unitPrice,
-                      0,
-                    )
-                    .toLocaleString()}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Internal Notes</label>
-                <textarea
-                  name="details"
-                  rows={2}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
-                  placeholder="Milestone 1, extra work..."
-                />
-              </div>
-
-              <SheetFooter className="mt-6">
-                <SheetClose render={<Button variant="outline" type="button" />}>
-                  Cancel
-                </SheetClose>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Saving..." : "Create Invoice"}
-                </Button>
-              </SheetFooter>
-            </form>
-          </SheetContent>
-        </Sheet>
+        <InvoiceFormSheet
+          open={open}
+          onOpenChange={setOpen}
+          clients={clients}
+          projects={projects}
+          lineItems={lineItems}
+          setLineItems={setLineItems}
+          saving={saving}
+          onSubmit={handleSaveInvoice}
+        />
       </div>
 
       <Card className="mb-6 w-full max-w-sm">
@@ -430,283 +246,19 @@ export default function InvoicesPage() {
         </CardContent>
       </Card>
 
-      {/* Mobile & Tablet Stacked Card View (below lg breakpoint) */}
-      <div className="lg:hidden space-y-3.5">
-        {loading ? (
-          <div className="text-center py-12 text-muted-foreground text-sm border rounded-xl bg-white shadow-sm">
-            Loading invoices...
-          </div>
-        ) : invoices.length === 0 ? (
-          <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
-            <ReceiptIndianRupee className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground text-sm font-medium">
-              No invoices generated yet.
-            </p>
-          </div>
-        ) : (
-          invoices.map((inv) => {
-            const totalPaid =
-              inv.clientPayments.reduce((acc, p) => acc + Number(p.amount), 0) +
-              inv.paymentAllocations.reduce(
-                (acc, p) => acc + Number(p.allocatedAmount),
-                0,
-              );
-            const balance = Number(inv.amount) - totalPaid;
+      <InvoicesMobileList
+        invoices={invoices}
+        loading={loading}
+        onOpenPayment={handleOpenPayment}
+        onOpenDetail={handleOpenDetail}
+      />
 
-            return (
-              <div
-                key={inv.id}
-                className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
-              >
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-bold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-md border border-slate-200">
-                      {inv.invoiceNumber}
-                    </span>
-                    <span className="text-xs font-medium text-slate-500">
-                      {new Date(inv.issuedDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <Badge
-                    variant={
-                      inv.status === "PAID"
-                        ? "default"
-                        : inv.status === "SENT"
-                          ? "secondary"
-                          : "outline"
-                    }
-                    className={cn(
-                      "text-xs font-bold",
-                      inv.status === "PAID"
-                        ? "bg-green-600 text-white"
-                        : inv.status === "SENT"
-                          ? "bg-blue-100 text-blue-800 border-blue-200"
-                          : inv.status === "VOID"
-                            ? "bg-red-100 text-red-800 border-red-200"
-                            : "",
-                    )}
-                  >
-                    {inv.status}
-                  </Badge>
-                </div>
-
-                <div className="space-y-0.5">
-                  <h3 className="font-bold text-slate-900 text-base break-words">
-                    {inv.client.name}
-                  </h3>
-                  <p className="text-xs font-medium text-slate-500">
-                    {inv.project.name}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
-                  <div className="bg-slate-50/80 rounded-lg p-2 text-center border border-slate-100/80 flex flex-col justify-center">
-                    <span className="text-slate-500 text-[10px] uppercase font-semibold">
-                      Total
-                    </span>
-                    <span className="font-mono font-bold text-slate-900 text-sm mt-0.5">
-                      ₹{Number(inv.amount).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="bg-green-50/70 rounded-lg p-2 text-center border border-green-100/80 flex flex-col justify-center">
-                    <span className="text-green-700 text-[10px] uppercase font-semibold">
-                      Paid
-                    </span>
-                    <span className="font-mono font-bold text-green-700 text-sm mt-0.5">
-                      ₹{totalPaid.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="bg-orange-50/70 rounded-lg p-2 text-center border border-orange-100/80 flex flex-col justify-center">
-                    <span className="text-orange-700 text-[10px] uppercase font-semibold">
-                      Due Balance
-                    </span>
-                    <span className="font-mono font-bold text-orange-700 text-sm sm:text-base mt-0.5">
-                      ₹{balance.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 flex justify-end gap-2">
-                  {inv.status !== "PAID" && inv.status !== "VOID" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedInvoice(inv);
-                        setPaymentOpen(true);
-                      }}
-                      className="flex-1 font-semibold text-green-700 hover:text-green-800 hover:bg-green-50 h-9 border border-green-200/60"
-                    >
-                      <IndianRupee className="h-4 w-4 mr-1" /> Record Pay
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedInvoice(inv);
-                      setDetailOpen(true);
-                    }}
-                    className="flex-1 font-semibold h-9 shadow-sm"
-                  >
-                    <Eye className="h-4 w-4 mr-1.5" /> View Details
-                  </Button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Desktop Table View (lg breakpoint and above) */}
-      <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[850px]">
-          <TableHeader className="bg-slate-50/80 border-b border-slate-200">
-            <TableRow>
-              <TableHead className="w-[140px] font-semibold text-slate-700">
-                Invoice #
-              </TableHead>
-              <TableHead className="font-semibold text-slate-700">
-                Date
-              </TableHead>
-              <TableHead className="font-semibold text-slate-700">
-                Client & Project
-              </TableHead>
-              <TableHead className="text-right font-semibold text-slate-700">
-                Total Amount
-              </TableHead>
-              <TableHead className="text-right font-semibold text-slate-700">
-                Paid
-              </TableHead>
-              <TableHead className="text-right font-semibold text-slate-700">
-                Balance Due
-              </TableHead>
-              <TableHead className="text-right font-semibold text-slate-700">
-                Status
-              </TableHead>
-              <TableHead className="text-right font-semibold text-slate-700">
-                Action
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={8}
-                  className="text-center py-12 text-muted-foreground"
-                >
-                  Loading invoices...
-                </TableCell>
-              </TableRow>
-            ) : invoices.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
-                  <ReceiptIndianRupee className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-                  <p className="text-muted-foreground font-medium">
-                    No invoices generated yet.
-                  </p>
-                </TableCell>
-              </TableRow>
-            ) : (
-              invoices.map((inv) => {
-                const totalPaid =
-                  inv.clientPayments.reduce(
-                    (acc, p) => acc + Number(p.amount),
-                    0,
-                  ) +
-                  inv.paymentAllocations.reduce(
-                    (acc, p) => acc + Number(p.allocatedAmount),
-                    0,
-                  );
-                const balance = Number(inv.amount) - totalPaid;
-
-                return (
-                  <TableRow
-                    key={inv.id}
-                    className="hover:bg-slate-50/60 transition-colors"
-                  >
-                    <TableCell className="font-mono text-sm font-bold text-slate-900">
-                      {inv.invoiceNumber}
-                    </TableCell>
-                    <TableCell className="font-medium whitespace-nowrap text-slate-600">
-                      {new Date(inv.issuedDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-bold text-slate-800">
-                        {inv.client.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {inv.project.name}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-semibold text-slate-900">
-                      ₹{Number(inv.amount).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-green-600 font-semibold">
-                      ₹{totalPaid.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-orange-600">
-                      ₹{balance.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge
-                        variant={
-                          inv.status === "PAID"
-                            ? "default"
-                            : inv.status === "SENT"
-                              ? "secondary"
-                              : "outline"
-                        }
-                        className={cn(
-                          "text-xs font-semibold",
-                          inv.status === "PAID"
-                            ? "bg-green-600 text-white"
-                            : inv.status === "SENT"
-                              ? "bg-blue-100 text-blue-800 border-blue-200"
-                              : inv.status === "VOID"
-                                ? "bg-red-100 text-red-800 border-red-200"
-                                : "",
-                        )}
-                      >
-                        {inv.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {inv.status !== "PAID" && inv.status !== "VOID" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedInvoice(inv);
-                              setPaymentOpen(true);
-                            }}
-                            className="text-green-700 hover:text-green-800 hover:bg-green-50/80 font-semibold"
-                          >
-                            <IndianRupee className="h-4 w-4 mr-1" /> Pay
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedInvoice(inv);
-                            setDetailOpen(true);
-                          }}
-                          className="font-semibold shadow-sm"
-                        >
-                          <Eye className="h-4 w-4 mr-1.5" /> View
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <InvoicesDesktopTable
+        invoices={invoices}
+        loading={loading}
+        onOpenPayment={handleOpenPayment}
+        onOpenDetail={handleOpenDetail}
+      />
 
       {/* Invoice Detail Sheet */}
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>

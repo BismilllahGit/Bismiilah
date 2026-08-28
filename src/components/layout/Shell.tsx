@@ -158,7 +158,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             }`}
           >
             <Image
-              src="/logo.jpg"
+              src="/logo.png"
               alt="Company Logo"
               width={24}
               height={24}

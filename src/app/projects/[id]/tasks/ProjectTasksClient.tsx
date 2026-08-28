@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   CheckCircle2,
@@ -11,9 +11,11 @@ import {
   Calendar,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Sheet,
   SheetContent,
@@ -37,10 +39,17 @@ export default function ProjectTasksClient({
 }: {
   projectId: string;
 }) {
+  const {
+    data: tasksData,
+    loading,
+    refetch,
+  } = useApiResource<Task[]>(`/api/projects/${projectId}/tasks`);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<string | null>(
+    null,
+  );
 
   // Form State
   const [title, setTitle] = useState("");
@@ -49,23 +58,13 @@ export default function ProjectTasksClient({
 
   const router = useRouter();
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/projects/${projectId}/tasks`);
-      if (res.ok) {
-        const data = await res.json();
-        setTasks(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch tasks", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
+  const createTask = useApiMutation<Record<string, unknown>, Task>("POST");
+  const updateTask = useApiMutation<Record<string, unknown>, Task>("PATCH");
+  const deleteTask = useApiMutation<undefined, void>("DELETE");
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    setTasks(tasksData || []);
+  }, [tasksData]);
 
   const notifyUpdate = () => {
     window.dispatchEvent(new Event("tasks-updated"));
@@ -76,19 +75,17 @@ export default function ProjectTasksClient({
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/tasks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, targetDate }),
+      await createTask.mutate(`/api/projects/${projectId}/tasks`, {
+        title,
+        description,
+        targetDate,
       });
-      if (res.ok) {
-        setIsAddOpen(false);
-        setTitle("");
-        setDescription("");
-        setTargetDate("");
-        fetchTasks();
-        notifyUpdate();
-      }
+      setIsAddOpen(false);
+      setTitle("");
+      setDescription("");
+      setTargetDate("");
+      refetch({ silent: true });
+      notifyUpdate();
     } catch (err) {
       console.error(err);
     } finally {
@@ -103,29 +100,20 @@ export default function ProjectTasksClient({
       ),
     );
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!res.ok) {
-        fetchTasks();
-      } else {
-        notifyUpdate();
-      }
+      await updateTask.mutate(`/api/tasks/${taskId}`, { status: newStatus });
+      notifyUpdate();
     } catch (err) {
-      fetchTasks();
+      refetch({ silent: true });
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
     setTasks((current) => current.filter((t) => t.id !== taskId));
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
-      if (res.ok) notifyUpdate();
+      await deleteTask.mutate(`/api/tasks/${taskId}`);
+      notifyUpdate();
     } catch (err) {
-      fetchTasks();
+      refetch({ silent: true });
     }
   };
 
@@ -256,7 +244,7 @@ export default function ProjectTasksClient({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-slate-400 hover:text-red-600"
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => setDeleteTaskTarget(task.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -296,7 +284,7 @@ export default function ProjectTasksClient({
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-slate-400 hover:text-red-600"
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => setDeleteTaskTarget(task.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -360,6 +348,14 @@ export default function ProjectTasksClient({
           </form>
         </SheetContent>
       </Sheet>
+
+      <ConfirmDialog
+        open={deleteTaskTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTaskTarget(null)}
+        title="Delete this task?"
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteTask(deleteTaskTarget!)}
+      />
     </div>
   );
 }
