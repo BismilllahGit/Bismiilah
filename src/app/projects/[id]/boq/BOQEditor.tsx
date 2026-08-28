@@ -30,6 +30,7 @@ import {
   Edit,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface BOQEditorProps {
   projectId: string;
@@ -56,6 +57,16 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
     text: string;
     type: "success" | "error" | "info";
   } | null>(null);
+
+  const [deleteSectionTarget, setDeleteSectionTarget] = useState<
+    string | null
+  >(null);
+  const [deleteMilestoneTarget, setDeleteMilestoneTarget] = useState<
+    string | null
+  >(null);
+  const [deleteItemTarget, setDeleteItemTarget] = useState<string | null>(
+    null,
+  );
 
   const currentBOQ = boqData.current;
   const isDraft = currentBOQ?.status === "DRAFT";
@@ -231,12 +242,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
   };
 
   const handleDeleteSection = async (sectionId: string) => {
-    if (
-      !isDraft ||
-      isMutating ||
-      !confirm("Delete this section and all its items?")
-    )
-      return;
+    if (!isDraft || isMutating) return;
     setIsMutating(true);
     try {
       const res = await fetch(`/api/boq/sections/${sectionId}`, {
@@ -352,7 +358,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
   };
 
   const handleDeleteMilestone = async (milestoneId: string) => {
-    if (!isDraft || isMutating || !confirm("Delete this milestone?")) return;
+    if (!isDraft || isMutating) return;
     setIsMutating(true);
     try {
       const res = await fetch(`/api/milestones/${milestoneId}`, {
@@ -480,7 +486,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!isDraft || isMutating || !confirm("Delete this line item?")) return;
+    if (!isDraft || isMutating) return;
     setIsMutating(true);
     try {
       const res = await fetch(`/api/boq/line-items/${itemId}`, {
@@ -1020,7 +1026,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                 <ArrowDown className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => handleDeleteSection(sec.id)}
+                                onClick={() => setDeleteSectionTarget(sec.id)}
                                 disabled={isMutating}
                                 className="p-1.5 bg-rose-50 border border-rose-100 rounded text-rose-500 hover:text-rose-700 ml-2 shadow-sm transition-colors disabled:opacity-30"
                               >
@@ -1564,7 +1570,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                   <ArrowDown className="h-3.5 w-3.5" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteItem(li.id)}
+                                  onClick={() => setDeleteItemTarget(li.id)}
                                   disabled={isMutating}
                                   className="p-1.5 text-rose-500 hover:text-rose-700 ml-1 bg-rose-50 rounded-full transition-colors disabled:opacity-30"
                                 >
@@ -1715,7 +1721,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                       </button>
                     </div>
                     <button
-                      onClick={() => handleDeleteSection(sec.id)}
+                      onClick={() => setDeleteSectionTarget(sec.id)}
                       disabled={isMutating}
                       className="px-3 py-1.5 text-sm font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded shadow-sm flex items-center disabled:opacity-30"
                     >
@@ -2253,7 +2259,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                                 </button>
                               </div>
                               <button
-                                onClick={() => handleDeleteItem(li.id)}
+                                onClick={() => setDeleteItemTarget(li.id)}
                                 disabled={isMutating}
                                 className="p-2 text-rose-600 bg-rose-50 rounded disabled:opacity-30"
                               >
@@ -2537,7 +2543,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                             <ArrowDown className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteMilestone(m.id)}
+                            onClick={() => setDeleteMilestoneTarget(m.id)}
                             disabled={isMutating}
                             className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded ml-1 disabled:opacity-30"
                           >
@@ -2612,7 +2618,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                           <ArrowDown className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteMilestone(m.id)}
+                          onClick={() => setDeleteMilestoneTarget(m.id)}
                           disabled={isMutating}
                           className="p-1.5 text-rose-500 bg-rose-50 rounded ml-2 disabled:opacity-30"
                         >
@@ -2775,6 +2781,28 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteSectionTarget !== null}
+        onOpenChange={(open) => !open && setDeleteSectionTarget(null)}
+        title="Delete this section and all its items?"
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteSection(deleteSectionTarget!)}
+      />
+      <ConfirmDialog
+        open={deleteMilestoneTarget !== null}
+        onOpenChange={(open) => !open && setDeleteMilestoneTarget(null)}
+        title="Delete this milestone?"
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteMilestone(deleteMilestoneTarget!)}
+      />
+      <ConfirmDialog
+        open={deleteItemTarget !== null}
+        onOpenChange={(open) => !open && setDeleteItemTarget(null)}
+        title="Delete this line item?"
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteItem(deleteItemTarget!)}
+      />
     </div>
   );
 }

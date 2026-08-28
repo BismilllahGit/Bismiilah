@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import Link from "next/link";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function ProjectClosurePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -19,11 +20,10 @@ export default function ProjectClosurePage({ params }: { params: Promise<{ id: s
     refetch,
   } = useApiResource<any>(`/api/projects/${projectId}/closure`);
   const [closing, setClosing] = useState(false);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const closeProject = useApiMutation<undefined, unknown>("POST");
 
   const handleCloseProject = async () => {
-    if (!confirm("Are you sure you want to close this project? This will generate a final snapshot of the financials and lock the project.")) return;
-
     setClosing(true);
     try {
       await closeProject.mutate(`/api/projects/${projectId}/closure`);
@@ -139,12 +139,21 @@ export default function ProjectClosurePage({ params }: { params: Promise<{ id: s
           </ul>
           <p className="font-semibold">Ensure all pending invoices have been generated and extra work billed before closing.</p>
           <div className="pt-4">
-            <Button variant="destructive" onClick={handleCloseProject} disabled={closing}>
+            <Button variant="destructive" onClick={() => setConfirmCloseOpen(true)} disabled={closing}>
               {closing ? "Generating Report..." : "Confirm & Close Project"}
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmCloseOpen}
+        onOpenChange={setConfirmCloseOpen}
+        title="Close this project?"
+        description="This will generate a final snapshot of the financials and lock the project."
+        confirmLabel="Close Project"
+        onConfirm={handleCloseProject}
+      />
     </div>
   );
 }

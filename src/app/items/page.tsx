@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Plus, Package, Trash2 } from "lucide-react";
 import {
   Sheet,
@@ -41,6 +42,9 @@ export default function ItemsPage() {
   } = useApiResource<Item[]>("/api/items");
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
+  const [deactivateTarget, setDeactivateTarget] = useState<string | null>(
+    null,
+  );
   const createItem = useApiMutation<Record<string, unknown>, Item>("POST");
   const deactivateItem = useApiMutation<undefined, void>("DELETE");
 
@@ -69,12 +73,6 @@ export default function ItemsPage() {
   };
 
   const handleDeactivate = async (id: string) => {
-    if (
-      !confirm(
-        "This will hide the record but preserve historical data. Are you sure?",
-      )
-    )
-      return;
     try {
       await deactivateItem.mutate(`/api/items/${id}`);
       refetchItems();
@@ -219,7 +217,7 @@ export default function ItemsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDeactivate(item.id)}
+                  onClick={() => setDeactivateTarget(item.id)}
                   className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 w-9 p-0 border border-slate-200/70 rounded-lg shrink-0"
                   title="Remove Item"
                 >
@@ -336,7 +334,7 @@ export default function ItemsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDeactivate(item.id)}
+                      onClick={() => setDeactivateTarget(item.id)}
                       className="text-red-500 hover:text-red-600 hover:bg-red-50/80"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -348,6 +346,15 @@ export default function ItemsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        open={deactivateTarget !== null}
+        onOpenChange={(open) => !open && setDeactivateTarget(null)}
+        title="Deactivate this item?"
+        description="This will hide the record but preserve historical data."
+        confirmLabel="Deactivate"
+        onConfirm={() => handleDeactivate(deactivateTarget!)}
+      />
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Sheet,
   SheetContent,
@@ -46,6 +47,9 @@ export default function ProjectTasksClient({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<string | null>(
+    null,
+  );
 
   // Form State
   const [title, setTitle] = useState("");
@@ -104,7 +108,6 @@ export default function ProjectTasksClient({
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
     setTasks((current) => current.filter((t) => t.id !== taskId));
     try {
       await deleteTask.mutate(`/api/tasks/${taskId}`);
@@ -241,7 +244,7 @@ export default function ProjectTasksClient({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-slate-400 hover:text-red-600"
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => setDeleteTaskTarget(task.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -281,7 +284,7 @@ export default function ProjectTasksClient({
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-slate-400 hover:text-red-600"
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => setDeleteTaskTarget(task.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -345,6 +348,14 @@ export default function ProjectTasksClient({
           </form>
         </SheetContent>
       </Sheet>
+
+      <ConfirmDialog
+        open={deleteTaskTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTaskTarget(null)}
+        title="Delete this task?"
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteTask(deleteTaskTarget!)}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Plus, Building2, Phone, Trash2 } from "lucide-react";
 import {
   Sheet,
@@ -34,21 +36,18 @@ type Client = {
 };
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: clients,
+    loading,
+    refetch: refetchClients,
+  } = useApiResource<Client[]>("/api/clients");
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-
-  const fetchClients = async () => {
-    setLoading(true);
-    const res = await fetch("/api/clients");
-    if (res.ok) setClients(await res.json());
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, []);
+  const [deactivateTarget, setDeactivateTarget] = useState<string | null>(
+    null,
+  );
+  const createClient = useApiMutation<Record<string, unknown>, Client>("POST");
+  const deactivateClient = useApiMutation<undefined, void>("DELETE");
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -63,43 +62,22 @@ export default function ClientsPage() {
     };
 
     try {
-      const res = await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        fetchClients();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to save client");
-      }
+      await createClient.mutate("/api/clients", payload);
+      setOpen(false);
+      refetchClients();
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to save client");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeactivate = async (id: string) => {
-    if (
-      !confirm(
-        "This will hide the record but preserve historical data. Are you sure?",
-      )
-    )
-      return;
     try {
-      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        fetchClients();
-      } else {
-        const error = await res.json();
-        alert(error.error || "Failed to deactivate client");
-      }
+      await deactivateClient.mutate(`/api/clients/${id}`);
+      refetchClients();
     } catch (err) {
-      alert("An error occurred");
+      alert(err instanceof Error ? err.message : "Failed to deactivate client");
     }
   };
 
@@ -175,7 +153,7 @@ export default function ClientsPage() {
           <div className="text-center py-12 text-muted-foreground text-sm border rounded-xl bg-white shadow-sm">
             Loading clients...
           </div>
-        ) : clients.length === 0 ? (
+        ) : (clients || []).length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
             <Building2 className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
             <p className="text-muted-foreground font-medium text-sm">
@@ -183,7 +161,7 @@ export default function ClientsPage() {
             </p>
           </div>
         ) : (
-          clients.map((client) => {
+          (clients || []).map((client) => {
             const projectCount = new Set(
               client.invoices.map((i) => i.projectId),
             ).size;
@@ -230,7 +208,7 @@ export default function ClientsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeactivate(client.id)}
+                    onClick={() => setDeactivateTarget(client.id)}
                     className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 px-3 border border-slate-200/70 rounded-lg shrink-0"
                     title="Remove Client"
                   >
@@ -272,7 +250,7 @@ export default function ClientsPage() {
                   Loading clients...
                 </TableCell>
               </TableRow>
-            ) : clients.length === 0 ? (
+            ) : (clients || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-14">
                   <Building2 className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
@@ -282,7 +260,7 @@ export default function ClientsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              clients.map((client) => (
+              (clients || []).map((client) => (
                 <TableRow
                   key={client.id}
                   className="hover:bg-slate-50/60 transition-colors"
@@ -325,7 +303,7 @@ export default function ClientsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeactivate(client.id)}
+                        onClick={() => setDeactivateTarget(client.id)}
                         className="text-red-500 hover:text-red-600 hover:bg-red-50/80"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -338,6 +316,15 @@ export default function ClientsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        open={deactivateTarget !== null}
+        onOpenChange={(open) => !open && setDeactivateTarget(null)}
+        title="Deactivate this client?"
+        description="This will hide the record but preserve historical data."
+        confirmLabel="Deactivate"
+        onConfirm={() => handleDeactivate(deactivateTarget!)}
+      />
     </div>
   );
 }

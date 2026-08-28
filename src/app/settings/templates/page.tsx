@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Table,
   TableBody,
@@ -47,6 +48,16 @@ export default function TemplatesPage() {
 
   const [newGroupName, setNewGroupName] = useState("");
   const [addingGroup, setAddingGroup] = useState(false);
+
+  const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<
+    string | null
+  >(null);
+  const [deleteSectionTarget, setDeleteSectionTarget] = useState<
+    string | null
+  >(null);
+  const [deleteItemTarget, setDeleteItemTarget] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setTemplates(templatesData || []);
@@ -123,7 +134,6 @@ export default function TemplatesPage() {
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    if (!confirm("Delete this template?")) return;
     try {
       await deleteTemplateMutation.mutate(`/api/boq-templates/${id}`);
       refetchAll({ silent: true });
@@ -181,7 +191,6 @@ export default function TemplatesPage() {
   };
 
   const handleDeleteSection = async (sectionId: string) => {
-    if (!confirm("Delete this section?")) return;
     try {
       await deleteSectionMutation.mutate(
         `/api/boq-template-sections/${sectionId}`,
@@ -296,7 +305,6 @@ export default function TemplatesPage() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!confirm("Delete this item?")) return;
     try {
       await deleteItemMutation.mutate(
         `/api/boq-template-line-items/${itemId}`,
@@ -497,7 +505,7 @@ export default function TemplatesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDeleteTemplate(tpl.id)}
+                          onClick={() => setDeleteTemplateTarget(tpl.id)}
                           className="sm:hidden text-rose-400 hover:text-rose-300 hover:bg-slate-700 shrink-0"
                         >
                           <Trash2 className="h-5 w-5" />
@@ -508,7 +516,7 @@ export default function TemplatesPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeleteTemplate(tpl.id)}
+                    onClick={() => setDeleteTemplateTarget(tpl.id)}
                     className="hidden sm:flex text-rose-400 hover:text-rose-300 hover:bg-slate-700 shrink-0"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -600,7 +608,9 @@ export default function TemplatesPage() {
                                   <ArrowDown className="h-4 sm:h-3.5 w-4 sm:w-3.5" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteSection(sec.id)}
+                                  onClick={() =>
+                                    setDeleteSectionTarget(sec.id)
+                                  }
                                   className="p-1.5 text-rose-500 hover:bg-rose-50 rounded sm:ml-1"
                                 >
                                   <Trash2 className="h-4 sm:h-3.5 w-4 sm:w-3.5" />
@@ -685,7 +695,7 @@ export default function TemplatesPage() {
                                         </button>
                                         <button
                                           onClick={() =>
-                                            handleDeleteItem(li.id)
+                                            setDeleteItemTarget(li.id)
                                           }
                                           className="p-2 sm:p-1 text-rose-500 hover:text-rose-700 sm:ml-1 bg-white sm:bg-transparent rounded-md border sm:border-0 border-rose-100 sm:border-transparent shadow-sm sm:shadow-none"
                                         >
@@ -812,6 +822,28 @@ export default function TemplatesPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteTemplateTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTemplateTarget(null)}
+        title="Delete this template?"
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteTemplate(deleteTemplateTarget!)}
+      />
+      <ConfirmDialog
+        open={deleteSectionTarget !== null}
+        onOpenChange={(open) => !open && setDeleteSectionTarget(null)}
+        title="Delete this section?"
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteSection(deleteSectionTarget!)}
+      />
+      <ConfirmDialog
+        open={deleteItemTarget !== null}
+        onOpenChange={(open) => !open && setDeleteItemTarget(null)}
+        title="Delete this item?"
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteItem(deleteItemTarget!)}
+      />
     </div>
   );
 }
