@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings } from "lucide-react";
+import type { BusinessProfile } from "@prisma/client";
 
 interface BOQSettingsPanelProps {
   localSettings: {
@@ -13,7 +14,7 @@ interface BOQSettingsPanelProps {
     termsOverride: string;
   };
   isDraft: boolean;
-  businessProfile?: any;
+  businessProfile?: BusinessProfile | null;
   handleSettingsChange: (field: string, value: string) => void;
   handleSettingsBlur: (field: string, value: string) => void | Promise<void>;
 }

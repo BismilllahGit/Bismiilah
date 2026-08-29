@@ -2,7 +2,6 @@
 
 import { useEffect, useState, use } from "react";
 import { ArrowLeft, User, Phone, MapPin } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { LedgerTable, LedgerRow } from "@/components/ui/ledger-table";
 import { CreateInvoiceSheet } from "./CreateInvoiceSheet";
@@ -39,6 +38,23 @@ type LedgerData = {
   limit?: number;
 };
 
+type PaymentPayload = {
+  amount: number;
+  date: string | null;
+  method: string | null;
+  note: string | undefined;
+  invoiceId?: string;
+  allocations?: { invoiceId: string; amount: number }[];
+};
+
+export type SuccessPaymentData = PaymentPayload & {
+  id: string;
+  clientName?: string;
+  clientPhone?: string | null;
+  projectName?: string;
+  balance: number;
+};
+
 export default function ClientDetailPage({
   params,
 }: {
@@ -53,7 +69,8 @@ export default function ClientDetailPage({
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [successPaymentData, setSuccessPaymentData] = useState<any>(null);
+  const [successPaymentData, setSuccessPaymentData] =
+    useState<SuccessPaymentData | null>(null);
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -144,7 +161,7 @@ export default function ClientDetailPage({
         const error = await res.json();
         alert(error.error || "Failed to create invoice");
       }
-    } catch (err) {
+    } catch {
       alert("An error occurred");
     } finally {
       setSaving(false);
@@ -158,11 +175,13 @@ export default function ClientDetailPage({
     const formData = new FormData(e.currentTarget);
     const amount = Number(formData.get("amount"));
 
-    const payload: any = {
+    const payload: PaymentPayload = {
       amount,
-      date: formData.get("date"),
-      method: formData.get("method"),
-      note: formData.get("note") || undefined,
+      // These fields come from text/date/select inputs (never file inputs),
+      // so FormDataEntryValue is always a string here.
+      date: formData.get("date") as string | null,
+      method: formData.get("method") as string | null,
+      note: (formData.get("note") as string | null) || undefined,
     };
 
     if (paymentMode === "SINGLE") {
@@ -174,6 +193,7 @@ export default function ClientDetailPage({
       payload.invoiceId = selectedInvoiceId;
     } else {
       const allocs = Object.entries(allocations)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         .filter(([_, val]) => val && Number(val) > 0)
         .map(([invId, val]) => ({ invoiceId: invId, amount: Number(val) }));
 
@@ -219,7 +239,7 @@ export default function ClientDetailPage({
         const error = await res.json();
         alert(error.error || "Failed to log payment");
       }
-    } catch (err) {
+    } catch {
       alert("An error occurred");
     } finally {
       setSaving(false);

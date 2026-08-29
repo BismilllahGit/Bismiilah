@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, ArrowUp, ArrowDown, Layers } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import type { ComputedBOQSectionUI } from "./BOQEditor";
+import type { BOQGroup, Item, WorkerType } from "@prisma/client";
 
 const cardInputClass =
   "w-full bg-white border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md px-3 py-2 text-sm outline-none transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed";
@@ -29,12 +31,12 @@ interface BOQSectionsHandlers {
     sectionId: string,
     itemId: string,
     field: string,
-    value: any,
+    value: string,
   ) => void;
   handleItemBlur: (
     itemId: string,
     field: string,
-    value: any,
+    value: string,
   ) => void | Promise<void>;
   handleDeleteItem: (itemId: string) => void | Promise<void>;
   handleReorderItem: (
@@ -46,13 +48,13 @@ interface BOQSectionsHandlers {
 }
 
 interface BOQSectionsMobileViewProps {
-  computedSections: any[];
+  computedSections: ComputedBOQSectionUI[];
   isDraft: boolean;
   isMutating: boolean;
   isActive: boolean;
-  boqGroups: any[];
-  itemsList: any[];
-  workerTypes: any[];
+  boqGroups: BOQGroup[];
+  itemsList: Item[];
+  workerTypes: WorkerType[];
   handlers: BOQSectionsHandlers;
 }
 
@@ -176,7 +178,7 @@ export function BOQSectionsMobileView({
                     No items in this section.
                   </div>
                 ) : (
-                  sec.lineItems.map((li: any, lIdx: number) => {
+                  sec.lineItems.map((li, lIdx: number) => {
                     const isCalc = li.lineType === "CALCULATED";
 
                     return (
@@ -277,7 +279,7 @@ export function BOQSectionsMobileView({
                             ) : (
                               <div
                                 className="text-sm text-slate-600 truncate"
-                                title={li.description}
+                                title={li.description ?? undefined}
                               >
                                 {li.description || (
                                   <span className="italic opacity-50">

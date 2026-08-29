@@ -34,7 +34,7 @@ export async function POST(
     });
 
     return NextResponse.json(task, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating ProjectTask:", error);
     return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
   }
@@ -75,7 +75,7 @@ export async function GET(
     });
 
     return NextResponse.json(tasksWithComputedState);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching ProjectTasks:", error);
     return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 });
   }

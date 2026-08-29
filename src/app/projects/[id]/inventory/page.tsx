@@ -22,6 +22,39 @@ type InventoryBalance = {
   qtyTransferredOut: number;
   item: Item;
 };
+type ProjectOption = { id: string; name: string; status: string };
+
+// Shape returned by GET /api/projects/[id]/inventory/[itemId]/ledger — see
+// getInventoryLedgerData in src/lib/queries/ledger-queries.ts.
+type InventoryLedgerRow = {
+  id: string;
+  voucherNumber: string;
+  date: string;
+  description: string | null;
+  type: string;
+  qtyIn: number;
+  qtyOut: number;
+  unitCost: number;
+  transferGroupId: string | null;
+  linkedProjectName: string | null;
+  runningQtyBalance: number;
+  runningValueBalance: number;
+};
+type InventoryLedgerData = {
+  openingQtyBalance: number;
+  openingValueBalance: number;
+  rows: InventoryLedgerRow[];
+  totalQtyIn: number;
+  totalQtyOut: number;
+  totalValueIn: number;
+  totalValueOut: number;
+  closingQtyBalance: number;
+  closingValueBalance: number;
+  total: number;
+  totalPages: number;
+  page: number;
+  limit: number;
+};
 
 export default function ProjectInventoryPage({
   params,
@@ -44,19 +77,23 @@ export default function ProjectInventoryPage({
     refetch: refetchItems,
   } = useApiResource<Item[]>("/api/items");
   const { data: allProjectsData, loading: projectsLoading } =
-    useApiResource<any[]>("/api/projects");
+    useApiResource<ProjectOption[]>("/api/projects");
 
   const inventory = inventoryData || [];
   const items = itemsData || [];
   const projects = (allProjectsData || []).filter(
-    (p: any) => p.id !== projectId && p.status === "ACTIVE",
+    (p) => p.id !== projectId && p.status === "ACTIVE",
   );
   const loading = invLoading || itemsLoading || projectsLoading;
 
-  const logTransaction = useApiMutation<any, any>("POST");
+  const logTransaction = useApiMutation<Record<string, unknown>, unknown>(
+    "POST",
+  );
   const [txnOpen, setTxnOpen] = useState(false);
 
-  const transferStock = useApiMutation<any, any>("POST");
+  const transferStock = useApiMutation<Record<string, unknown>, unknown>(
+    "POST",
+  );
   const [transferOpen, setTransferOpen] = useState(false);
 
   // Combobox state for Transaction
@@ -65,7 +102,9 @@ export default function ProjectInventoryPage({
 
   // Ledger state
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [ledgerData, setLedgerData] = useState<any>(null);
+  const [ledgerData, setLedgerData] = useState<InventoryLedgerData | null>(
+    null,
+  );
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [currentStart, setCurrentStart] = useState("");
   const [currentEnd, setCurrentEnd] = useState("");
@@ -199,7 +238,7 @@ export default function ProjectInventoryPage({
 
   const mapLedgerRows = () => {
     if (!ledgerData) return [];
-    return ledgerData.rows.map((row: any) => ({
+    return ledgerData.rows.map((row: InventoryLedgerRow) => ({
       ...row,
       debit: row.qtyIn,
       credit: row.qtyOut,

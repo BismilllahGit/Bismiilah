@@ -6,22 +6,73 @@ import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { TemplateTree } from "./TemplateTree";
 import { TemplateGroupsPanel } from "./TemplateGroupsPanel";
+import type {
+  Prisma,
+  BOQGroup,
+  BOQTemplate,
+  BOQTemplateSection,
+  BOQTemplateLineItem,
+} from "@prisma/client";
+
+// --- TEMPLATE UI TYPES ---
+//
+// These describe the actual JSON shape this page receives from
+// GET /api/boq-templates (src/app/api/boq-templates/route.ts):
+// `sections: { include: { group: true, lineItems: true } }`. Unlike BOQ
+// (Task 7's BOQSectionUI/BOQLineItemUI), the template model has no
+// Decimal fields — title/name/category/groupId/sortOrder are all
+// String/Int — so no Decimal-to-string JSON-boundary conversion is
+// needed. One JSON-boundary conversion DOES apply here though: `createdAt`
+// (a DateTime field, on both BOQTemplate and the nested BOQGroup) arrives
+// as an ISO `string` over JSON, not a `Date` — same as Task 7's
+// BOQCurrentUI handles for BOQ's own DateTime fields (see the `createdAt:
+// string` override below). There's also no client-side computed/derived
+// field analogous to BOQ's computedSubtotal/computedAmount, so no
+// post-computation "required fields" variant is needed here either.
+// No further relations to include here (BOQTemplateLineItem's only
+// relation is the back-reference to its section), so the plain model
+// type is the exact fetch shape — unlike Task 7's BOQLineItemUI, which
+// needed a GetPayload<{include: ...}> for its `item`/`workerType` joins.
+export type BOQTemplateLineItemUI = BOQTemplateLineItem;
+
+export type BOQTemplateSectionUI = Omit<
+  Prisma.BOQTemplateSectionGetPayload<{
+    include: { group: true; lineItems: true };
+  }>,
+  "group" | "lineItems"
+> & {
+  // `group.createdAt` is a DateTime field — see JSON-boundary note above.
+  group: Omit<BOQGroup, "createdAt"> & { createdAt: string };
+  lineItems: BOQTemplateLineItemUI[];
+};
+
+// The full template object as returned by GET/POST /api/boq-templates.
+export type BOQTemplateUI = Omit<
+  Prisma.BOQTemplateGetPayload<{
+    include: { sections: { include: { group: true; lineItems: true } } };
+  }>,
+  "sections" | "createdAt"
+> & {
+  // `createdAt` is a DateTime field — see JSON-boundary note above.
+  createdAt: string;
+  sections: BOQTemplateSectionUI[];
+};
 
 export default function TemplatesPage() {
   const {
     data: templatesData,
     loading: templatesLoading,
     refetch: refetchTemplates,
-  } = useApiResource<any[]>("/api/boq-templates");
+  } = useApiResource<BOQTemplateUI[]>("/api/boq-templates");
   const {
     data: groupsData,
     loading: groupsLoading,
     refetch: refetchGroups,
-  } = useApiResource<any[]>("/api/boq-groups?all=true");
+  } = useApiResource<BOQGroup[]>("/api/boq-groups?all=true");
   const loading = templatesLoading || groupsLoading;
 
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<BOQTemplateUI[]>([]);
+  const [groups, setGroups] = useState<BOQGroup[]>([]);
   const [expandedTemplates, setExpandedTemplates] = useState<
     Record<string, boolean>
   >({});
@@ -42,32 +93,42 @@ export default function TemplatesPage() {
     refetchGroups(opts);
   };
 
-  const addTemplateMutation = useApiMutation<Record<string, unknown>, any>(
+  const addTemplateMutation = useApiMutation<
+    Record<string, unknown>,
+    BOQTemplateUI
+  >("POST");
+  const templateMutation = useApiMutation<
+    Record<string, unknown>,
+    BOQTemplate
+  >("PATCH");
+  const deleteTemplateMutation = useApiMutation<undefined, void>("DELETE");
+
+  const addSectionMutation = useApiMutation<
+    Record<string, unknown>,
+    BOQTemplateSection
+  >("POST");
+  const sectionMutation = useApiMutation<
+    Record<string, unknown>,
+    BOQTemplateSection
+  >("PATCH");
+  const deleteSectionMutation = useApiMutation<undefined, void>("DELETE");
+
+  const addItemMutation = useApiMutation<
+    Record<string, unknown>,
+    BOQTemplateLineItem
+  >("POST");
+  const itemMutation = useApiMutation<
+    Record<string, unknown>,
+    BOQTemplateLineItem
+  >("PATCH");
+  const deleteItemMutation = useApiMutation<undefined, void>("DELETE");
+
+  const addGroupMutation = useApiMutation<Record<string, unknown>, BOQGroup>(
     "POST",
   );
-  const templateMutation = useApiMutation<Record<string, unknown>, any>(
+  const groupMutation = useApiMutation<Record<string, unknown>, BOQGroup>(
     "PATCH",
   );
-  const deleteTemplateMutation = useApiMutation<undefined, any>("DELETE");
-
-  const addSectionMutation = useApiMutation<Record<string, unknown>, any>(
-    "POST",
-  );
-  const sectionMutation = useApiMutation<Record<string, unknown>, any>(
-    "PATCH",
-  );
-  const deleteSectionMutation = useApiMutation<undefined, any>("DELETE");
-
-  const addItemMutation = useApiMutation<Record<string, unknown>, any>(
-    "POST",
-  );
-  const itemMutation = useApiMutation<Record<string, unknown>, any>("PATCH");
-  const deleteItemMutation = useApiMutation<undefined, any>("DELETE");
-
-  const addGroupMutation = useApiMutation<Record<string, unknown>, any>(
-    "POST",
-  );
-  const groupMutation = useApiMutation<Record<string, unknown>, any>("PATCH");
 
   const toggleExpand = (id: string) => {
     setExpandedTemplates((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -82,7 +143,7 @@ export default function TemplatesPage() {
       });
       setExpandedTemplates((prev) => ({ ...prev, [t.id]: true }));
       refetchAll({ silent: true });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleTemplateChange = (id: string, field: string, value: string) => {
@@ -100,21 +161,23 @@ export default function TemplatesPage() {
       await templateMutation.mutate(`/api/boq-templates/${id}`, {
         [field]: value,
       });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleDeleteTemplate = async (id: string) => {
     try {
       await deleteTemplateMutation.mutate(`/api/boq-templates/${id}`);
       refetchAll({ silent: true });
-    } catch (e) {}
+    } catch {}
   };
 
   // --- SECTIONS ---
   const handleAddSection = async (templateId: string) => {
     if (groups.filter((g) => g.isActive).length === 0)
       return alert("You need at least one active BOQ Group first.");
-    const firstActiveGroup = groups.find((g) => g.isActive);
+    // Non-null: the length check above already guarantees at least one
+    // active group exists, so `find` here cannot return undefined.
+    const firstActiveGroup = groups.find((g) => g.isActive)!;
     try {
       await addSectionMutation.mutate(
         `/api/boq-templates/${templateId}/sections`,
@@ -124,7 +187,7 @@ export default function TemplatesPage() {
         },
       );
       refetchAll({ silent: true });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleSectionChange = (
@@ -138,7 +201,7 @@ export default function TemplatesPage() {
         if (t.id === templateId) {
           return {
             ...t,
-            sections: t.sections.map((s: any) =>
+            sections: t.sections.map((s: BOQTemplateSectionUI) =>
               s.id === sectionId ? { ...s, [field]: value } : s,
             ),
           };
@@ -157,7 +220,7 @@ export default function TemplatesPage() {
       await sectionMutation.mutate(`/api/boq-template-sections/${sectionId}`, {
         [field]: value,
       });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleDeleteSection = async (sectionId: string) => {
@@ -166,7 +229,7 @@ export default function TemplatesPage() {
         `/api/boq-template-sections/${sectionId}`,
       );
       refetchAll({ silent: true });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleReorderSection = async (
@@ -178,7 +241,9 @@ export default function TemplatesPage() {
     setTemplates((prev) =>
       prev.map((t) => {
         if (t.id !== templateId) return t;
-        const idx = t.sections.findIndex((s: any) => s.id === sectionId);
+        const idx = t.sections.findIndex(
+          (s: BOQTemplateSectionUI) => s.id === sectionId,
+        );
         if (idx < 0) return t;
         if (direction === "up" && idx === 0) return t;
         if (direction === "down" && idx === t.sections.length - 1) return t;
@@ -204,7 +269,9 @@ export default function TemplatesPage() {
     // 2. Fetch original target values for the API payload
     const template = templates.find((t) => t.id === templateId);
     if (!template) return;
-    const idx = template.sections.findIndex((s: any) => s.id === sectionId);
+    const idx = template.sections.findIndex(
+      (s: BOQTemplateSectionUI) => s.id === sectionId,
+    );
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     const currentSection = template.sections[idx];
     const targetSection = template.sections[swapIdx];
@@ -221,7 +288,7 @@ export default function TemplatesPage() {
         ),
       ]);
       refetchAll({ silent: true }); // Silently syncs state in the background
-    } catch (e) {
+    } catch {
       refetchAll({ silent: true });
     }
   };
@@ -234,7 +301,7 @@ export default function TemplatesPage() {
         { title: "New Item" },
       );
       refetchAll({ silent: true });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleItemChange = (
@@ -248,11 +315,11 @@ export default function TemplatesPage() {
         if (t.id === templateId) {
           return {
             ...t,
-            sections: t.sections.map((s: any) => {
+            sections: t.sections.map((s: BOQTemplateSectionUI) => {
               if (s.id === sectionId) {
                 return {
                   ...s,
-                  lineItems: s.lineItems.map((li: any) =>
+                  lineItems: s.lineItems.map((li: BOQTemplateLineItemUI) =>
                     li.id === itemId ? { ...li, title: value } : li,
                   ),
                 };
@@ -271,7 +338,7 @@ export default function TemplatesPage() {
       await itemMutation.mutate(`/api/boq-template-line-items/${itemId}`, {
         title: value,
       });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleDeleteItem = async (itemId: string) => {
@@ -280,7 +347,7 @@ export default function TemplatesPage() {
         `/api/boq-template-line-items/${itemId}`,
       );
       refetchAll({ silent: true });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleReorderItem = async (
@@ -295,9 +362,11 @@ export default function TemplatesPage() {
         if (t.id !== templateId) return t;
         return {
           ...t,
-          sections: t.sections.map((s: any) => {
+          sections: t.sections.map((s: BOQTemplateSectionUI) => {
             if (s.id !== sectionId) return s;
-            const idx = s.lineItems.findIndex((li: any) => li.id === itemId);
+            const idx = s.lineItems.findIndex(
+              (li: BOQTemplateLineItemUI) => li.id === itemId,
+            );
             if (idx < 0) return s;
             if (direction === "up" && idx === 0) return s;
             if (direction === "down" && idx === s.lineItems.length - 1)
@@ -324,10 +393,14 @@ export default function TemplatesPage() {
 
     // 2. Fetch original target values for the API payload
     const template = templates.find((t) => t.id === templateId);
-    const section = template?.sections.find((s: any) => s.id === sectionId);
+    const section = template?.sections.find(
+      (s: BOQTemplateSectionUI) => s.id === sectionId,
+    );
     if (!section) return;
 
-    const idx = section.lineItems.findIndex((li: any) => li.id === itemId);
+    const idx = section.lineItems.findIndex(
+      (li: BOQTemplateLineItemUI) => li.id === itemId,
+    );
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     const currentItem = section.lineItems[idx];
     const targetItem = section.lineItems[swapIdx];
@@ -343,7 +416,7 @@ export default function TemplatesPage() {
         }),
       ]);
       refetchAll({ silent: true }); // Silently syncs state in the background
-    } catch (e) {
+    } catch {
       refetchAll({ silent: true });
     }
   };
@@ -359,7 +432,7 @@ export default function TemplatesPage() {
       });
       setNewGroupName("");
       refetchAll({ silent: true });
-    } catch (e) {
+    } catch {
     } finally {
       setAddingGroup(false);
     }
@@ -374,7 +447,7 @@ export default function TemplatesPage() {
   const handleGroupBlur = async (id: string, value: string) => {
     try {
       await groupMutation.mutate(`/api/boq-groups/${id}`, { name: value });
-    } catch (e) {
+    } catch {
       refetchAll({ silent: true });
     }
   };
@@ -386,7 +459,7 @@ export default function TemplatesPage() {
       );
       await groupMutation.mutate(`/api/boq-groups/${id}`, { isActive });
       refetchAll({ silent: true });
-    } catch (e) {
+    } catch {
       refetchAll({ silent: true });
     }
   };

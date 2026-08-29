@@ -21,6 +21,12 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import type { BOQGroup } from "@prisma/client";
+import type {
+  BOQTemplateUI,
+  BOQTemplateSectionUI,
+  BOQTemplateLineItemUI,
+} from "./page";
 
 interface TemplateTreeHandlers {
   handleTemplateChange: (id: string, field: string, value: string) => void;
@@ -68,8 +74,8 @@ interface TemplateTreeHandlers {
 }
 
 interface TemplateTreeProps {
-  templates: any[];
-  groups: any[];
+  templates: BOQTemplateUI[];
+  groups: BOQGroup[];
   expandedTemplates: Record<string, boolean>;
   toggleExpand: (id: string) => void;
   handlers: TemplateTreeHandlers;
@@ -187,7 +193,7 @@ export function TemplateTree({
             {expandedTemplates[tpl.id] && (
               <CardContent className="p-0 border-t border-slate-200 bg-slate-50">
                 <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
-                  {tpl.sections.map((sec: any, sIdx: number) => (
+                  {tpl.sections.map((sec: BOQTemplateSectionUI, sIdx: number) => (
                     <div
                       key={sec.id}
                       className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden"
@@ -296,7 +302,7 @@ export function TemplateTree({
                               </TableCell>
                             </TableRow>
                           ) : (
-                            sec.lineItems.map((li: any, lIdx: number) => (
+                            sec.lineItems.map((li: BOQTemplateLineItemUI, lIdx: number) => (
                               <TableRow
                                 key={li.id}
                                 className="group hover:bg-slate-50/50 flex flex-col sm:table-row border-b last:border-b-0"

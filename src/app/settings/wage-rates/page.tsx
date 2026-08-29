@@ -14,15 +14,32 @@ import { Loader2, Plus } from "lucide-react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { WageRatesMobileList } from "./WageRatesMobileList";
 import { WageRatesDesktopTable } from "./WageRatesDesktopTable";
+import type { WorkerType } from "@prisma/client";
+
+// Shape returned by GET/POST/PATCH /api/worker-types
+// (src/app/api/worker-types/route.ts and its [id]/route.ts): the server
+// maps WorkerType rows to plain objects with `defaultRate` converted from
+// Decimal to `number`, and a `workerType` compatibility alias for `name`
+// (kept for older callers/forms that key off `workerType`). `createdAt`/
+// `updatedAt` (DateTime fields) arrive as ISO strings over JSON.
+export type WageRatePreset = Omit<
+  WorkerType,
+  "defaultRate" | "createdAt" | "updatedAt"
+> & {
+  workerType: string;
+  defaultRate: number;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export default function WageRatesSettingsPage() {
-  const { data: presetsData, loading, refetch } = useApiResource<any[]>(
-    "/api/worker-types",
-  );
+  const { data: presetsData, loading, refetch } = useApiResource<
+    WageRatePreset[]
+  >("/api/worker-types");
   const presets = presetsData ?? [];
   const sortedPresets = useMemo(
     () =>
-      [...presets].sort((a: any, b: any) =>
+      [...presets].sort((a: WageRatePreset, b: WageRatePreset) =>
         (a.workerType || a.name).localeCompare(b.workerType || b.name),
       ),
     [presets],
@@ -40,18 +57,20 @@ export default function WageRatesSettingsPage() {
   const [newTypeCycle, setNewTypeCycle] = useState("WEEKLY");
   const [creating, setCreating] = useState(false);
 
-  const updateWorkerType = useApiMutation<Record<string, unknown>, any>(
-    "PATCH",
-  );
-  const createWorkerType = useApiMutation<Record<string, unknown>, any>(
-    "POST",
-  );
+  const updateWorkerType = useApiMutation<
+    Record<string, unknown>,
+    WageRatePreset
+  >("PATCH");
+  const createWorkerType = useApiMutation<
+    Record<string, unknown>,
+    WageRatePreset
+  >("POST");
 
   useEffect(() => {
     if (!presetsData) return;
     const ev: Record<string, string> = {};
     const ec: Record<string, string> = {};
-    presetsData.forEach((d: any) => {
+    presetsData.forEach((d: WageRatePreset) => {
       const typeName = d.workerType || d.name;
       ev[typeName] = d.defaultRate?.toString() || "0";
       ec[typeName] = d.paymentCycle || "WEEKLY";
@@ -74,8 +93,9 @@ export default function WageRatesSettingsPage() {
         defaultRate: Number(val),
         paymentCycle: cycle,
       });
-    } catch (e: any) {
-      alert(e?.message || "Failed to save.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : undefined;
+      alert(message || "Failed to save.");
     } finally {
       setSavingMap((prev) => ({ ...prev, [typeName]: false }));
     }
@@ -104,8 +124,9 @@ export default function WageRatesSettingsPage() {
       setNewTypeRate("");
       setNewTypeCycle("WEEKLY");
       refetch({ silent: true });
-    } catch (err: any) {
-      alert(err?.message || "An error occurred while creating worker type.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      alert(message || "An error occurred while creating worker type.");
     } finally {
       setCreating(false);
     }

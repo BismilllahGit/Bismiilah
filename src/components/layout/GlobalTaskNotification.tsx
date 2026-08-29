@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 interface UpcomingTask {
   id: string;
@@ -51,7 +50,6 @@ export function GlobalTaskNotification() {
   }, [fetchTasks]);
 
   const overdueCount = tasks.filter(t => t.isOverdue).length;
-  const upcomingCount = tasks.length - overdueCount;
 
   if (tasks.length === 0) {
     return null; // Don't show if nothing to show

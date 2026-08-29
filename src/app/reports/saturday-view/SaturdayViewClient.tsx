@@ -29,6 +29,35 @@ export interface DueContractor {
   payableBalance: number;
 }
 
+type ClientPaymentPayload = {
+  amount: number;
+  date: string | null;
+  method: string | null;
+  note: string | undefined;
+  invoiceId: string;
+};
+
+export type ClientPaymentSuccessData = ClientPaymentPayload & {
+  id: string;
+  clientName: string;
+  clientPhone: string | null;
+  projectName: string;
+  balance: number;
+};
+
+type LabourPaymentPayload = {
+  amount: number;
+  paymentDate: string | null;
+  method: string;
+  note: string | undefined;
+};
+
+export type LabourPaymentSuccessData = LabourPaymentPayload & {
+  id: string;
+  contractorName: string;
+  contractorPhone: string | null;
+};
+
 interface SaturdayViewClientProps {
   clientDues: DueClient[];
   labourDues: DueContractor[];
@@ -51,7 +80,8 @@ export function SaturdayViewClient({
   const [clientPayAmount, setClientPayAmount] = useState<string>("");
   const [clientSheetOpen, setClientSheetOpen] = useState(false);
   const [savingClient, setSavingClient] = useState(false);
-  const [successClientData, setSuccessClientData] = useState<any>(null);
+  const [successClientData, setSuccessClientData] =
+    useState<ClientPaymentSuccessData | null>(null);
 
   // Modal states for Labour Payment
   const [selectedContractor, setSelectedContractor] =
@@ -59,7 +89,8 @@ export function SaturdayViewClient({
   const [labourPayAmount, setLabourPayAmount] = useState<string>("");
   const [labourSheetOpen, setLabourSheetOpen] = useState(false);
   const [savingLabour, setSavingLabour] = useState(false);
-  const [successLabourData, setSuccessLabourData] = useState<any>(null);
+  const [successLabourData, setSuccessLabourData] =
+    useState<LabourPaymentSuccessData | null>(null);
 
   // Calculations
   const totalClientDues = clientDues.reduce(
@@ -92,11 +123,13 @@ export function SaturdayViewClient({
     setSavingClient(true);
 
     const formData = new FormData(e.currentTarget);
-    const payload = {
+    const payload: ClientPaymentPayload = {
       amount: Number(clientPayAmount),
-      date: formData.get("date"),
-      method: formData.get("method"),
-      note: formData.get("note") || undefined,
+      // These fields come from text/date/select inputs (never file inputs),
+      // so FormDataEntryValue is always a string here.
+      date: formData.get("date") as string | null,
+      method: formData.get("method") as string | null,
+      note: (formData.get("note") as string | null) || undefined,
       invoiceId: selectedClientDue.id,
     };
 
@@ -125,7 +158,7 @@ export function SaturdayViewClient({
         const error = await res.json();
         alert(error.error || "Failed to record client payment");
       }
-    } catch (err) {
+    } catch {
       alert("An error occurred while saving client payment.");
     } finally {
       setSavingClient(false);
@@ -140,11 +173,13 @@ export function SaturdayViewClient({
     setSavingLabour(true);
 
     const formData = new FormData(e.currentTarget);
-    const payload = {
+    const payload: LabourPaymentPayload = {
       amount: Number(labourPayAmount),
-      paymentDate: formData.get("paymentDate"),
-      method: formData.get("method") || "CASH",
-      note: formData.get("note") || undefined,
+      // These fields come from text/date/select inputs (never file inputs),
+      // so FormDataEntryValue is always a string here.
+      paymentDate: formData.get("paymentDate") as string | null,
+      method: (formData.get("method") as string | null) || "CASH",
+      note: (formData.get("note") as string | null) || undefined,
     };
 
     try {
@@ -170,7 +205,7 @@ export function SaturdayViewClient({
         const error = await res.json();
         alert(error.error || "Failed to record labour payment");
       }
-    } catch (err) {
+    } catch {
       alert("An error occurred while saving labour payment.");
     } finally {
       setSavingLabour(false);

@@ -34,7 +34,7 @@ export async function GET(
       let lineItemsCount = 0;
 
       v.sections.forEach((s) => {
-        s.lineItems.forEach((li: any) => {
+        s.lineItems.forEach((li) => {
           estimatedTotal += Number(li.amount || 0);
           lineItemsCount++;
         });

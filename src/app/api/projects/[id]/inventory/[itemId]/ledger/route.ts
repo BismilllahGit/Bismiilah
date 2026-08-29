@@ -19,11 +19,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const data = await getInventoryLedgerData(projectId, itemId, { startDate, endDate, search, page, limit });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { rawOpeningQtyBalance, ...responsePayload } = data;
     return NextResponse.json(responsePayload);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Inventory ledger error:", error);
-    if (error.message === "Project or Item not found") {
+    if (error instanceof Error && error.message === "Project or Item not found") {
       return NextResponse.json({ error: "Project or Item not found" }, { status: 404 });
     }
     return NextResponse.json({ error: "Failed to fetch inventory ledger" }, { status: 500 });

@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(report);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch closure report" }, { status: 500 });
   }
 }

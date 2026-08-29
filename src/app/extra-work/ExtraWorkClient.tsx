@@ -21,12 +21,21 @@ import {
 import { Hammer, MapPin } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import type { ExtraWork, Project } from "@prisma/client";
+
+// Matches the shape src/app/extra-work/page.tsx serializes server-side
+// (Decimal fields converted to strings before crossing to this client
+// component).
+type SerializedExtraWork = Omit<ExtraWork, "amount"> & {
+  amount: string;
+  project: Omit<Project, "agreedValue"> & { agreedValue: string };
+};
 
 export default function ExtraWorkClient({
   extraWork,
   projects,
 }: {
-  extraWork: any[];
+  extraWork: SerializedExtraWork[];
   projects: { id: string | number; name: string }[];
 }) {
   const [projectFilter, setProjectFilter] = useState("ALL");

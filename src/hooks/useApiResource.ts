@@ -17,7 +17,7 @@ export type ApiResourceState<T> = {
  * — use it after a mutation when the page should update in place instead
  * of re-showing a loading state.
  */
-export function useApiResource<T = any>(
+export function useApiResource<T = unknown>(
   url: string | null,
 ): ApiResourceState<T> {
   const [data, setData] = useState<T | null>(null);
@@ -90,7 +90,7 @@ export type ApiMutationState<TInput, TOutput> = {
  * a non-2xx response. Does not parse/require a request body — pass one
  * only when the endpoint expects one.
  */
-export function useApiMutation<TInput = any, TOutput = any>(
+export function useApiMutation<TInput = unknown, TOutput = unknown>(
   method: "POST" | "PATCH" | "PUT" | "DELETE",
 ): ApiMutationState<TInput, TOutput> {
   const [mutating, setMutating] = useState(false);

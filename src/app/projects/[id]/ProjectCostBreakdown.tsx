@@ -206,7 +206,7 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value?: any) => [
+                    formatter={(value) => [
                       `₹${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
                       "Amount",
                     ]}

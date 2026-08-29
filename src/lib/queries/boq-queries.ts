@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 export interface GroupTotal {
   groupId: string;
@@ -7,18 +8,113 @@ export interface GroupTotal {
   subtotal: number;
 }
 
+// Structural shape `computeBOQRollups`/`computeActualsForBOQ` need from a BOQ
+// line item. It's a superset covering every field either function reads or
+// forwards (via `...li` spreads) — deliberately not one exact
+// `Prisma.BOQLineItemGetPayload<{...}>`, because these two helpers are called
+// with three DIFFERENT (but structurally compatible) query shapes: this
+// file's own `getEnrichedProjectBOQ` (item/workerType narrowed via `select`),
+// and the two BOQ API routes (`item: true`/`workerType: true` full includes).
+type BOQLineItemForCompute = {
+  id: string;
+  itemNo: string | null;
+  title: string;
+  make: string | null;
+  description: string | null;
+  lineType: string;
+  quantity: Prisma.Decimal | number | null;
+  unit: string | null;
+  rate: Prisma.Decimal | number | null;
+  amount: Prisma.Decimal | number;
+  executedQuantity: Prisma.Decimal | number;
+  executedAmount: Prisma.Decimal | number;
+  grade: string | null;
+  itemId: string | null;
+  workerTypeId: string | null;
+  sortOrder: number;
+  item?: { id: string; name: string; unit: string } | null;
+  workerType?: { id: string; name: string } | null;
+};
+
+// Same rationale as above for the section level — `group` is intentionally
+// all-optional since one call site (`POST /api/projects/[id]/boq`) selects
+// only `{ name, isCustom, isActive }`, omitting `id`/`sortOrder`.
+type BOQSectionForCompute = {
+  id: string;
+  boqId: string;
+  name: string;
+  groupId: string;
+  sortOrder: number;
+  group?: { id?: string; name?: string; sortOrder?: number } | null;
+  lineItems?: BOQLineItemForCompute[];
+};
+
+// The shape a section/line item has *after* `computeBOQRollups` has enriched
+// it (quantity/rate/amount coerced to `number`, `subtotal` added) — this is
+// what `computeActualsForBOQ` (always called on `computeBOQRollups`'s output)
+// actually receives.
+type BOQLineItemComputed = Omit<
+  BOQLineItemForCompute,
+  "quantity" | "rate" | "amount"
+> & {
+  quantity: number | null;
+  rate: number | null;
+  amount: number;
+};
+
+type BOQSectionComputed = Omit<BOQSectionForCompute, "lineItems"> & {
+  lineItems: BOQLineItemComputed[];
+  subtotal: number;
+};
+
+// The shape a line item/section has *after* `computeActualsForBOQ` has
+// additionally enriched `computeBOQRollups`'s output with actuals. Named
+// explicitly (rather than left to inference) so that `sections` resolves to
+// a concrete array type on `computeActualsForBOQ`'s return — TS's inference
+// of `{...T, sections: enrichedSections}` for a *naked* generic `T` that
+// already carries an (incompatible) `sections` key of its own does not
+// reliably override that key for downstream consumers (e.g. `.map()`
+// callback parameter inference in `lib/pdf/BOQPdfTable.tsx`), even though
+// the runtime value is correct. This annotation changes only the declared
+// type, not any runtime behavior.
+type BOQLineItemWithActuals = BOQLineItemComputed & {
+  estimatedQuantity: number | null;
+  estimatedAmount: number;
+  actualQuantity: number | null;
+  actualAmount: number | null;
+  isOverBudgetByCost: boolean;
+  isOverBudgetByQuantity: boolean;
+  isOverBudget: boolean;
+  isTrackedMaterialLine: boolean;
+};
+
+type BOQSectionWithActuals = Omit<BOQSectionComputed, "lineItems"> & {
+  lineItems: BOQLineItemWithActuals[];
+  estimatedCost: number | null;
+  actualCost: number | null;
+  estimatedQuantity: number | null;
+  actualQuantity: number | null;
+  isOverBudgetByCost: boolean;
+  isOverBudgetByQuantity: boolean;
+  isOverBudget: boolean;
+  hasTrackedItems: boolean;
+};
+
 export function computeBOQRollups<
-  T extends { sections?: any[]; targetBudget?: any },
+  T extends {
+    sections?: BOQSectionForCompute[];
+    targetBudget?: Prisma.Decimal | number | null;
+  },
 >(boq: T | null) {
   if (!boq) return null;
 
   const groupMap = new Map<string, GroupTotal>();
   let grandTotal = 0;
 
-  const enrichedSections = (boq.sections || []).map((section: any) => {
+  const enrichedSections = (boq.sections || []).map((section) => {
     let sectionSubtotal = 0;
 
-    const enrichedLineItems = (section.lineItems || []).map((li: any) => {
+    const enrichedLineItems = (section.lineItems || []).map((li) => {
       const amount = Number(li.amount || 0);
       sectionSubtotal += amount;
 
@@ -81,10 +177,26 @@ export function computeBOQRollups<
   };
 }
 
-export async function computeActualsForBOQ(
-  rawBOQWithRollups: any,
+export async function computeActualsForBOQ<
+  T extends {
+    targetBudget?: number | null;
+    sections?: BOQSectionComputed[];
+  },
+>(
+  rawBOQWithRollups: T | null,
   projectId: string,
-) {
+): Promise<
+  | null
+  | (Omit<T, "sections"> & {
+      totalMaterialCost: number;
+      totalLabourCost: number;
+      totalOtherCost: number;
+      totalProjectCost: number;
+      isTargetBudgetExceeded: boolean;
+      totalItemsOverBudget: number;
+      sections: BOQSectionWithActuals[];
+    })
+> {
   if (!rawBOQWithRollups) return null;
 
   // 1. Material actual costs & quantities from InventoryTransaction (BUY type only, exclude transfers)
@@ -166,14 +278,14 @@ export async function computeActualsForBOQ(
 
   // 5. Roll up actuals and overruns across Sections -> Line Items
   const enrichedSections = (rawBOQWithRollups.sections || []).map(
-    (section: any) => {
+    (section) => {
       let sectionEstimatedCost = 0;
       let sectionActualCost = 0;
       let sectionEstimatedQty = 0;
       let sectionActualQty = 0;
       let sectionHasTrackedItems = false;
 
-      const enrichedLineItems = (section.lineItems || []).map((li: any) => {
+      const enrichedLineItems = (section.lineItems || []).map((li) => {
         const estimatedAmount = Number(li.amount || 0);
         const estimatedQuantity =
           li.quantity !== null && li.quantity !== undefined
@@ -185,7 +297,10 @@ export async function computeActualsForBOQ(
           li.lineType !== "LUMP_SUM" && !!li.itemId && !li.workerTypeId;
 
         if (isTrackedMaterialLine) {
-          const actuals = itemActualsMap.get(li.itemId) || {
+          // Non-null assertion is safe here: `isTrackedMaterialLine` already
+          // confirmed `!!li.itemId` above, TS just can't narrow `li.itemId`
+          // through that separately-derived boolean.
+          const actuals = itemActualsMap.get(li.itemId!) || {
             actualQuantity: 0,
             actualAmount: 0,
           };

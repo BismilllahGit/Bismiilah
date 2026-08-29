@@ -19,10 +19,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const data = await getLabourContractorLedgerData(contactId, { startDate, endDate, search, page, limit });
 
     const { rawOpeningBalance, ...responsePayload } = data;
+    void rawOpeningBalance;
     return NextResponse.json(responsePayload);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Labour ledger error:", error);
-    if (error.message === "Contact not found") {
+    if (error instanceof Error && error.message === "Contact not found") {
       return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
     return NextResponse.json({ error: "Failed to fetch labour ledger" }, { status: 500 });

@@ -49,7 +49,7 @@ interface LedgerTableProps {
   total?: number;
   onPageChange?: (page: number) => void;
   pdfReportType?: string;
-  pdfParams?: Record<string, any>;
+  pdfParams?: Record<string, string | undefined>;
   contactName?: string;
   contactPhone?: string | null;
   shareLinkType?: "vendor_ledger" | "client_ledger" | "labour_ledger";

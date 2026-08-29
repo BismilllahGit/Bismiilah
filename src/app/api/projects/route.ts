@@ -17,7 +17,7 @@ const createProjectSchema = z.object({
   endDate: z.string().optional()
 });
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(projects);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 });
   }
 }

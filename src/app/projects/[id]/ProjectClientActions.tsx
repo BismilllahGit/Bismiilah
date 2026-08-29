@@ -18,8 +18,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import type { Project as PrismaProject } from "@prisma/client";
 
-export function EditProjectDrawer({ project }: { project: any }) {
+// The layout server-serializes `agreedValue` (a Prisma Decimal) to a string
+// before passing the project down to this client component.
+type EditableProject = Omit<PrismaProject, "agreedValue"> & {
+  agreedValue: string;
+};
+
+export function EditProjectDrawer({ project }: { project: EditableProject }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -27,7 +34,8 @@ export function EditProjectDrawer({ project }: { project: any }) {
   const [formData, setFormData] = useState({
     name: project.name || "",
     location: project.location || "",
-    status: project.status || "ACTIVE",
+    // Widened to string: the <Select> below treats it as a freeform value.
+    status: (project.status as string) || "ACTIVE",
     startDate: project.startDate
       ? new Date(project.startDate).toISOString().split("T")[0]
       : "",
@@ -42,7 +50,15 @@ export function EditProjectDrawer({ project }: { project: any }) {
     setIsSaving(true);
 
     // Construct payload explicitly mapping to the expected backend types (strings)
-    const payload: any = {
+    const payload: {
+      name: string;
+      location: string;
+      status: string;
+      agreedValue: string;
+      notes: string;
+      startDate?: string;
+      endDate?: string;
+    } = {
       name: formData.name,
       location: formData.location,
       status: formData.status,

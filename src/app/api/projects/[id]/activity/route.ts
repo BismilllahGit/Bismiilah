@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
 
     return NextResponse.json(activities);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch site activity" }, { status: 500 });
   }
 }

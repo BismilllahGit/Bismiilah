@@ -5,7 +5,6 @@ import {
   Plus,
   CheckCircle2,
   Circle,
-  Clock,
   Trash2,
   Loader2,
   Calendar,
@@ -96,13 +95,13 @@ export default function ProjectTasksClient({
   const handleUpdateStatus = async (taskId: string, newStatus: string) => {
     setTasks((current) =>
       current.map((t) =>
-        t.id === taskId ? { ...t, status: newStatus as any } : t,
+        t.id === taskId ? { ...t, status: newStatus as Task["status"] } : t,
       ),
     );
     try {
       await updateTask.mutate(`/api/tasks/${taskId}`, { status: newStatus });
       notifyUpdate();
-    } catch (err) {
+    } catch {
       refetch({ silent: true });
     }
   };
@@ -112,7 +111,7 @@ export default function ProjectTasksClient({
     try {
       await deleteTask.mutate(`/api/tasks/${taskId}`);
       notifyUpdate();
-    } catch (err) {
+    } catch {
       refetch({ silent: true });
     }
   };

@@ -1,12 +1,14 @@
+import type { BOQSectionUI, BOQLineItemUI } from "@/app/projects/[id]/boq/BOQEditor";
+
 export function computeBOQTotals(
-  localSections: any[],
+  localSections: BOQSectionUI[],
   cgstRate: string,
   sgstRate: string,
 ) {
   let grandTotal = 0;
   const computedSecs = localSections.map((sec) => {
     let subtotal = 0;
-    const computedItems = sec.lineItems.map((li: any) => {
+    const computedItems = sec.lineItems.map((li: BOQLineItemUI) => {
       let amount = Number(li.amount || 0);
       if (li.lineType === "CALCULATED") {
         amount = Number(li.quantity || 0) * Number(li.rate || 0);

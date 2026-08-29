@@ -1,5 +1,6 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import type { BusinessProfile } from "@prisma/client";
 
 export interface PdfColumn {
   header: string;
@@ -15,8 +16,7 @@ export interface ReportLayoutProps {
   subtitle?: string;
   summaryItems?: Array<{ label: string; value: string | number }>;
   children: React.ReactNode;
-  businessProfile?: any;
-  clientProfile?: any;
+  businessProfile?: BusinessProfile | null;
 }
 
 // STRICT PERCENTAGES
@@ -219,7 +219,7 @@ export const PdfTable: React.FC<PdfTableProps> = ({
         {columns.map((col, idx) => (
           <Text
             key={idx}
-            style={[styles.tableHeaderCell, getCellWidthStyle(col) as any]}
+            style={[styles.tableHeaderCell, getCellWidthStyle(col)]}
           >
             {col.header}
           </Text>
@@ -245,7 +245,7 @@ export const PdfTable: React.FC<PdfTableProps> = ({
               return (
                 <Text
                   key={cellIdx}
-                  style={[styles.tableCell, getCellWidthStyle(col) as any]}
+                  style={[styles.tableCell, getCellWidthStyle(col)]}
                 >
                   {cellValue !== null && cellValue !== undefined
                     ? String(cellValue)
@@ -263,7 +263,7 @@ export const PdfTable: React.FC<PdfTableProps> = ({
             return (
               <Text
                 key={idx}
-                style={[styles.tableFooterCell, getCellWidthStyle(col) as any]}
+                style={[styles.tableFooterCell, getCellWidthStyle(col)]}
               >
                 {val !== null && val !== undefined ? String(val) : ""}
               </Text>
@@ -281,19 +281,11 @@ export const ReportLayout: React.FC<ReportLayoutProps> = ({
   subtitle,
   children,
   businessProfile,
-  clientProfile,
 }) => {
   const compName = businessProfile?.companyName || "Construction Company";
   const safeAddress = businessProfile?.address?.split("\n") || [
     "No Address Provided",
   ];
-
-  const safeClient = clientProfile || {
-    name: "Client Name Not Provided",
-    address: "No Address Provided",
-    gstNumber: "-",
-    siteAddress: "-",
-  };
 
   const isQuotation =
     title?.toLowerCase().includes("quotation") ||

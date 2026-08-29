@@ -40,6 +40,25 @@ const styles = StyleSheet.create({
   },
 });
 
+interface LabourGroupedRow {
+  date?: Date;
+  workerType?: string;
+  projectName?: string;
+  totalHeadcount: number;
+  totalSpend: number;
+}
+
+interface LabourFlatRow {
+  date: Date;
+  voucherNumber: string;
+  projectName: string;
+  workerType: string | null;
+  contractorName: string | null;
+  headcount: number;
+  wageRate: number;
+  totalSpend: number;
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -240,7 +259,7 @@ export async function POST(request: Request) {
           { header: "Total Spend", width: "30%", align: "right" },
         ];
 
-        const rows = data.data.map((r: any) => [
+        const rows = data.data.map((r: LabourGroupedRow) => [
           data.groupBy === "date"
             ? formatDate(r.date)
             : r.workerType || r.projectName || "N/A",
@@ -269,7 +288,7 @@ export async function POST(request: Request) {
           { header: "Total", width: "13%", align: "right" },
         ];
 
-        const rows = data.data.map((r: any) => [
+        const rows = data.data.map((r: LabourFlatRow) => [
           formatDate(r.date),
           r.voucherNumber,
           r.projectName,
@@ -471,7 +490,7 @@ export async function POST(request: Request) {
       </ReportLayout>
     );
 
-    const buffer = await renderToBuffer(pdfDocument as any);
+    const buffer = await renderToBuffer(pdfDocument);
 
     // Upload to Cloudflare R2 (or local fallback) under reports/{reportType}/{timestamp}.pdf
     const timestamp = Date.now();
@@ -479,10 +498,15 @@ export async function POST(request: Request) {
     const signedUrl = await uploadPdfAndGetSignedUrl(buffer, filePath);
 
     return NextResponse.json({ url: signedUrl, expirySeconds: 3600 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PDF Generation failed:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to generate PDF report" },
+      {
+        error:
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to generate PDF report",
+      },
       { status: 500 },
     );
   }

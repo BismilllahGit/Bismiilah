@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -52,6 +52,21 @@ export type Invoice = {
   lineItems: InvoiceLineItem[];
 };
 
+type InvoicePaymentPayload = {
+  amount: number;
+  date: string | null;
+  method: string | null;
+  note: string | undefined;
+};
+
+type SuccessInvoicePaymentData = InvoicePaymentPayload & {
+  id: string;
+  clientName: string;
+  clientPhone: string | null;
+  projectName: string;
+  balance: number;
+};
+
 export default function InvoicesPage() {
   const {
     data: invoicesData,
@@ -68,15 +83,23 @@ export default function InvoicesPage() {
   const projects = projectsData || [];
   const loading = invoicesLoading || clientsLoading || projectsLoading;
 
-  const createInvoice = useApiMutation<any, Invoice>("POST");
-  const recordPayment = useApiMutation<any, { id: string }>("POST");
-  const changeInvoiceStatus = useApiMutation<any, Invoice>("PATCH");
+  const createInvoice = useApiMutation<Record<string, unknown>, Invoice>(
+    "POST",
+  );
+  const recordPayment = useApiMutation<
+    Record<string, unknown>,
+    { id: string }
+  >("POST");
+  const changeInvoiceStatus = useApiMutation<Record<string, unknown>, Invoice>(
+    "PATCH",
+  );
   const saving =
     createInvoice.mutating ||
     recordPayment.mutating ||
     changeInvoiceStatus.mutating;
 
-  const [successPaymentData, setSuccessPaymentData] = useState<any>(null);
+  const [successPaymentData, setSuccessPaymentData] =
+    useState<SuccessInvoicePaymentData | null>(null);
   const [open, setOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -122,11 +145,13 @@ export default function InvoicesPage() {
     if (!selectedInvoice) return;
 
     const formData = new FormData(e.currentTarget);
-    const payload = {
+    const payload: InvoicePaymentPayload = {
       amount: Number(formData.get("amount")),
-      date: formData.get("date"),
-      method: formData.get("method"),
-      note: formData.get("note") || undefined,
+      // These fields come from text/date/select inputs (never file inputs),
+      // so FormDataEntryValue is always a string here.
+      date: formData.get("date") as string | null,
+      method: formData.get("method") as string | null,
+      note: (formData.get("note") as string | null) || undefined,
     };
 
     try {
@@ -438,7 +463,7 @@ export default function InvoicesPage() {
               <div className="pt-6 w-full space-y-3">
                 <ShareViaWhatsAppButton
                   phone={successPaymentData.clientPhone}
-                  message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${new Date(successPaymentData.date).toLocaleDateString()} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
+                  message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${new Date(successPaymentData.date ?? "").toLocaleDateString()} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
                   onShare={() => setPaymentOpen(false)}
                   className="w-full font-bold h-11"
                   size="lg"

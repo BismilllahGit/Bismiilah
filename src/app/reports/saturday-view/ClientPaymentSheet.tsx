@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { CheckCircle2 } from "lucide-react";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
-import type { DueClient } from "./SaturdayViewClient";
+import type { DueClient, ClientPaymentSuccessData } from "./SaturdayViewClient";
 import { formatCurrency } from "./utils";
 
 interface ClientPaymentSheetProps {
@@ -20,8 +20,8 @@ interface ClientPaymentSheetProps {
   clientPayAmount: string;
   setClientPayAmount: (val: string) => void;
   saving: boolean;
-  successData: any;
-  setSuccessData: (data: any) => void;
+  successData: ClientPaymentSuccessData | null;
+  setSuccessData: (data: ClientPaymentSuccessData | null) => void;
   onSave: (e: React.FormEvent<HTMLFormElement>) => void;
   today: Date;
 }
@@ -60,7 +60,7 @@ export function ClientPaymentSheet({
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
                 phone={successData.clientPhone}
-                message={`Hi ${successData.clientName}, I've received your payment of ₹${successData.amount} on ${new Date(successData.date).toLocaleDateString()} for ${successData.projectName}. Thank you! — Bismillah Construction`}
+                message={`Hi ${successData.clientName}, I've received your payment of ₹${successData.amount} on ${new Date(successData.date ?? "").toLocaleDateString()} for ${successData.projectName}. Thank you! — Bismillah Construction`}
                 onShare={() => setOpen(false)}
                 className="w-full font-bold h-11"
                 size="lg"

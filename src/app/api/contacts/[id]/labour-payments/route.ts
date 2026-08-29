@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
 
     return NextResponse.json(payments);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch labour payments" }, { status: 500 });
   }
 }
@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const payment = await prisma.$transaction(async (tx) => {
-      const voucherNumber = await nextVoucherNumber(tx as any, 'LPAY', 'LABOUR_PAY');
+      const voucherNumber = await nextVoucherNumber(tx, 'LPAY', 'LABOUR_PAY');
 
       return tx.labourPayment.create({
         data: {

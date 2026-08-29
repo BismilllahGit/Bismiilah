@@ -109,8 +109,8 @@ export default function SiteExpensesPage({
       await createExpense(`/api/projects/${projectId}/expenses`, payload);
       setOpen(false);
       refetchExpenses();
-    } catch (err: any) {
-      alert(err?.message || "Failed to log expense");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to log expense");
     }
   };
 

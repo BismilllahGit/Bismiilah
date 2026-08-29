@@ -8,6 +8,25 @@ import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { useApiResource } from "@/hooks/useApiResource";
 import { LabourMobileList } from "./LabourMobileList";
 import { LabourDesktopTable } from "./LabourDesktopTable";
+import type {
+  DailyLabourFlatRow,
+  DailyLabourGroupedRow,
+} from "@/lib/queries/report-queries";
+
+type ProjectOption = { id: string; name: string };
+type WorkerTypeOption = { id: string; name?: string; workerType?: string };
+
+// GET /api/daily-labour returns either the flat row shape or one of the
+// grouped-by shapes depending on `groupBy` — merged here (all fields
+// optional) since the table/list views branch on `groupBy` at render time
+// to pick which fields to read.
+export type LabourRow = Partial<DailyLabourFlatRow> &
+  Partial<DailyLabourGroupedRow> & {
+    // Read defensively in LabourMobileList/LabourDesktopTable's contractor
+    // fallback (`row.contractorName || row.broughtBy`) but never actually
+    // returned by the API — pre-existing dead fallback, preserved as-is.
+    broughtBy?: string;
+  };
 
 export default function LabourLedgerPage() {
   // Filters
@@ -19,8 +38,9 @@ export default function LabourLedgerPage() {
   const [groupBy, setGroupBy] = useState("NONE"); // NONE, date, workerType, project
 
   // Options
-  const { data: projectsData } = useApiResource<any[]>("/api/projects");
-  const { data: workerTypesData } = useApiResource<any[]>("/api/worker-types");
+  const { data: projectsData } = useApiResource<ProjectOption[]>("/api/projects");
+  const { data: workerTypesData } =
+    useApiResource<WorkerTypeOption[]>("/api/worker-types");
   const projects = projectsData || [];
   const workerTypes = workerTypesData || [];
 
@@ -57,7 +77,7 @@ export default function LabourLedgerPage() {
         })();
 
   const { data: labourResult, loading } = useApiResource<{
-    data: any[];
+    data: LabourRow[];
     summary: { totalHeadcount: number; totalSpend: number; entryCount: number };
   }>(labourUrl);
 
@@ -68,7 +88,7 @@ export default function LabourLedgerPage() {
     entryCount: 0,
   };
 
-  const formatCurrency = (val: number) => {
+  const formatCurrency = (val: number | undefined) => {
     return `₹${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 

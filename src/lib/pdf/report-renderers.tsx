@@ -1,5 +1,6 @@
 import React from "react";
 import prisma from "@/lib/prisma";
+import type { BusinessProfile } from "@prisma/client";
 import { formatRs, formatDate } from "@/lib/pdf/format";
 import { PdfTable, PdfColumn } from "@/lib/pdf/ReportLayout";
 import { BOQPdfTable } from "@/lib/pdf/BOQPdfTable";
@@ -7,6 +8,7 @@ import {
   getVendorLedgerData,
   getLabourContractorLedgerData,
 } from "@/lib/queries/ledger-queries";
+import type { FormattedLedgerRow } from "@/lib/queries/ledger-helpers";
 import { getClosureReportData } from "@/lib/queries/report-queries";
 import { getEnrichedProjectBOQ } from "@/lib/queries/boq-queries";
 
@@ -36,7 +38,7 @@ function ledgerColumns(labels: { debit: string; credit: string }): PdfColumn[] {
 }
 
 function ledgerRows(
-  rows: Array<{ date: any; voucherNumber: string; description: string; debit: number; credit: number; runningBalance: number }>,
+  rows: FormattedLedgerRow[],
   balance: (row: { runningBalance: number }) => string,
 ) {
   return rows.map((row) => [
@@ -134,7 +136,7 @@ interface BoqReportParams {
    *  "public" matches the share route's leaner summary. Preserves the
    *  pre-refactor difference between the two routes exactly. */
   variant: "full" | "public";
-  businessProfile?: any;
+  businessProfile?: BusinessProfile | null;
 }
 
 export async function renderBoqReport(params: BoqReportParams): Promise<RenderedReport | null> {

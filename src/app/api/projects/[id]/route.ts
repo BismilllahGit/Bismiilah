@@ -30,7 +30,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!project) return NextResponse.json({ error: "Not Found" }, { status: 404 });
 
     return NextResponse.json(project);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch project" }, { status: 500 });
   }
 }
@@ -47,7 +47,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
     }
 
-    const dataToUpdate: any = { ...parsed.data };
+    const dataToUpdate: z.infer<typeof updateProjectSchema> = { ...parsed.data };
     
     if (dataToUpdate.startDate) {
       dataToUpdate.startDate = new Date(dataToUpdate.startDate).toISOString();
@@ -64,7 +64,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     });
 
     return NextResponse.json(project);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
   }
 }

@@ -1,5 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
+import type { BusinessProfile } from "@prisma/client";
+import type { getEnrichedProjectBOQ } from "@/lib/queries/boq-queries";
+
+// The exact shape `getEnrichedProjectBOQ` resolves as `current` (already
+// rollup/actuals-enriched) — see Task 9's boq-queries.ts. Imported rather
+// than re-declared by hand per this task's interface note.
+type EnrichedBOQ = NonNullable<
+  Awaited<ReturnType<typeof getEnrichedProjectBOQ>>["current"]
+>;
 
 // Strict column widths that equal exactly 100%
 const W_SLNO = "6%";
@@ -163,10 +172,10 @@ const formatQty = (val: number | null | undefined) => {
   return Number(val).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 };
 
-export const BOQPdfTable: React.FC<{ boq: any; businessProfile?: any }> = ({
-  boq,
-  businessProfile,
-}) => {
+export const BOQPdfTable: React.FC<{
+  boq: EnrichedBOQ;
+  businessProfile?: BusinessProfile | null;
+}> = ({ boq, businessProfile }) => {
   const sections = boq.sections || [];
   const groupTotals = boq.groupTotals || [];
   const grandTotal = Number(boq.grandTotal || 0);
@@ -212,7 +221,7 @@ export const BOQPdfTable: React.FC<{ boq: any; businessProfile?: any }> = ({
             </Text>
           </View>
         ) : (
-          sections.map((section: any, secIndex: number) => (
+          sections.map((section, secIndex: number) => (
             <React.Fragment key={section.id || secIndex}>
               {/* Section Header */}
               <View style={styles.sectionHeaderRow}>
@@ -229,7 +238,7 @@ export const BOQPdfTable: React.FC<{ boq: any; businessProfile?: any }> = ({
                   </Text>
                 </View>
               ) : (
-                section.lineItems.map((li: any, liIndex: number) => (
+                section.lineItems.map((li, liIndex: number) => (
                   <View
                     key={li.id || liIndex}
                     style={styles.tableRow}
@@ -368,7 +377,7 @@ export const BOQPdfTable: React.FC<{ boq: any; businessProfile?: any }> = ({
         )}
 
         {/* Group Totals Rollup */}
-        {groupTotals.map((grp: any, gIndex: number) => (
+        {groupTotals.map((grp, gIndex: number) => (
           <View
             key={grp.groupId || gIndex}
             style={styles.totalsRow}

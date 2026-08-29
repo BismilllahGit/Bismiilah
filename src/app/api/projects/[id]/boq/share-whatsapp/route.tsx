@@ -59,7 +59,7 @@ export async function POST(
 
     // 2. Resolve target BOQ revision (boqId if passed, else current active/latest)
     let versionNumber: number | undefined = undefined;
-    let targetBoqId = boqId;
+    const targetBoqId = boqId;
     if (targetBoqId) {
       const target = await prisma.bOQ.findUnique({ where: { id: targetBoqId } });
       if (target) {
@@ -77,7 +77,7 @@ export async function POST(
     // 3. Generate signed 1-hour PDF URL (if not already cached or passed)
     const title = "Project Bill of Quantities / Quotation";
     const subtitle = `Project: ${project.name} | Location: ${project.location} | Revision: Version ${boq.versionNumber} (${boq.status})`;
-    const formatRs = (val: any) => val ? `Rs. ${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "-";
+    const formatRs = (val: number | null | undefined) => val ? `Rs. ${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "-";
     const summaryItems = [
       { label: "Quotation Version", value: `v${boq.versionNumber} (${boq.status})` },
       { label: "Total Sections", value: (boq.sections || []).length },
@@ -90,7 +90,7 @@ export async function POST(
       </ReportLayout>
     );
 
-    const buffer = await renderToBuffer(pdfDocument as any);
+    const buffer = await renderToBuffer(pdfDocument);
     const timestamp = Date.now();
     const filePath = `reports/boq/quotation_${projectId}_v${boq.versionNumber}_${timestamp}.pdf`;
     const signedUrl = await uploadPdfAndGetSignedUrl(buffer, filePath);
@@ -111,10 +111,10 @@ export async function POST(
       signedUrl,
       whatsapp: shareResult,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error sharing quotation via WhatsApp:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to share quotation via WhatsApp" },
+      { error: error instanceof Error && error.message ? error.message : "Failed to share quotation via WhatsApp" },
       { status: 500 }
     );
   }

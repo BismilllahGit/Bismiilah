@@ -166,11 +166,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // 9. Return the result
     return NextResponse.json(result, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    
+
     // Catch specific insufficient stock error from transaction
-    if (error.message && error.message.startsWith("INSUFFICIENT_STOCK:")) {
+    if (error instanceof Error && error.message && error.message.startsWith("INSUFFICIENT_STOCK:")) {
       return NextResponse.json({ error: error.message.replace("INSUFFICIENT_STOCK: ", "") }, { status: 400 });
     }
     

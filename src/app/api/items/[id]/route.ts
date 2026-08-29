@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!item) return NextResponse.json({ error: "Not Found" }, { status: 404 });
 
     return NextResponse.json(item);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch item" }, { status: 500 });
   }
 }
@@ -47,7 +47,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     });
 
     return NextResponse.json(item);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to update item" }, { status: 500 });
   }
 }
@@ -63,7 +63,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     });
 
     return NextResponse.json(item);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to deactivate item" }, { status: 500 });
   }
 }

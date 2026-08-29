@@ -13,6 +13,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
+import type { SuccessTxnData } from "./page";
 
 type Project = { id: string; name: string };
 
@@ -29,8 +30,8 @@ export function RecordTransactionSheet({
 }: {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  successTxnData: any;
-  setSuccessTxnData: React.Dispatch<React.SetStateAction<any>>;
+  successTxnData: SuccessTxnData | null;
+  setSuccessTxnData: React.Dispatch<React.SetStateAction<SuccessTxnData | null>>;
   projects: Project[];
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
   vendorName?: string;
@@ -76,8 +77,8 @@ export function RecordTransactionSheet({
                 phone={successTxnData.vendorPhone}
                 message={
                   successTxnData.type === "PAYMENT"
-                    ? `Hi ${successTxnData.vendorName}, I've paid ₹${successTxnData.amount} on ${new Date(successTxnData.date).toLocaleDateString()} for ${successTxnData.description || successTxnData.note || "materials"}. Thank you — Bismillah Construction`
-                    : `Hi ${successTxnData.vendorName}, I've purchased ${successTxnData.description || successTxnData.note || "materials"} from you — amount: ₹${successTxnData.amount}, on ${new Date(successTxnData.date).toLocaleDateString()}. — Bismillah Construction`
+                    ? `Hi ${successTxnData.vendorName}, I've paid ₹${successTxnData.amount} on ${new Date(successTxnData.date ?? "").toLocaleDateString()} for ${successTxnData.description || successTxnData.note || "materials"}. Thank you — Bismillah Construction`
+                    : `Hi ${successTxnData.vendorName}, I've purchased ${successTxnData.description || successTxnData.note || "materials"} from you — amount: ₹${successTxnData.amount}, on ${new Date(successTxnData.date ?? "").toLocaleDateString()}. — Bismillah Construction`
                 }
                 onShare={() => setOpen(false)}
                 className="w-full font-bold h-11"

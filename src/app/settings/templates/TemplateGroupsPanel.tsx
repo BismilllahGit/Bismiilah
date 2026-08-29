@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/table";
 import { Plus, Loader2, Settings, CheckCircle2, XCircle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import type { BOQGroup } from "@prisma/client";
 
 interface TemplateGroupsPanelProps {
-  groups: any[];
+  groups: BOQGroup[];
   newGroupName: string;
   setNewGroupName: (value: string) => void;
   addingGroup: boolean;

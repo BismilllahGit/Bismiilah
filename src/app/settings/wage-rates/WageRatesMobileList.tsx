@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2 } from "lucide-react";
+import type { WageRatePreset } from "./page";
 
 export function WageRatesMobileList({
   loading,
@@ -16,7 +17,7 @@ export function WageRatesMobileList({
   handleSave,
 }: {
   loading: boolean;
-  sortedPresets: any[];
+  sortedPresets: WageRatePreset[];
   savingMap: Record<string, boolean>;
   editingValues: Record<string, string>;
   setEditingValues: React.Dispatch<

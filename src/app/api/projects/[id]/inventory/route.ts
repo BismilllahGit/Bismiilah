@@ -32,7 +32,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
 
     return NextResponse.json(inventory);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch inventory" }, { status: 500 });
   }
 }
@@ -125,9 +125,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
 
     return NextResponse.json(result, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    if (error.message.includes("CLOSED")) {
+    if (error instanceof Error && error.message.includes("CLOSED")) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     return NextResponse.json({ error: "Failed to process inventory transaction" }, { status: 500 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import type { LabourRow } from "./page";
 
 export function LabourMobileList({
   loading,
@@ -10,10 +11,10 @@ export function LabourMobileList({
   formatCurrency,
 }: {
   loading: boolean;
-  data: any[];
+  data: LabourRow[];
   groupBy: string;
   summary: { totalHeadcount: number; totalSpend: number; entryCount: number };
-  formatCurrency: (val: number) => string;
+  formatCurrency: (val: number | undefined) => string;
 }) {
   return (
     <div className="lg:hidden space-y-3.5">
@@ -28,7 +29,7 @@ export function LabourMobileList({
       ) : (
         <>
           <div className="space-y-3.5">
-            {data.map((row: any, i: number) => (
+            {data.map((row, i) => (
               <div
                 key={row.id || i}
                 className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -41,7 +42,7 @@ export function LabourMobileList({
                           {row.projectName}
                         </span>
                         <span className="text-xs font-medium text-slate-500 block">
-                          {new Date(row.date).toLocaleDateString()}
+                          {new Date(row.date ?? "").toLocaleDateString()}
                         </span>
                       </div>
                       <span className="text-[11px] font-mono font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded uppercase shrink-0">
@@ -111,7 +112,7 @@ export function LabourMobileList({
                     <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
                       <span className="font-bold text-slate-900 text-base break-words">
                         {groupBy === "date"
-                          ? new Date(row.date).toLocaleDateString()
+                          ? new Date(row.date ?? "").toLocaleDateString()
                           : groupBy === "workerType"
                             ? row.workerType
                             : row.projectName}
