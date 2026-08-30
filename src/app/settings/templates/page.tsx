@@ -81,10 +81,12 @@ export default function TemplatesPage() {
   const [addingGroup, setAddingGroup] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     setTemplates(templatesData || []);
   }, [templatesData]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     setGroups(groupsData || []);
   }, [groupsData]);
 

@@ -138,6 +138,7 @@ export default function DailyLabourPage({
         paymentCycle: d.paymentCycle || "WEEKLY",
       };
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     setPresets(map);
   }, [presetsData]);
 

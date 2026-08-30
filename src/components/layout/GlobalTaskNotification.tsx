@@ -39,6 +39,7 @@ export function GlobalTaskNotification() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: triggers this component's standard fetch-on-mount pattern
     fetchTasks();
 
     const handleUpdate = () => {

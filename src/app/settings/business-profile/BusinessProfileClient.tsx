@@ -34,6 +34,7 @@ export default function BusinessProfileClient() {
   >("PATCH");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     if (fetchedProfile) setProfile(fetchedProfile);
   }, [fetchedProfile]);
 

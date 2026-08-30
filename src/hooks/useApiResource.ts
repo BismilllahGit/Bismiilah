@@ -33,6 +33,7 @@ export function useApiResource<T = unknown>(
 
   useEffect(() => {
     if (url === null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: clears the loading flag when `url` transitions from non-null to null (e.g. a page's required id/query param disappears); the initial-mount case with url already null is covered by useState's initializer above
       setLoading(false);
       return;
     }
@@ -66,7 +67,6 @@ export function useApiResource<T = unknown>(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, token]);
 
   const refetch = useCallback((opts?: { silent?: boolean }) => {

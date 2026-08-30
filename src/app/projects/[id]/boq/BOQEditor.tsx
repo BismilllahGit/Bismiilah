@@ -211,10 +211,13 @@ export default function BOQEditor({
     termsOverride: "",
   });
 
-  useEffect(() => {
-    fetchAllData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, selectedVersion]);
+  const showStatus = (
+    text: string,
+    type: "success" | "error" | "info" = "success",
+  ) => {
+    setStatusMsg({ text, type });
+    setTimeout(() => setStatusMsg(null), 4500);
+  };
 
   const fetchAllData = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
@@ -280,13 +283,11 @@ export default function BOQEditor({
     }
   };
 
-  const showStatus = (
-    text: string,
-    type: "success" | "error" | "info" = "success",
-  ) => {
-    setStatusMsg({ text, type });
-    setTimeout(() => setStatusMsg(null), 4500);
-  };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: triggers this component's standard fetch-on-mount pattern
+    fetchAllData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, selectedVersion]);
 
   // --- LOCAL LIVE CALCULATIONS ---
   const { totals, computedSections } = useMemo(

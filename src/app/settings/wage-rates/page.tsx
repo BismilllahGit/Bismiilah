@@ -36,13 +36,12 @@ export default function WageRatesSettingsPage() {
   const { data: presetsData, loading, refetch } = useApiResource<
     WageRatePreset[]
   >("/api/worker-types");
-  const presets = presetsData ?? [];
   const sortedPresets = useMemo(
     () =>
-      [...presets].sort((a: WageRatePreset, b: WageRatePreset) =>
+      [...(presetsData ?? [])].sort((a: WageRatePreset, b: WageRatePreset) =>
         (a.workerType || a.name).localeCompare(b.workerType || b.name),
       ),
-    [presets],
+    [presetsData],
   );
   const [savingMap, setSavingMap] = useState<Record<string, boolean>>({});
   const [editingValues, setEditingValues] = useState<Record<string, string>>(
@@ -75,6 +74,7 @@ export default function WageRatesSettingsPage() {
       ev[typeName] = d.defaultRate?.toString() || "0";
       ec[typeName] = d.paymentCycle || "WEEKLY";
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     setEditingValues(ev);
     setEditingCycles(ec);
   }, [presetsData]);
@@ -235,7 +235,7 @@ export default function WageRatesSettingsPage() {
           <CardTitle>Configured Types & Rates</CardTitle>
           <CardDescription>
             These settings pre-fill the Daily Labour form. Selecting a DAILY
-            cycle trade (like Helper) defaults "Paid on Spot" to checked; WEEKLY
+            cycle trade (like Helper) defaults &ldquo;Paid on Spot&rdquo; to checked; WEEKLY
             trades default to unchecked.
           </CardDescription>
         </CardHeader>

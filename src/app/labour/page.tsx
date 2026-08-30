@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Users, IndianRupee } from "lucide-react";
@@ -31,8 +31,10 @@ export type LabourRow = Partial<DailyLabourFlatRow> &
 export default function LabourLedgerPage() {
   // Filters
   const [datePreset, setDatePreset] = useState("THIS_MONTH");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // Only used for the CUSTOM preset's manual date inputs; THIS_MONTH/
+  // LAST_MONTH/ALL_TIME derive their dates below via useMemo instead.
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [projectId, setProjectId] = useState("ALL");
   const [workerType, setWorkerType] = useState("ALL");
   const [groupBy, setGroupBy] = useState("NONE"); // NONE, date, workerType, project
@@ -44,23 +46,45 @@ export default function LabourLedgerPage() {
   const projects = projectsData || [];
   const workerTypes = workerTypesData || [];
 
-  useEffect(() => {
+  // Derived purely from datePreset for the three fixed presets. CUSTOM is
+  // excluded here and instead reads from customStartDate/customEndDate
+  // state below, so this memo never overrides a user's manual entry.
+  const presetDates = useMemo(() => {
     const now = new Date();
     if (datePreset === "THIS_MONTH") {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setStartDate(firstDay.toISOString().split("T")[0]);
-      setEndDate(lastDay.toISOString().split("T")[0]);
-    } else if (datePreset === "LAST_MONTH") {
+      return {
+        startDate: firstDay.toISOString().split("T")[0],
+        endDate: lastDay.toISOString().split("T")[0],
+      };
+    }
+    if (datePreset === "LAST_MONTH") {
       const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
-      setStartDate(firstDay.toISOString().split("T")[0]);
-      setEndDate(lastDay.toISOString().split("T")[0]);
-    } else if (datePreset === "ALL_TIME") {
-      setStartDate("");
-      setEndDate("");
+      return {
+        startDate: firstDay.toISOString().split("T")[0],
+        endDate: lastDay.toISOString().split("T")[0],
+      };
     }
+    return { startDate: "", endDate: "" }; // ALL_TIME (and unused for CUSTOM)
   }, [datePreset]);
+
+  const startDate =
+    datePreset === "CUSTOM" ? customStartDate : presetDates.startDate;
+  const endDate =
+    datePreset === "CUSTOM" ? customEndDate : presetDates.endDate;
+
+  // Switching directly from a fixed preset into CUSTOM inherits whatever
+  // date range was active a moment ago (matching the old shared-state
+  // behavior), instead of starting the CUSTOM inputs blank.
+  const handleDatePresetChange = (nextPreset: string) => {
+    if (nextPreset === "CUSTOM" && datePreset !== "CUSTOM") {
+      setCustomStartDate(startDate);
+      setCustomEndDate(endDate);
+    }
+    setDatePreset(nextPreset);
+  };
 
   // Only fetch if custom dates are ready, or if using preset
   const labourUrl =
@@ -151,7 +175,7 @@ export default function LabourLedgerPage() {
             <select
               className="flex h-9 w-full md:w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={datePreset}
-              onChange={(e) => setDatePreset(e.target.value)}
+              onChange={(e) => handleDatePresetChange(e.target.value)}
             >
               <option value="THIS_MONTH">This Month</option>
               <option value="LAST_MONTH">Last Month</option>
@@ -170,7 +194,7 @@ export default function LabourLedgerPage() {
                   type="date"
                   className="relative flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer shadow-sm"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
@@ -181,7 +205,7 @@ export default function LabourLedgerPage() {
                   type="date"
                   className="relative flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer shadow-sm"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
                 />
               </div>
             </>

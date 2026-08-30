@@ -100,7 +100,7 @@ export default async function ProjectsPage() {
           <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold">No Projects Found</h2>
           <p className="text-muted-foreground mt-2 mb-6">
-            You haven't created any projects yet.
+            You haven&apos;t created any projects yet.
           </p>
           <Link href="/projects/new">
             <Button>Create your first project</Button>

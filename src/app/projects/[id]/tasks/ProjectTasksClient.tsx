@@ -62,6 +62,7 @@ export default function ProjectTasksClient({
   const deleteTask = useApiMutation<undefined, void>("DELETE");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     setTasks(tasksData || []);
   }, [tasksData]);
 

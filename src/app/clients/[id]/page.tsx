@@ -120,8 +120,10 @@ export default function ClientDetailPage({
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: triggers this component's standard fetch-on-mount pattern
     fetchClientAndProjects();
     fetchLedger();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
   const handleSaveInvoice = async (e: React.FormEvent<HTMLFormElement>) => {

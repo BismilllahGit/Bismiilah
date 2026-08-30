@@ -57,7 +57,9 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: triggers this component's standard fetch-on-mount pattern
     fetchBreakdown();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   if (loading) {

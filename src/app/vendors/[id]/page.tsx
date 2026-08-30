@@ -111,7 +111,9 @@ export default function VendorLedgerPage({
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: triggers this component's standard fetch-on-mount pattern
     fetchLedger("", "", undefined, 1, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendorId]);
 
   const handleSaveTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
