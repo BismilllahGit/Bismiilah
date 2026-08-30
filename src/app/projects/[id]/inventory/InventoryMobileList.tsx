@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { PackageOpen } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Item = { id: string; name: string; unit: string; unitCost: number };
 type InventoryBalance = {
@@ -32,10 +33,10 @@ export function InventoryMobileList({
         </div>
       ) : inventory.length === 0 ? (
         <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
-          <PackageOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-          <p className="text-muted-foreground font-medium text-sm">
-            No inventory logged for this site.
-          </p>
+          <EmptyState
+            icon={PackageOpen}
+            message="No inventory logged for this site."
+          />
         </div>
       ) : (
         inventory.map((inv) => {

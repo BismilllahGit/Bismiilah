@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, ExternalLink, Calendar, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useApiResource } from "@/hooks/useApiResource";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface ShareLog {
   id: string;
@@ -96,16 +98,14 @@ export default function ShareLogsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Communication Logs
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Read-only audit trail of WhatsApp share events triggered across the
-          application.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        layout="plain"
+        title="Communication Logs"
+        titleClassName="text-slate-900"
+        subtitle="Read-only audit trail of WhatsApp share events triggered across the application."
+        subtitleClassName="text-muted-foreground mt-1"
+      />
 
       <Card className="shadow-sm border-slate-200">
         <CardHeader className="bg-slate-50/50 border-b border-slate-100">
@@ -190,6 +190,6 @@ export default function ShareLogsPage() {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

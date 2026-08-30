@@ -24,6 +24,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
 import { InvoiceFormSheet } from "./InvoiceFormSheet";
 import { InvoicesMobileList } from "./InvoicesMobileList";
 import { InvoicesDesktopTable } from "./InvoicesDesktopTable";
@@ -232,28 +234,23 @@ export default function InvoicesPage() {
     }, 0);
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Accounts Receivable
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage client invoices and incoming payments.
-          </p>
-        </div>
-
-        <InvoiceFormSheet
-          open={open}
-          onOpenChange={setOpen}
-          clients={clients}
-          projects={projects}
-          lineItems={lineItems}
-          setLineItems={setLineItems}
-          saving={saving}
-          onSubmit={handleSaveInvoice}
-        />
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Accounts Receivable"
+        subtitle="Manage client invoices and incoming payments."
+        action={
+          <InvoiceFormSheet
+            open={open}
+            onOpenChange={setOpen}
+            clients={clients}
+            projects={projects}
+            lineItems={lineItems}
+            setLineItems={setLineItems}
+            saving={saving}
+            onSubmit={handleSaveInvoice}
+          />
+        }
+      />
 
       <Card className="mb-6 w-full max-w-sm">
         <CardHeader className="pb-2">
@@ -581,6 +578,6 @@ export default function InvoicesPage() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </PageShell>
   );
 }

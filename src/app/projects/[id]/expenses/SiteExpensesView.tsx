@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Receipt } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Expense } from "./page";
 
 export default function SiteExpensesView({
@@ -28,10 +29,10 @@ export default function SiteExpensesView({
           </div>
         ) : expenses.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
-            <Receipt className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground text-sm font-medium">
-              No petty cash expenses recorded yet.
-            </p>
+            <EmptyState
+              icon={Receipt}
+              message="No petty cash expenses recorded yet."
+            />
           </div>
         ) : (
           expenses.map((exp) => (
@@ -96,14 +97,13 @@ export default function SiteExpensesView({
             ) : expenses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-10">
-                  <Receipt className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
-                  <p className="text-muted-foreground font-medium">
-                    No petty cash expenses recorded yet.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Use the Log Petty Cash Expense button above to add
-                    entries.
-                  </p>
+                  <EmptyState
+                    icon={Receipt}
+                    message="No petty cash expenses recorded yet."
+                    description="Use the Log Petty Cash Expense button above to add entries."
+                    variant="cell"
+                    compact
+                  />
                 </TableCell>
               </TableRow>
             ) : (

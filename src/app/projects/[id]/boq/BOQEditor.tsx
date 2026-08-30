@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import {
   Plus,
   Calculator,
@@ -779,12 +780,7 @@ export default function BOQEditor({
     }
   };
 
-  if (loading)
-    return (
-      <div className="p-8 flex justify-center">
-        <Loader2 className="animate-spin h-8 w-8 text-slate-400" />
-      </div>
-    );
+  if (loading) return <LoadingBlock />;
 
   if (!currentBOQ) {
     return (

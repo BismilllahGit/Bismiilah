@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Users, IndianRupee } from "lucide-react";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { useApiResource } from "@/hooks/useApiResource";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
 import { LabourMobileList } from "./LabourMobileList";
 import { LabourDesktopTable } from "./LabourDesktopTable";
 import type {
@@ -117,21 +119,22 @@ export default function LabourLedgerPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Labour Ledger</h2>
-          <p className="text-muted-foreground mt-1">
-            Cross-project daily labour spend and aggregates.
-          </p>
-        </div>
-        <DownloadPdfButton
-          reportType="labour_report"
-          params={{ startDate, endDate, projectId, workerType, groupBy }}
-          buttonText="Export Labour Report"
-          className="self-start sm:self-center"
-        />
-      </div>
+    <PageShell>
+      <PageHeader
+        wrapperClassName="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        titleAs="h2"
+        title="Labour Ledger"
+        subtitle="Cross-project daily labour spend and aggregates."
+        subtitleClassName="text-muted-foreground mt-1"
+        action={
+          <DownloadPdfButton
+            reportType="labour_report"
+            params={{ startDate, endDate, projectId, workerType, groupBy }}
+            buttonText="Export Labour Report"
+            className="self-start sm:self-center"
+          />
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -282,6 +285,6 @@ export default function LabourLedgerPage() {
           formatCurrency={formatCurrency}
         />
       </div>
-    </div>
+    </PageShell>
   );
 }

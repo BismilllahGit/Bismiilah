@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
+import { PageShell } from "@/components/ui/page-shell";
 
 // Shape returned by GET /api/worker-types (see route.ts's mapped `result`).
 interface WorkerTypeOption {
@@ -72,7 +73,7 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageShell>
       <Link
         href="/projects"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
@@ -237,6 +238,6 @@ export default function NewProjectPage() {
           </Button>
         </CardFooter>
       </Card>
-    </div>
+    </PageShell>
   );
 }

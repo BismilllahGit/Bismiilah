@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ReceiptIndianRupee, IndianRupee, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type { Invoice } from "./page";
 
@@ -71,10 +72,11 @@ export function InvoicesDesktopTable({
           ) : invoices.length === 0 ? (
             <TableRow>
               <TableCell colSpan={8} className="text-center py-12">
-                <ReceiptIndianRupee className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-                <p className="text-muted-foreground font-medium">
-                  No invoices generated yet.
-                </p>
+                <EmptyState
+                  icon={ReceiptIndianRupee}
+                  message="No invoices generated yet."
+                  variant="cell"
+                />
               </TableCell>
             </TableRow>
           ) : (

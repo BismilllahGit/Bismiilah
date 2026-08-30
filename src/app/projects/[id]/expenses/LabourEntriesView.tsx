@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { HardHat } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { LabourEntry } from "./page";
 
 export default function LabourEntriesView({
@@ -28,10 +29,10 @@ export default function LabourEntriesView({
           </div>
         ) : entries.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
-            <HardHat className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground text-sm font-medium">
-              No daily labour entries recorded for this project yet.
-            </p>
+            <EmptyState
+              icon={HardHat}
+              message="No daily labour entries recorded for this project yet."
+            />
           </div>
         ) : (
           entries.map((l) => {
@@ -124,14 +125,13 @@ export default function LabourEntriesView({
             ) : entries.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-10">
-                  <HardHat className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
-                  <p className="text-muted-foreground font-medium">
-                    No daily labour entries recorded for this project yet.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Log labour under the Daily Labour tab to view wage spend
-                    here.
-                  </p>
+                  <EmptyState
+                    icon={HardHat}
+                    message="No daily labour entries recorded for this project yet."
+                    description="Log labour under the Daily Labour tab to view wage spend here."
+                    variant="cell"
+                    compact
+                  />
                 </TableCell>
               </TableRow>
             ) : (

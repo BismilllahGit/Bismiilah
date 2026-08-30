@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus } from "lucide-react";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import { TemplateTree } from "./TemplateTree";
 import { TemplateGroupsPanel } from "./TemplateGroupsPanel";
 import type {
@@ -466,12 +467,7 @@ export default function TemplatesPage() {
     }
   };
 
-  if (loading)
-    return (
-      <div className="p-8 flex justify-center">
-        <Loader2 className="animate-spin h-8 w-8 text-slate-400" />
-      </div>
-    );
+  if (loading) return <LoadingBlock />;
 
   return (
     <div className="space-y-8 pb-12">

@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { ArrowLeft, User, Phone, MapPin } from "lucide-react";
 import Link from "next/link";
 import { LedgerTable, LedgerRow } from "@/components/ui/ledger-table";
+import { PageShell } from "@/components/ui/page-shell";
 import { CreateInvoiceSheet } from "./CreateInvoiceSheet";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
 
@@ -276,7 +277,7 @@ export default function ClientDetailPage({
     ) || [];
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageShell>
       <Link
         href="/clients"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
@@ -392,6 +393,6 @@ export default function ClientDetailPage({
           Loading ledger...
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

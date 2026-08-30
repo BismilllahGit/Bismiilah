@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { LedgerTable, LedgerRow } from "@/components/ui/ledger-table";
+import { PageShell } from "@/components/ui/page-shell";
 import { RecordLabourPaymentSheet } from "./RecordLabourPaymentSheet";
 import { RecordTransactionSheet } from "./RecordTransactionSheet";
 
@@ -224,7 +225,7 @@ export default function VendorLedgerPage({
   const isLabourContractor = vendor?.type === "LABOUR_CONTRACTOR";
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageShell>
       <Link
         href="/vendors"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
@@ -336,6 +337,6 @@ export default function VendorLedgerPage({
           Loading ledger...
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

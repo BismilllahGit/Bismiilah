@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Save, Loader2, Building2, Landmark, FileText } from "lucide-react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import type { BusinessProfile } from "@prisma/client";
 
 // The API route returns the Prisma row as-is via NextResponse.json(), which
@@ -64,11 +65,7 @@ export default function BusinessProfileClient() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
-    );
+    return <LoadingBlock />;
   }
 
   return (

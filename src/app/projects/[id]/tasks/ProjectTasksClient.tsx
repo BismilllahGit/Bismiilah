@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Circle,
   Trash2,
-  Loader2,
   Calendar,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -15,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import {
   Sheet,
   SheetContent,
@@ -151,9 +151,7 @@ export default function ProjectTasksClient({
 
   if (loading) {
     return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <LoadingBlock iconClassName="h-6 w-6 animate-spin text-muted-foreground" />
     );
   }
 

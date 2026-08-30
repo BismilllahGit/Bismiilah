@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/ui/page-shell";
 
 const settingsNav = [
   { name: "Business Profile", href: "/settings/business-profile" },
@@ -18,7 +19,7 @@ export default function SettingsLayout({
   const pathname = usePathname();
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageShell>
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
         <p className="text-muted-foreground">
@@ -47,6 +48,6 @@ export default function SettingsLayout({
         </aside>
         <div className="flex-1 lg:max-w-4xl">{children}</div>
       </div>
-    </div>
+    </PageShell>
   );
 }
