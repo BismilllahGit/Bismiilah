@@ -86,12 +86,13 @@ export async function sendWhatsAppLinkShare({
         phone: formattedPhone,
         webShareUrl,
       };
-    } catch (err: any) {
-      console.warn("Falling back to simulated delivery after Meta API error:", err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      console.warn("Falling back to simulated delivery after Meta API error:", message);
       return {
         success: true,
         deliveredVia: "SIMULATED_LOCAL",
-        error: err.message,
+        error: message,
         phone: formattedPhone,
         webShareUrl,
       };

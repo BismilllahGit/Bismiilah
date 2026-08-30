@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -15,7 +13,6 @@ import {
   Wallet,
   CalendarClock,
   BarChart3,
-  FileText,
   MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -76,7 +73,6 @@ export function ReportsClient({
   cashFlowData,
   saturdayData,
 }: ReportsClientProps) {
-  const router = useRouter();
   const [currentTab, setCurrentTab] = useState(initialTab || "overview");
 
   const handleTabChange = (val: string) => {

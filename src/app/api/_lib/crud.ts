@@ -33,7 +33,7 @@ export function buildUpdateData<T extends Record<string, unknown>>(parsed: T): R
  * effect, or a uniqueness lookup stays a hand-written route built on the
  * smaller helpers instead.
  */
-export function makePatchHandler<Schema extends ZodSchema<any>>(config: {
+export function makePatchHandler<Schema extends ZodSchema<unknown>>(config: {
   schema: Schema;
   fallbackMessage: string;
   authOptions?: { allowTestBypass?: boolean };

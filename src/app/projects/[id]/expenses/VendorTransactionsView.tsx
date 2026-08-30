@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { VendorTxn } from "./page";
 
 export default function VendorTransactionsView({
@@ -29,10 +30,10 @@ export default function VendorTransactionsView({
           </div>
         ) : transactions.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
-            <Store className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground text-sm font-medium">
-              No direct vendor transactions assigned to this project.
-            </p>
+            <EmptyState
+              icon={Store}
+              message="No direct vendor transactions assigned to this project."
+            />
           </div>
         ) : (
           transactions.map((v) => (
@@ -110,14 +111,13 @@ export default function VendorTransactionsView({
             ) : transactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-10">
-                  <Store className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
-                  <p className="text-muted-foreground font-medium">
-                    No direct vendor transactions assigned to this project.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Assign vendor purchases/payments to this project in
-                    Vendor ledgers.
-                  </p>
+                  <EmptyState
+                    icon={Store}
+                    message="No direct vendor transactions assigned to this project."
+                    description="Assign vendor purchases/payments to this project in Vendor ledgers."
+                    variant="cell"
+                    compact
+                  />
                 </TableCell>
               </TableRow>
             ) : (

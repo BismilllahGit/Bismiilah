@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Plus, Building2, Phone, Trash2 } from "lucide-react";
 import {
   Sheet,
@@ -82,70 +85,71 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your clients and their projects.
-          </p>
-        </div>
-
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger render={<Button className="flex items-center gap-2" />}>
-            <Plus className="h-4 w-4" /> New Client
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-md p-4">
-            <SheetHeader className="p-0">
-              <SheetTitle>Add Client</SheetTitle>
-              <SheetDescription>
-                Register a new client profile.
-              </SheetDescription>
-            </SheetHeader>
-            <form onSubmit={handleSave} className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Full Name / Company *
-                </label>
-                <input
-                  name="name"
-                  required
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  placeholder="e.g. John Doe"
-                />
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
+    <PageShell>
+      <PageHeader
+        title="Clients"
+        subtitle="Manage your clients and their projects."
+        action={
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger
+              render={<Button className="flex items-center gap-2" />}
+            >
+              <Plus className="h-4 w-4" /> New Client
+            </SheetTrigger>
+            <SheetContent className="sm:max-w-md p-4">
+              <SheetHeader className="p-0">
+                <SheetTitle>Add Client</SheetTitle>
+                <SheetDescription>
+                  Register a new client profile.
+                </SheetDescription>
+              </SheetHeader>
+              <form onSubmit={handleSave} className="space-y-4 mt-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Phone</label>
+                  <label className="text-sm font-medium">
+                    Full Name / Company *
+                  </label>
                   <input
-                    name="phone"
-                    type="tel"
+                    name="name"
+                    required
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    placeholder="e.g. +91 9876543210"
+                    placeholder="e.g. John Doe"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Address</label>
-                <textarea
-                  name="address"
-                  rows={3}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
-                  placeholder="Client billing address..."
-                />
-              </div>
-              <SheetFooter className="mt-6">
-                <SheetClose render={<Button variant="outline" type="button" />}>
-                  Cancel
-                </SheetClose>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Saving..." : "Save Client"}
-                </Button>
-              </SheetFooter>
-            </form>
-          </SheetContent>
-        </Sheet>
-      </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Phone</label>
+                    <input
+                      name="phone"
+                      type="tel"
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      placeholder="e.g. +91 9876543210"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Address</label>
+                  <textarea
+                    name="address"
+                    rows={3}
+                    className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
+                    placeholder="Client billing address..."
+                  />
+                </div>
+                <SheetFooter className="mt-6">
+                  <SheetClose
+                    render={<Button variant="outline" type="button" />}
+                  >
+                    Cancel
+                  </SheetClose>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Saving..." : "Save Client"}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </SheetContent>
+          </Sheet>
+        }
+      />
 
       {/* Mobile & Tablet Stacked Cards View (below lg breakpoint) */}
       <div className="lg:hidden space-y-3.5">
@@ -155,10 +159,7 @@ export default function ClientsPage() {
           </div>
         ) : (clients || []).length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
-            <Building2 className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground font-medium text-sm">
-              No clients registered yet.
-            </p>
+            <EmptyState icon={Building2} message="No clients registered yet." />
           </div>
         ) : (
           (clients || []).map((client) => {
@@ -253,10 +254,11 @@ export default function ClientsPage() {
             ) : (clients || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-14">
-                  <Building2 className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-                  <p className="text-muted-foreground font-medium">
-                    No clients registered yet.
-                  </p>
+                  <EmptyState
+                    icon={Building2}
+                    message="No clients registered yet."
+                    variant="cell"
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -325,6 +327,6 @@ export default function ClientsPage() {
         confirmLabel="Deactivate"
         onConfirm={() => handleDeactivate(deactivateTarget!)}
       />
-    </div>
+    </PageShell>
   );
 }

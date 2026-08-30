@@ -7,6 +7,14 @@ import { DueClient, DueContractor } from "./saturday-view/SaturdayViewClient";
 
 export const dynamic = "force-dynamic";
 
+// Row shape returned by the raw labour-contractor-dues query below.
+interface RawLabourDueRow {
+  contractorId: string;
+  contractorName: string;
+  contractorPhone: string | null;
+  payableBalance: number | null;
+}
+
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -94,7 +102,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       orderBy: { dueDate: 'asc' }
     }),
     // 9. Raw Labour contractor dues query
-    prisma.$queryRaw<any[]>`
+    prisma.$queryRaw<RawLabourDueRow[]>`
       SELECT 
         c.id as "contractorId",
         c.name as "contractorName",

@@ -19,10 +19,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const data = await getClientLedgerData(clientId, { startDate, endDate, search, page, limit });
 
     const { client, rawOpeningBalance, ...responsePayload } = data;
+    void client;
+    void rawOpeningBalance;
     return NextResponse.json(responsePayload);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Ledger error:", error);
-    if (error.message === "Client not found") {
+    if (error instanceof Error && error.message === "Client not found") {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
     return NextResponse.json({ error: "Failed to fetch ledger" }, { status: 500 });

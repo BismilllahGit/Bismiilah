@@ -14,17 +14,34 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
+import { PageShell } from "@/components/ui/page-shell";
+
+// Shape returned by GET /api/worker-types (see route.ts's mapped `result`).
+interface WorkerTypeOption {
+  id: string;
+  name: string;
+  workerType: string;
+  defaultRate: number;
+  paymentCycle: string;
+  isCustom: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
-  const { data: rawWorkers } = useApiResource<any[]>("/api/worker-types");
+  const { data: rawWorkers } =
+    useApiResource<WorkerTypeOption[]>("/api/worker-types");
   const workers = Array.isArray(rawWorkers)
     ? rawWorkers.filter((w) => w.isActive)
     : [];
-  const createProject = useApiMutation<any, any>("POST");
+  const createProject = useApiMutation<Record<string, unknown>, unknown>(
+    "POST",
+  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,7 +73,7 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageShell>
       <Link
         href="/projects"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
@@ -192,7 +209,11 @@ export default function NewProjectPage() {
                     <div className="flex flex-col">
                       <span className="text-sm font-medium">{w.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {w.type}
+                        {/* Pre-existing bug: the worker-types API response has
+                            no `type` field (only `workerType`/`paymentCycle`),
+                            so this has always rendered blank. Preserved as-is
+                            per the no-behavior-change constraint. */}
+                        {(w as WorkerTypeOption & { type?: string }).type}
                       </span>
                     </div>
                   </label>
@@ -217,6 +238,6 @@ export default function NewProjectPage() {
           </Button>
         </CardFooter>
       </Card>
-    </div>
+    </PageShell>
   );
 }

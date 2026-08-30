@@ -49,7 +49,7 @@ interface LedgerTableProps {
   total?: number;
   onPageChange?: (page: number) => void;
   pdfReportType?: string;
-  pdfParams?: Record<string, any>;
+  pdfParams?: Record<string, string | undefined>;
   contactName?: string;
   contactPhone?: string | null;
   shareLinkType?: "vendor_ledger" | "client_ledger" | "labour_ledger";
@@ -153,6 +153,7 @@ export function LedgerTable({
 
     if (datePreset !== "custom" || (start && end)) {
       lastSentDateRange.current = { start, end };
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs the derived active date-range into local state (and notifies the parent's fetch-on-change callback, deduped via ref) whenever the date filter changes
       setActiveStart(start);
       setActiveEnd(end);
       onDateRangeChangeRef.current?.(start, end);

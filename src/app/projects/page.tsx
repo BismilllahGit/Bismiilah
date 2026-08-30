@@ -14,6 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Building2, MapPin, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
+import { TaskUrgencyBadge } from "@/components/ui/task-urgency-badge";
 
 export default async function ProjectsPage() {
   const session = await getServerSession(authOptions);
@@ -40,21 +43,21 @@ export default async function ProjectsPage() {
   const closedCount = projects.filter((p) => p.status === "CLOSED").length;
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage all construction sites.
-          </p>
-        </div>
-        <Link href="/projects/new">
-          <Button className="flex items-center gap-2">
-            <PlusCircle className="h-4 w-4" />
-            New Project
-          </Button>
-        </Link>
-      </div>
+    <PageShell>
+      <PageHeader
+        layout="stacked"
+        title="Projects"
+        subtitle="Manage all construction sites."
+        subtitleClassName="text-muted-foreground mt-1"
+        action={
+          <Link href="/projects/new">
+            <Button className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" />
+              New Project
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className="bg-blue-50 border-blue-200">
@@ -100,7 +103,7 @@ export default async function ProjectsPage() {
           <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold">No Projects Found</h2>
           <p className="text-muted-foreground mt-2 mb-6">
-            You haven't created any projects yet.
+            You haven&apos;t created any projects yet.
           </p>
           <Link href="/projects/new">
             <Button>Create your first project</Button>
@@ -148,24 +151,8 @@ export default async function ProjectsPage() {
 
                   return (
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {overdueCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="bg-red-100 text-red-800 border-red-300 hover:bg-red-200"
-                        >
-                          ⚠️ {overdueCount} task{overdueCount > 1 ? "s" : ""}{" "}
-                          overdue
-                        </Badge>
-                      )}
-                      {todayCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200"
-                        >
-                          📅 {todayCount} task{todayCount > 1 ? "s" : ""} due
-                          today
-                        </Badge>
-                      )}
+                      <TaskUrgencyBadge kind="overdue" count={overdueCount} />
+                      <TaskUrgencyBadge kind="dueToday" count={todayCount} />
                     </div>
                   );
                 })()}
@@ -200,6 +187,6 @@ export default async function ProjectsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

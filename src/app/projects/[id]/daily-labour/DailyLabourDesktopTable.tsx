@@ -9,9 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import type { DailyLabourEntryRow } from "./page";
 
 interface DailyLabourDesktopTableProps {
-  entries: any[];
+  entries: DailyLabourEntryRow[];
   loading: boolean;
   summary: { totalHeadcount: number; totalSpend: number };
 }
@@ -53,7 +54,7 @@ export function DailyLabourDesktopTable({
               </TableCell>
             </TableRow>
           ) : (
-            entries.map((entry: any) => (
+            entries.map((entry: DailyLabourEntryRow) => (
               <TableRow key={entry.id}>
                 <TableCell className="font-medium">
                   {entry.workerType}

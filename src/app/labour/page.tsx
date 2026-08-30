@@ -1,46 +1,92 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Users, IndianRupee } from "lucide-react";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { useApiResource } from "@/hooks/useApiResource";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
 import { LabourMobileList } from "./LabourMobileList";
 import { LabourDesktopTable } from "./LabourDesktopTable";
+import type {
+  DailyLabourFlatRow,
+  DailyLabourGroupedRow,
+} from "@/lib/queries/report-queries";
+
+type ProjectOption = { id: string; name: string };
+type WorkerTypeOption = { id: string; name?: string; workerType?: string };
+
+// GET /api/daily-labour returns either the flat row shape or one of the
+// grouped-by shapes depending on `groupBy` — merged here (all fields
+// optional) since the table/list views branch on `groupBy` at render time
+// to pick which fields to read.
+export type LabourRow = Partial<DailyLabourFlatRow> &
+  Partial<DailyLabourGroupedRow> & {
+    // Read defensively in LabourMobileList/LabourDesktopTable's contractor
+    // fallback (`row.contractorName || row.broughtBy`) but never actually
+    // returned by the API — pre-existing dead fallback, preserved as-is.
+    broughtBy?: string;
+  };
 
 export default function LabourLedgerPage() {
   // Filters
   const [datePreset, setDatePreset] = useState("THIS_MONTH");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // Only used for the CUSTOM preset's manual date inputs; THIS_MONTH/
+  // LAST_MONTH/ALL_TIME derive their dates below via useMemo instead.
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [projectId, setProjectId] = useState("ALL");
   const [workerType, setWorkerType] = useState("ALL");
   const [groupBy, setGroupBy] = useState("NONE"); // NONE, date, workerType, project
 
   // Options
-  const { data: projectsData } = useApiResource<any[]>("/api/projects");
-  const { data: workerTypesData } = useApiResource<any[]>("/api/worker-types");
+  const { data: projectsData } = useApiResource<ProjectOption[]>("/api/projects");
+  const { data: workerTypesData } =
+    useApiResource<WorkerTypeOption[]>("/api/worker-types");
   const projects = projectsData || [];
   const workerTypes = workerTypesData || [];
 
-  useEffect(() => {
+  // Derived purely from datePreset for the three fixed presets. CUSTOM is
+  // excluded here and instead reads from customStartDate/customEndDate
+  // state below, so this memo never overrides a user's manual entry.
+  const presetDates = useMemo(() => {
     const now = new Date();
     if (datePreset === "THIS_MONTH") {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setStartDate(firstDay.toISOString().split("T")[0]);
-      setEndDate(lastDay.toISOString().split("T")[0]);
-    } else if (datePreset === "LAST_MONTH") {
+      return {
+        startDate: firstDay.toISOString().split("T")[0],
+        endDate: lastDay.toISOString().split("T")[0],
+      };
+    }
+    if (datePreset === "LAST_MONTH") {
       const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
-      setStartDate(firstDay.toISOString().split("T")[0]);
-      setEndDate(lastDay.toISOString().split("T")[0]);
-    } else if (datePreset === "ALL_TIME") {
-      setStartDate("");
-      setEndDate("");
+      return {
+        startDate: firstDay.toISOString().split("T")[0],
+        endDate: lastDay.toISOString().split("T")[0],
+      };
     }
+    return { startDate: "", endDate: "" }; // ALL_TIME (and unused for CUSTOM)
   }, [datePreset]);
+
+  const startDate =
+    datePreset === "CUSTOM" ? customStartDate : presetDates.startDate;
+  const endDate =
+    datePreset === "CUSTOM" ? customEndDate : presetDates.endDate;
+
+  // Switching directly from a fixed preset into CUSTOM inherits whatever
+  // date range was active a moment ago (matching the old shared-state
+  // behavior), instead of starting the CUSTOM inputs blank.
+  const handleDatePresetChange = (nextPreset: string) => {
+    if (nextPreset === "CUSTOM" && datePreset !== "CUSTOM") {
+      setCustomStartDate(startDate);
+      setCustomEndDate(endDate);
+    }
+    setDatePreset(nextPreset);
+  };
 
   // Only fetch if custom dates are ready, or if using preset
   const labourUrl =
@@ -57,7 +103,7 @@ export default function LabourLedgerPage() {
         })();
 
   const { data: labourResult, loading } = useApiResource<{
-    data: any[];
+    data: LabourRow[];
     summary: { totalHeadcount: number; totalSpend: number; entryCount: number };
   }>(labourUrl);
 
@@ -68,26 +114,27 @@ export default function LabourLedgerPage() {
     entryCount: 0,
   };
 
-  const formatCurrency = (val: number) => {
+  const formatCurrency = (val: number | undefined) => {
     return `₹${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Labour Ledger</h2>
-          <p className="text-muted-foreground mt-1">
-            Cross-project daily labour spend and aggregates.
-          </p>
-        </div>
-        <DownloadPdfButton
-          reportType="labour_report"
-          params={{ startDate, endDate, projectId, workerType, groupBy }}
-          buttonText="Export Labour Report"
-          className="self-start sm:self-center"
-        />
-      </div>
+    <PageShell>
+      <PageHeader
+        wrapperClassName="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        titleAs="h2"
+        title="Labour Ledger"
+        subtitle="Cross-project daily labour spend and aggregates."
+        subtitleClassName="text-muted-foreground mt-1"
+        action={
+          <DownloadPdfButton
+            reportType="labour_report"
+            params={{ startDate, endDate, projectId, workerType, groupBy }}
+            buttonText="Export Labour Report"
+            className="self-start sm:self-center"
+          />
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -131,7 +178,7 @@ export default function LabourLedgerPage() {
             <select
               className="flex h-9 w-full md:w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={datePreset}
-              onChange={(e) => setDatePreset(e.target.value)}
+              onChange={(e) => handleDatePresetChange(e.target.value)}
             >
               <option value="THIS_MONTH">This Month</option>
               <option value="LAST_MONTH">Last Month</option>
@@ -150,7 +197,7 @@ export default function LabourLedgerPage() {
                   type="date"
                   className="relative flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer shadow-sm"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
@@ -161,7 +208,7 @@ export default function LabourLedgerPage() {
                   type="date"
                   className="relative flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer shadow-sm"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
                 />
               </div>
             </>
@@ -238,6 +285,6 @@ export default function LabourLedgerPage() {
           formatCurrency={formatCurrency}
         />
       </div>
-    </div>
+    </PageShell>
   );
 }

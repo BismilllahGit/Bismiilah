@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { LedgerTable, LedgerRow } from "@/components/ui/ledger-table";
+import { PageShell } from "@/components/ui/page-shell";
 import { RecordLabourPaymentSheet } from "./RecordLabourPaymentSheet";
 import { RecordTransactionSheet } from "./RecordTransactionSheet";
 
@@ -20,6 +21,36 @@ type LedgerData = {
   totalPages?: number;
   total?: number;
   limit?: number;
+};
+
+type TransactionPayload = {
+  type: string | null;
+  amount: number;
+  date: string | null;
+  description: string | undefined;
+  projectId: string | undefined;
+};
+
+export type SuccessTxnData = TransactionPayload & {
+  id: string;
+  vendorName?: string;
+  vendorPhone?: string | null;
+  // Not set by this component's payload — kept optional so the sheet's
+  // pre-existing `description || note` fallback continues to type-check.
+  note?: string;
+};
+
+type LabourPaymentPayload = {
+  amount: number;
+  paymentDate: string | null;
+  method: string;
+  note: string | undefined;
+};
+
+export type SuccessLabourData = LabourPaymentPayload & {
+  id: string;
+  contractorName?: string;
+  contractorPhone?: string | null;
 };
 
 export default function VendorLedgerPage({
@@ -39,8 +70,11 @@ export default function VendorLedgerPage({
   const [open, setOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
 
-  const [successTxnData, setSuccessTxnData] = useState<any>(null);
-  const [successLabourData, setSuccessLabourData] = useState<any>(null);
+  const [successTxnData, setSuccessTxnData] = useState<SuccessTxnData | null>(
+    null,
+  );
+  const [successLabourData, setSuccessLabourData] =
+    useState<SuccessLabourData | null>(null);
 
   const [currentStart, setCurrentStart] = useState("");
   const [currentEnd, setCurrentEnd] = useState("");
@@ -78,7 +112,9 @@ export default function VendorLedgerPage({
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: triggers this component's standard fetch-on-mount pattern
     fetchLedger("", "", undefined, 1, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendorId]);
 
   const handleSaveTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -86,12 +122,14 @@ export default function VendorLedgerPage({
     setSaving(true);
 
     const formData = new FormData(e.currentTarget);
-    const payload = {
-      type: formData.get("type"),
+    // These fields come from text/radio/date/select inputs (never file
+    // inputs), so FormDataEntryValue is always a string here.
+    const payload: TransactionPayload = {
+      type: formData.get("type") as string | null,
       amount: Number(formData.get("amount")),
-      date: formData.get("date"),
-      description: formData.get("description") || undefined,
-      projectId: formData.get("projectId") || undefined,
+      date: formData.get("date") as string | null,
+      description: (formData.get("description") as string | null) || undefined,
+      projectId: (formData.get("projectId") as string | null) || undefined,
     };
 
     try {
@@ -114,7 +152,7 @@ export default function VendorLedgerPage({
         const error = await res.json();
         alert(error.error || "Failed to log transaction");
       }
-    } catch (err) {
+    } catch {
       alert("An error occurred");
     } finally {
       setSaving(false);
@@ -128,11 +166,11 @@ export default function VendorLedgerPage({
     setSaving(true);
 
     const formData = new FormData(e.currentTarget);
-    const payload = {
+    const payload: LabourPaymentPayload = {
       amount: Number(formData.get("amount")),
-      paymentDate: formData.get("paymentDate"),
-      method: formData.get("method") || "CASH",
-      note: formData.get("note") || undefined,
+      paymentDate: formData.get("paymentDate") as string | null,
+      method: (formData.get("method") as string | null) || "CASH",
+      note: (formData.get("note") as string | null) || undefined,
     };
 
     try {
@@ -155,7 +193,7 @@ export default function VendorLedgerPage({
         const error = await res.json();
         alert(error.error || "Failed to log labour payment");
       }
-    } catch (err) {
+    } catch {
       alert("An error occurred while saving payment.");
     } finally {
       setSaving(false);
@@ -187,7 +225,7 @@ export default function VendorLedgerPage({
   const isLabourContractor = vendor?.type === "LABOUR_CONTRACTOR";
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageShell>
       <Link
         href="/vendors"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
@@ -299,6 +337,6 @@ export default function VendorLedgerPage({
           Loading ledger...
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

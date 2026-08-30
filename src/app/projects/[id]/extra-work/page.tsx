@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, Hammer } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Sheet,
   SheetContent,
@@ -236,10 +237,12 @@ export default function ExtraWorkPage({
           </div>
         ) : (works || []).length === 0 ? (
           <div className="text-center py-10 border rounded-lg bg-white p-4">
-            <Hammer className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
-            <p className="text-muted-foreground text-sm">
-              No extra work deviations recorded.
-            </p>
+            <EmptyState
+              icon={Hammer}
+              message="No extra work deviations recorded."
+              messageClassName="text-muted-foreground text-sm"
+              compact
+            />
           </div>
         ) : (
           (works || []).map((w) => (
@@ -310,10 +313,13 @@ export default function ExtraWorkPage({
             ) : (works || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-10">
-                  <Hammer className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
-                  <p className="text-muted-foreground">
-                    No extra work deviations recorded.
-                  </p>
+                  <EmptyState
+                    icon={Hammer}
+                    message="No extra work deviations recorded."
+                    messageClassName="text-muted-foreground"
+                    variant="cell"
+                    compact
+                  />
                 </TableCell>
               </TableRow>
             ) : (

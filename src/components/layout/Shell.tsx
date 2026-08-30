@@ -185,7 +185,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   key={item.name}
                   href={item.href}
                   title={isCollapsed ? item.name : undefined}
-                  onClick={(e) => {
+                  onClick={() => {
                     if (isCollapsed) {
                       setIsCollapsed(false);
                     }

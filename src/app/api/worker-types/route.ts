@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PaymentCycle } from "@prisma/client";
+import { PaymentCycle, Prisma } from "@prisma/client";
 import { z } from "zod";
 
 const createWorkerTypeSchema = z.object({
@@ -100,8 +100,8 @@ export async function POST(request: Request) {
       isCustom: created.isCustom,
       isActive: created.isActive
     }, { status: 201 });
-  } catch (error: any) {
-    if (error?.code === 'P2002') {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json({ error: "A worker type with this name already exists." }, { status: 409 });
     }
     console.error("Failed to create worker type:", error);

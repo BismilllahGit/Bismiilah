@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Plus, Users, Phone, Trash2 } from "lucide-react";
 import {
   Sheet,
@@ -85,91 +88,96 @@ export default function VendorsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Vendors & Shops</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Directory of material suppliers and contractors.
-          </p>
-        </div>
-
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger render={<Button className="flex items-center gap-2" />}>
-            <Plus className="h-4 w-4" /> New Vendor
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-md p-4">
-            <SheetHeader className="p-0">
-              <SheetTitle>Register Vendor</SheetTitle>
-              <SheetDescription>
-                Add a new supplier or shop to your directory.
-              </SheetDescription>
-            </SheetHeader>
-            <form onSubmit={handleSave} className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Name / Company *</label>
-                <input
-                  name="name"
-                  required
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  placeholder="e.g. ABC Cements"
-                />
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
+    <PageShell>
+      <PageHeader
+        title="Vendors & Shops"
+        subtitle="Directory of material suppliers and contractors."
+        action={
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger
+              render={<Button className="flex items-center gap-2" />}
+            >
+              <Plus className="h-4 w-4" /> New Vendor
+            </SheetTrigger>
+            <SheetContent className="sm:max-w-md p-4">
+              <SheetHeader className="p-0">
+                <SheetTitle>Register Vendor</SheetTitle>
+                <SheetDescription>
+                  Add a new supplier or shop to your directory.
+                </SheetDescription>
+              </SheetHeader>
+              <form onSubmit={handleSave} className="space-y-4 mt-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Type *</label>
-                  <select
-                    name="type"
+                  <label className="text-sm font-medium">
+                    Name / Company *
+                  </label>
+                  <input
+                    name="name"
                     required
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  >
-                    <option value="VENDOR">Vendor</option>
-                    <option value="SHOP">Shop</option>
-                    <option value="ELECTRICIAN">
-                      Electrician (Contractor)
-                    </option>
-                    <option value="LABOUR_CONTRACTOR">Labour Contractor</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Phone</label>
-                  <input
-                    name="phone"
-                    type="tel"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    placeholder="e.g. +91 9876543210"
+                    placeholder="e.g. ABC Cements"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Specialty</label>
-                <input
-                  name="specialty"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  placeholder="e.g. Plumbing materials, Sand"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Address</label>
-                <textarea
-                  name="address"
-                  rows={2}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
-                  placeholder="Shop location..."
-                />
-              </div>
-              <SheetFooter className="mt-6">
-                <SheetClose render={<Button variant="outline" type="button" />}>
-                  Cancel
-                </SheetClose>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Saving..." : "Save Vendor"}
-                </Button>
-              </SheetFooter>
-            </form>
-          </SheetContent>
-        </Sheet>
-      </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Type *</label>
+                    <select
+                      name="type"
+                      required
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    >
+                      <option value="VENDOR">Vendor</option>
+                      <option value="SHOP">Shop</option>
+                      <option value="ELECTRICIAN">
+                        Electrician (Contractor)
+                      </option>
+                      <option value="LABOUR_CONTRACTOR">
+                        Labour Contractor
+                      </option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Phone</label>
+                    <input
+                      name="phone"
+                      type="tel"
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      placeholder="e.g. +91 9876543210"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Specialty</label>
+                  <input
+                    name="specialty"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    placeholder="e.g. Plumbing materials, Sand"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Address</label>
+                  <textarea
+                    name="address"
+                    rows={2}
+                    className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
+                    placeholder="Shop location..."
+                  />
+                </div>
+                <SheetFooter className="mt-6">
+                  <SheetClose
+                    render={<Button variant="outline" type="button" />}
+                  >
+                    Cancel
+                  </SheetClose>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Saving..." : "Save Vendor"}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </SheetContent>
+          </Sheet>
+        }
+      />
 
       {/* Mobile Stacked Cards View (below lg breakpoint) */}
       <div className="lg:hidden space-y-3.5">
@@ -179,10 +187,7 @@ export default function VendorsPage() {
           </div>
         ) : (contacts || []).length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
-            <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground text-sm font-medium">
-              No vendors registered yet.
-            </p>
+            <EmptyState icon={Users} message="No vendors registered yet." />
           </div>
         ) : (
           (contacts || []).map((contact) => (
@@ -280,10 +285,11 @@ export default function VendorsPage() {
             ) : (contacts || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-14">
-                  <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-                  <p className="text-muted-foreground font-medium">
-                    No vendors registered yet.
-                  </p>
+                  <EmptyState
+                    icon={Users}
+                    message="No vendors registered yet."
+                    variant="cell"
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -352,6 +358,6 @@ export default function VendorsPage() {
         confirmLabel="Deactivate"
         onConfirm={() => handleDeactivate(deactivateTarget!)}
       />
-    </div>
+    </PageShell>
   );
 }

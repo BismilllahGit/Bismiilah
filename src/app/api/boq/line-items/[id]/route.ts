@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { BOQLineType, ItemGrade } from "@prisma/client";
+import { BOQLineType, ItemGrade, Prisma } from "@prisma/client";
 import { recalculateBOQMilestones } from "@/lib/boq-utils";
 import { requireSession } from "@/app/api/_lib/auth-guard";
 import { parseJsonBody } from "@/app/api/_lib/body";
@@ -42,7 +42,7 @@ export const PATCH = withApiHandler<Params>("Failed to update BOQ line item", as
     throw new ApiError("Cannot edit line items in a SUPERSEDED BOQ.", 403);
   }
 
-  const updateData: any = {};
+  const updateData: Prisma.BOQLineItemUncheckedUpdateInput = {};
   if (data.itemNo !== undefined) updateData.itemNo = data.itemNo;
   if (data.title !== undefined) updateData.title = data.title;
   if (data.make !== undefined) updateData.make = data.make;
@@ -52,8 +52,16 @@ export const PATCH = withApiHandler<Params>("Failed to update BOQ line item", as
   if (data.itemId !== undefined) updateData.itemId = data.itemId || null;
   if (data.workerTypeId !== undefined) updateData.workerTypeId = data.workerTypeId || null;
   if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
-  if (data.executedQuantity !== undefined) updateData.executedQuantity = data.executedQuantity;
-  if (data.executedAmount !== undefined) updateData.executedAmount = data.executedAmount;
+  // executedQuantity/executedAmount are non-nullable Decimal columns in the
+  // schema, but the request schema allows `null` here (pre-existing, left
+  // as-is per no-behavior-change) — cast to keep that runtime possibility
+  // intact while matching Prisma's generated input type.
+  if (data.executedQuantity !== undefined) {
+    updateData.executedQuantity = data.executedQuantity as unknown as Prisma.BOQLineItemUncheckedUpdateInput["executedQuantity"];
+  }
+  if (data.executedAmount !== undefined) {
+    updateData.executedAmount = data.executedAmount as unknown as Prisma.BOQLineItemUncheckedUpdateInput["executedAmount"];
+  }
 
   if (isDraft) {
     const targetLineType = data.lineType || existing.lineType;

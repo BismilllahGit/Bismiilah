@@ -67,7 +67,7 @@ export function LogTransactionSheet({
               ))}
             </datalist>
             <p className="text-[10px] text-muted-foreground">
-              If the item doesn't exist, it will be automatically created.
+              If the item doesn&apos;t exist, it will be automatically created.
             </p>
           </div>
           <div className="space-y-2">

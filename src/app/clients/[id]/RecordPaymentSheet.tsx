@@ -13,6 +13,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
+import type { SuccessPaymentData } from "./page";
 
 type UnpaidInvoice = {
   id: string;
@@ -44,8 +45,10 @@ export function RecordPaymentSheet({
 }: {
   paymentOpen: boolean;
   setPaymentOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  successPaymentData: any;
-  setSuccessPaymentData: React.Dispatch<React.SetStateAction<any>>;
+  successPaymentData: SuccessPaymentData | null;
+  setSuccessPaymentData: React.Dispatch<
+    React.SetStateAction<SuccessPaymentData | null>
+  >;
   clientName?: string;
   handleSavePayment: (e: React.FormEvent<HTMLFormElement>) => void;
   paymentMode: "SINGLE" | "MULTI";
@@ -89,7 +92,7 @@ export function RecordPaymentSheet({
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
                 phone={successPaymentData.clientPhone}
-                message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${new Date(successPaymentData.date).toLocaleDateString()} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
+                message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${new Date(successPaymentData.date ?? "").toLocaleDateString()} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
                 onShare={() => setPaymentOpen(false)}
                 className="w-full font-bold h-11"
                 size="lg"

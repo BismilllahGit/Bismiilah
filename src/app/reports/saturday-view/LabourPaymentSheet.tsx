@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/sheet";
 import { CheckCircle2 } from "lucide-react";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
-import type { DueContractor } from "./SaturdayViewClient";
+import type {
+  DueContractor,
+  LabourPaymentSuccessData,
+} from "./SaturdayViewClient";
 import { formatCurrency } from "./utils";
 
 interface LabourPaymentSheetProps {
@@ -20,8 +23,8 @@ interface LabourPaymentSheetProps {
   labourPayAmount: string;
   setLabourPayAmount: (val: string) => void;
   saving: boolean;
-  successData: any;
-  setSuccessData: (data: any) => void;
+  successData: LabourPaymentSuccessData | null;
+  setSuccessData: (data: LabourPaymentSuccessData | null) => void;
   onSave: (e: React.FormEvent<HTMLFormElement>) => void;
   today: Date;
 }
@@ -60,7 +63,7 @@ export function LabourPaymentSheet({
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
                 phone={successData.contractorPhone}
-                message={`Hi ${successData.contractorName}, I've paid ₹${successData.amount} on ${new Date(successData.paymentDate).toLocaleDateString()} for labour supplied. Thank you — Bismillah Construction`}
+                message={`Hi ${successData.contractorName}, I've paid ₹${successData.amount} on ${new Date(successData.paymentDate ?? "").toLocaleDateString()} for labour supplied. Thank you — Bismillah Construction`}
                 onShare={() => setOpen(false)}
                 className="w-full font-bold h-11"
                 size="lg"

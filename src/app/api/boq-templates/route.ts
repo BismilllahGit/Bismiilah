@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 const createTemplateSchema = z.object({
   name: z.string().min(1, "Template name is required").transform(val => val.trim()),
@@ -19,7 +20,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
 
-    const where = category ? { category: { equals: category, mode: "insensitive" as any } } : {};
+    const where: Prisma.BOQTemplateWhereInput = category
+      ? { category: { equals: category, mode: Prisma.QueryMode.insensitive } }
+      : {};
 
     const templates = await prisma.bOQTemplate.findMany({
       where,

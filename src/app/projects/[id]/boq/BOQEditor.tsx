@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import {
   Plus,
   Calculator,
@@ -19,26 +20,177 @@ import { BOQSettingsPanel } from "./BOQSettingsPanel";
 import { BOQMilestonesPanel } from "./BOQMilestonesPanel";
 import { BOQSectionsDesktopView } from "./BOQSectionsDesktopView";
 import { BOQSectionsMobileView } from "./BOQSectionsMobileView";
+import type {
+  Prisma,
+  BOQ,
+  BOQPaymentMilestone,
+  BOQGroup,
+  Item,
+  WorkerType,
+  BusinessProfile,
+  Project,
+  Client,
+} from "@prisma/client";
+import type { GroupTotal } from "@/lib/queries/boq-queries";
+
+// --- BOQ UI TYPES ---
+//
+// These describe the actual JSON shape this component receives from
+// GET /api/projects/[id]/boq (src/lib/queries/boq-queries.ts ->
+// getEnrichedProjectBOQ), NOT the raw Prisma model types verbatim:
+//   - Decimal fields the server explicitly runs through Number()
+//     (quantity, rate, amount, targetBudget) arrive as `number`.
+//   - Decimal fields left untouched server-side (cgstRate, sgstRate,
+//     executedQuantity, executedAmount, milestone percentage/amount)
+//     serialize to `string` over JSON (Prisma's Decimal#toJSON() returns
+//     a string).
+//   - DateTime fields serialize to an ISO `string`, not a `Date`.
+//   - Editable numeric fields (quantity/rate/amount) can also hold a raw
+//     `string` locally between a keystroke (onChange, `e.target.value`)
+//     and the numeric coercion that happens on blur (see handleItemBlur/
+//     handleItemChange) — hence `string | number`.
+
+export type BOQLineItemUI = Omit<
+  Prisma.BOQLineItemGetPayload<{
+    include: {
+      item: { select: { id: true; name: true; unit: true } };
+      workerType: { select: { id: true; name: true } };
+    };
+  }>,
+  "quantity" | "rate" | "amount" | "executedQuantity" | "executedAmount"
+> & {
+  quantity: number | string | null;
+  rate: number | string | null;
+  amount: number | string;
+  executedQuantity: string;
+  executedAmount: string;
+  // Added server-side by computeActualsForBOQ (src/lib/queries/boq-queries.ts)
+  estimatedQuantity?: number | null;
+  estimatedAmount?: number;
+  actualQuantity?: number | null;
+  actualAmount?: number | null;
+  isOverBudgetByCost?: boolean;
+  isOverBudgetByQuantity?: boolean;
+  isOverBudget?: boolean;
+  isTrackedMaterialLine?: boolean;
+  // Added client-side by computeBOQTotals (src/lib/boq-calculations.ts)
+  computedAmount?: number;
+};
+
+export type BOQSectionUI = Omit<
+  Prisma.BOQSectionGetPayload<{
+    include: {
+      group: { select: { id: true; name: true; sortOrder: true } };
+      lineItems: {
+        include: {
+          item: { select: { id: true; name: true; unit: true } };
+          workerType: { select: { id: true; name: true } };
+        };
+      };
+    };
+  }>,
+  "lineItems"
+> & {
+  lineItems: BOQLineItemUI[];
+  // Added server-side by computeBOQRollups / computeActualsForBOQ
+  subtotal?: number;
+  estimatedCost?: number | null;
+  actualCost?: number | null;
+  estimatedQuantity?: number | null;
+  actualQuantity?: number | null;
+  isOverBudgetByCost?: boolean;
+  isOverBudgetByQuantity?: boolean;
+  isOverBudget?: boolean;
+  hasTrackedItems?: boolean;
+  // Added client-side by computeBOQTotals (src/lib/boq-calculations.ts)
+  computedSubtotal?: number;
+};
+
+// The post-computation shape `computeBOQTotals`'s `computedSections` output
+// actually has (src/lib/boq-calculations.ts): every section unconditionally
+// gets `computedSubtotal`, and every line item unconditionally gets
+// `computedAmount` — so both are required here, unlike on BOQSectionUI/
+// BOQLineItemUI (which stay optional to also cover pre-computation state,
+// e.g. `localSections` before `computeBOQTotals` has run over it).
+export type ComputedBOQSectionUI = Omit<
+  BOQSectionUI,
+  "lineItems" | "computedSubtotal"
+> & {
+  computedSubtotal: number;
+  lineItems: (Omit<BOQLineItemUI, "computedAmount"> & {
+    computedAmount: number;
+  })[];
+};
+
+// The full "current" BOQ payload (BOQ scalars + rollup/actuals totals).
+type BOQCurrentUI = Omit<
+  BOQ,
+  "targetBudget" | "cgstRate" | "sgstRate" | "createdAt" | "approvedAt"
+> & {
+  targetBudget: number | null;
+  cgstRate: string;
+  sgstRate: string;
+  createdAt: string;
+  approvedAt: string | null;
+  sections: BOQSectionUI[];
+  groupTotals: GroupTotal[];
+  grandTotal: number;
+  totalMaterialCost: number;
+  totalLabourCost: number;
+  totalOtherCost: number;
+  totalProjectCost: number;
+  isTargetBudgetExceeded: boolean;
+  totalItemsOverBudget: number;
+};
+
+// Version-history summary entries ("allVersions").
+type BOQVersionSummaryUI = Pick<BOQ, "id" | "versionNumber" | "status"> & {
+  targetBudget: number | null;
+  createdAt: string;
+  approvedAt: string | null;
+};
+
+// Payment milestones, as returned by GET .../milestones (raw Prisma model —
+// Decimal/Date fields aren't converted server-side, so they're `string` over JSON).
+export type BOQMilestoneUI = Omit<
+  BOQPaymentMilestone,
+  "targetDate" | "percentage" | "amount"
+> & {
+  targetDate: string | null;
+  percentage: number | string;
+  amount: number | string;
+};
+
+// `projectData` prop shape, as constructed by page.tsx's server component.
+type ProjectWithClientUI = Omit<Project, "agreedValue"> & {
+  agreedValue: number | null;
+  client: Client | null;
+};
 
 interface BOQEditorProps {
   projectId: string;
-  projectData?: any;
+  projectData?: ProjectWithClientUI | null;
 }
 
-export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
+export default function BOQEditor({
+  projectId,
+  // Accepted for interface parity with page.tsx's caller; not read here.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  projectData,
+}: BOQEditorProps) {
   const [loading, setLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false); // Global interaction lock for stability
   const [boqData, setBoqData] = useState<{
-    current: any | null;
-    allVersions: any[];
+    current: BOQCurrentUI | null;
+    allVersions: BOQVersionSummaryUI[];
   }>({ current: null, allVersions: [] });
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
-  const [boqGroups, setBoqGroups] = useState<any[]>([]);
-  const [itemsList, setItemsList] = useState<any[]>([]);
-  const [workerTypes, setWorkerTypes] = useState<any[]>([]);
-  const [businessProfile, setBusinessProfile] = useState<any>(null);
-  const [milestones, setMilestones] = useState<any[]>([]);
+  const [boqGroups, setBoqGroups] = useState<BOQGroup[]>([]);
+  const [itemsList, setItemsList] = useState<Item[]>([]);
+  const [workerTypes, setWorkerTypes] = useState<WorkerType[]>([]);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [milestones, setMilestones] = useState<BOQMilestoneUI[]>([]);
 
   const [exportingPdf, setExportingPdf] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{
@@ -51,7 +203,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
   const isDraft = currentBOQ?.status === "DRAFT";
 
   // Local state for the entire BOQ grid to enable live calculations
-  const [localSections, setLocalSections] = useState<any[]>([]);
+  const [localSections, setLocalSections] = useState<BOQSectionUI[]>([]);
   const [localSettings, setLocalSettings] = useState({
     targetBudget: "",
     cgstRate: "9",
@@ -60,10 +212,13 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
     termsOverride: "",
   });
 
-  useEffect(() => {
-    fetchAllData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, selectedVersion]);
+  const showStatus = (
+    text: string,
+    type: "success" | "error" | "info" = "success",
+  ) => {
+    setStatusMsg({ text, type });
+    setTimeout(() => setStatusMsg(null), 4500);
+  };
 
   const fetchAllData = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
@@ -96,12 +251,22 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
           termsOverride: boqJson.current.termsOverride || "",
         });
 
-        const flattened =
-          boqJson.current.sections?.map((s: any) => ({
+        const flattened: BOQSectionUI[] =
+          boqJson.current.sections?.map((s: BOQSectionUI) => ({
             ...s,
             lineItems:
               s.lineItems ||
-              s.categories?.flatMap((c: any) => c.lineItems) ||
+              // `categories` predates the current group-based BOQ hierarchy
+              // and no longer exists on BOQSection in schema.prisma (the
+              // migration that introduced it has since been reverted) —
+              // this branch is unreachable dead code under the real
+              // current API shape. Preserved as-is (not deleted) since
+              // removing it would be a behavior decision outside this
+              // task's typing-only scope; narrow local cast keeps `any`
+              // out of the type surface.
+              (
+                s as { categories?: { lineItems: BOQLineItemUI[] }[] }
+              ).categories?.flatMap((c) => c.lineItems) ||
               [],
           })) || [];
         setLocalSections(flattened);
@@ -119,13 +284,11 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
     }
   };
 
-  const showStatus = (
-    text: string,
-    type: "success" | "error" | "info" = "success",
-  ) => {
-    setStatusMsg({ text, type });
-    setTimeout(() => setStatusMsg(null), 4500);
-  };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: triggers this component's standard fetch-on-mount pattern
+    fetchAllData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, selectedVersion]);
 
   // --- LOCAL LIVE CALCULATIONS ---
   const { totals, computedSections } = useMemo(
@@ -156,7 +319,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
                 : value,
         }),
       });
-    } catch (e) {
+    } catch {
       showStatus("Failed to save setting", "error");
     }
   };
@@ -182,7 +345,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         }),
       });
       if (res.ok) await fetchAllData(true);
-    } catch (e) {
+    } catch {
     } finally {
       setIsMutating(false);
     }
@@ -208,7 +371,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: value }),
       });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleDeleteSection = async (sectionId: string) => {
@@ -219,7 +382,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         method: "DELETE",
       });
       if (res.ok) await fetchAllData(true);
-    } catch (e) {
+    } catch {
     } finally {
       setIsMutating(false);
     }
@@ -267,7 +430,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         }),
       ]);
       await fetchAllData(true);
-    } catch (e) {
+    } catch {
       await fetchAllData(true);
     } finally {
       setIsMutating(false);
@@ -292,7 +455,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         },
       );
       if (res.ok) await fetchAllData(true);
-    } catch (e) {
+    } catch {
       showStatus("Failed to add milestone", "error");
     } finally {
       setIsMutating(false);
@@ -302,7 +465,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
   const handleMilestoneChange = (
     milestoneId: string,
     field: string,
-    value: any,
+    value: string,
   ) =>
     setMilestones((prev) =>
       prev.map((m) => (m.id === milestoneId ? { ...m, [field]: value } : m)),
@@ -310,7 +473,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
   const handleMilestoneBlur = async (
     milestoneId: string,
     field: string,
-    value: any,
+    value: string,
   ) => {
     if (!isDraft) return;
     try {
@@ -322,7 +485,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         body: JSON.stringify({ [field]: payload }),
       });
       fetchAllData(true);
-    } catch (e) {
+    } catch {
       showStatus("Failed to update milestone", "error");
     }
   };
@@ -335,7 +498,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         method: "DELETE",
       });
       if (res.ok) await fetchAllData(true);
-    } catch (e) {
+    } catch {
     } finally {
       setIsMutating(false);
     }
@@ -349,7 +512,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
     setIsMutating(true);
 
     try {
-      const idx = milestones.findIndex((m: any) => m.id === milestoneId);
+      const idx = milestones.findIndex((m: BOQMilestoneUI) => m.id === milestoneId);
       if (
         idx < 0 ||
         (direction === "up" && idx === 0) ||
@@ -383,7 +546,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         }),
       ]);
       await fetchAllData(true);
-    } catch (e) {
+    } catch {
       await fetchAllData(true);
     } finally {
       setIsMutating(false);
@@ -406,7 +569,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         }),
       });
       if (res.ok) await fetchAllData(true);
-    } catch (e) {
+    } catch {
     } finally {
       setIsMutating(false);
     }
@@ -416,14 +579,14 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
     sectionId: string,
     itemId: string,
     field: string,
-    value: any,
+    value: string,
   ) => {
     setLocalSections((prev) =>
       prev.map((s) => {
         if (s.id !== sectionId) return s;
         return {
           ...s,
-          lineItems: s.lineItems.map((li: any) =>
+          lineItems: s.lineItems.map((li: BOQLineItemUI) =>
             li.id === itemId ? { ...li, [field]: value } : li,
           ),
         };
@@ -431,11 +594,15 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
     );
   };
 
-  const handleItemBlur = async (itemId: string, field: string, value: any) => {
+  const handleItemBlur = async (
+    itemId: string,
+    field: string,
+    value: string,
+  ) => {
     if (!isDraft && field !== "executedQuantity" && field !== "executedAmount")
       return;
     try {
-      let payload = { [field]: value };
+      let payload: Record<string, string | number> = { [field]: value };
       if (
         [
           "quantity",
@@ -452,7 +619,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-    } catch (e) {}
+    } catch {}
   };
 
   const handleDeleteItem = async (itemId: string) => {
@@ -463,7 +630,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         method: "DELETE",
       });
       if (res.ok) await fetchAllData(true);
-    } catch (e) {
+    } catch {
     } finally {
       setIsMutating(false);
     }
@@ -485,7 +652,9 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
       }
       const section = localSections[sectionIdx];
 
-      const idx = section.lineItems.findIndex((li: any) => li.id === itemId);
+      const idx = section.lineItems.findIndex(
+        (li: BOQLineItemUI) => li.id === itemId,
+      );
       if (
         idx < 0 ||
         (direction === "up" && idx === 0) ||
@@ -524,7 +693,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         }),
       ]);
       await fetchAllData(true);
-    } catch (e) {
+    } catch {
       await fetchAllData(true);
     } finally {
       setIsMutating(false);
@@ -576,7 +745,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
         { method: "POST" },
       );
       if (res.ok) await fetchAllData();
-    } catch (e) {
+    } catch {
     } finally {
       setIsMutating(false);
     }
@@ -604,19 +773,14 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
       } else {
         showStatus("Failed to unlock BOQ", "error");
       }
-    } catch (e) {
+    } catch {
       showStatus("Failed to unlock BOQ", "error");
     } finally {
       setIsMutating(false);
     }
   };
 
-  if (loading)
-    return (
-      <div className="p-8 flex justify-center">
-        <Loader2 className="animate-spin h-8 w-8 text-slate-400" />
-      </div>
-    );
+  if (loading) return <LoadingBlock />;
 
   if (!currentBOQ) {
     return (
@@ -644,7 +808,7 @@ export default function BOQEditor({ projectId, projectData }: BOQEditorProps) {
   let hasMissingFields = false;
   let missingFieldsCount = 0;
   computedSections.forEach((s) =>
-    s.lineItems.forEach((li: any) => {
+    s.lineItems.forEach((li: BOQLineItemUI) => {
       if (
         !li.title?.trim() ||
         (li.lineType === "CALCULATED" && (!li.quantity || !li.rate))

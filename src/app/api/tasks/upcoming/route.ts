@@ -56,7 +56,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(tasksWithComputedState);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching upcoming tasks:", error);
     return NextResponse.json({ error: "Failed to fetch upcoming tasks" }, { status: 500 });
   }

@@ -57,7 +57,9 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: triggers this component's standard fetch-on-mount pattern
     fetchBreakdown();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   if (loading) {
@@ -206,7 +208,7 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value?: any) => [
+                    formatter={(value) => [
                       `₹${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
                       "Amount",
                     ]}

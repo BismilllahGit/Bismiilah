@@ -13,16 +13,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Save, Loader2, Building2, Landmark, FileText } from "lucide-react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
+import { LoadingBlock } from "@/components/ui/loading-block";
+import type { BusinessProfile } from "@prisma/client";
+
+// The API route returns the Prisma row as-is via NextResponse.json(), which
+// serializes `updatedAt` (a Date) to an ISO string over the wire.
+type SerializedBusinessProfile = Omit<BusinessProfile, "updatedAt"> & {
+  updatedAt: string;
+};
 
 export default function BusinessProfileClient() {
-  const { data: fetchedProfile, loading } = useApiResource<any>(
-    "/api/business-profile",
+  const { data: fetchedProfile, loading } =
+    useApiResource<SerializedBusinessProfile>("/api/business-profile");
+  const [profile, setProfile] = useState<SerializedBusinessProfile | null>(
+    null,
   );
-  const [profile, setProfile] = useState<any>(null);
   const [saving, setSaving] = useState(false);
-  const updateProfile = useApiMutation<any, any>("PATCH");
+  const updateProfile = useApiMutation<
+    SerializedBusinessProfile | null,
+    SerializedBusinessProfile
+  >("PATCH");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     if (fetchedProfile) setProfile(fetchedProfile);
   }, [fetchedProfile]);
 
@@ -30,7 +43,13 @@ export default function BusinessProfileClient() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    setProfile((prev: any) => ({ ...prev, [name]: value }));
+    setProfile(
+      (prev) =>
+        // Spreading a nullable object with a dynamic key widens the
+        // inferred type beyond SerializedBusinessProfile; this cast
+        // restates the known shape without changing runtime behavior.
+        ({ ...prev, [name]: value }) as SerializedBusinessProfile | null,
+    );
   };
 
   const handleSave = async () => {
@@ -38,7 +57,7 @@ export default function BusinessProfileClient() {
     try {
       await updateProfile.mutate("/api/business-profile", profile);
       alert("Business profile updated successfully");
-    } catch (err) {
+    } catch {
       alert("Failed to update profile");
     } finally {
       setSaving(false);
@@ -46,11 +65,7 @@ export default function BusinessProfileClient() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
-    );
+    return <LoadingBlock />;
   }
 
   return (

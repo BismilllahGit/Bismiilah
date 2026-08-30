@@ -3,12 +3,38 @@
 import { useState, use } from "react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, LockKeyhole, CheckCircle, FileText, Download } from "lucide-react";
+import { ArrowLeft, LockKeyhole, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
+type ClosureSummary = {
+  totalBilled: number;
+  totalCollected: number;
+  outstandingReceivables: number;
+  totalExtraWork: number;
+  unbilledExtraWork: number;
+  totalSiteExpenses: number;
+  estimatedMaterialCost: number;
+  closureDate: string;
+};
+
+// GET /api/projects/[id]/closure returns the raw ClosureReport row with no
+// `include`, so `project` is never actually populated — see the flag in
+// the task report about the `report.project?.client?.phone` JSX below.
+type ClosureReportData = {
+  id: string;
+  projectId: string;
+  pdfUrl: string;
+  summaryJson: ClosureSummary;
+  generatedAt: string;
+  project?: {
+    name: string;
+    client?: { name: string; phone: string | null } | null;
+  };
+};
 
 export default function ProjectClosurePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -18,7 +44,7 @@ export default function ProjectClosurePage({ params }: { params: Promise<{ id: s
     data: report,
     loading,
     refetch,
-  } = useApiResource<any>(`/api/projects/${projectId}/closure`);
+  } = useApiResource<ClosureReportData>(`/api/projects/${projectId}/closure`);
   const [closing, setClosing] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const closeProject = useApiMutation<undefined, unknown>("POST");

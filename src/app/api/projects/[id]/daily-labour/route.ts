@@ -98,7 +98,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       let totalSpend = 0;
 
       for (const entry of entries) {
-        const voucherNumber = await nextVoucherNumber(tx as any, 'LAB', 'DAILY_LABOUR');
+        const voucherNumber = await nextVoucherNumber(tx, 'LAB', 'DAILY_LABOUR');
         
         let workerTypeRecord = await tx.workerType.findUnique({
           where: { name: entry.workerType.trim().toUpperCase() }

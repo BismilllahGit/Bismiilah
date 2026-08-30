@@ -6,7 +6,7 @@ import { FileDown, Loader2 } from "lucide-react";
 
 export interface DownloadPdfButtonProps {
   reportType: string;
-  params?: Record<string, any>;
+  params?: Record<string, string | undefined>;
   buttonText?: string;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
@@ -24,7 +24,7 @@ export function DownloadPdfButton({
   disabled = false,
 }: DownloadPdfButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   const handleDownload = async () => {
     setLoading(true);
@@ -54,10 +54,11 @@ export function DownloadPdfButton({
       } else {
         throw new Error("No download URL returned from server");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("PDF Export error:", err);
-      setError(err.message || "Export failed");
-      alert(`Error generating PDF: ${err.message || "Please try again later."}`);
+      const message = err instanceof Error ? err.message : undefined;
+      setError(message || "Export failed");
+      alert(`Error generating PDF: ${message || "Please try again later."}`);
     } finally {
       setLoading(false);
     }

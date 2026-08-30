@@ -13,6 +13,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
+import type { SuccessLabourData } from "./page";
 
 export function RecordLabourPaymentSheet({
   paymentOpen,
@@ -25,8 +26,10 @@ export function RecordLabourPaymentSheet({
 }: {
   paymentOpen: boolean;
   setPaymentOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  successLabourData: any;
-  setSuccessLabourData: React.Dispatch<React.SetStateAction<any>>;
+  successLabourData: SuccessLabourData | null;
+  setSuccessLabourData: React.Dispatch<
+    React.SetStateAction<SuccessLabourData | null>
+  >;
   vendorName?: string;
   handleSaveLabourPayment: (e: React.FormEvent<HTMLFormElement>) => void;
   saving: boolean;
@@ -61,7 +64,7 @@ export function RecordLabourPaymentSheet({
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
                 phone={successLabourData.contractorPhone}
-                message={`Hi ${successLabourData.contractorName}, I've paid ₹${successLabourData.amount} on ${new Date(successLabourData.paymentDate).toLocaleDateString()} for labour supplied. Thank you — Bismillah Construction`}
+                message={`Hi ${successLabourData.contractorName}, I've paid ₹${successLabourData.amount} on ${new Date(successLabourData.paymentDate ?? "").toLocaleDateString()} for labour supplied. Thank you — Bismillah Construction`}
                 onShare={() => setPaymentOpen(false)}
                 className="w-full font-bold h-11"
                 size="lg"

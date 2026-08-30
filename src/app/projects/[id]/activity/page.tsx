@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, NotepadText } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Sheet,
   SheetContent,
@@ -167,10 +168,13 @@ export default function SiteActivityPage({
             ) : (activities || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center py-10">
-                  <NotepadText className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
-                  <p className="text-muted-foreground">
-                    No activities recorded yet.
-                  </p>
+                  <EmptyState
+                    icon={NotepadText}
+                    message="No activities recorded yet."
+                    messageClassName="text-muted-foreground"
+                    variant="cell"
+                    compact
+                  />
                 </TableCell>
               </TableRow>
             ) : (

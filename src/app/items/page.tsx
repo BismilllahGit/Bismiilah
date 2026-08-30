@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Plus, Package, Trash2 } from "lucide-react";
 import {
   Sheet,
@@ -82,99 +85,100 @@ export default function ItemsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Master Item Ledger
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Global catalog for materials and tools.
-          </p>
-        </div>
-
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger render={<Button className="flex items-center gap-2" />}>
-            <Plus className="h-4 w-4" /> New Item
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-md p-4">
-            <SheetHeader className="p-0">
-              <SheetTitle>Add Item to Catalog</SheetTitle>
-              <SheetDescription>
-                Define a new material, tool, paint or cement type here.
-              </SheetDescription>
-            </SheetHeader>
-            <form onSubmit={handleSave} className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Item Name *</label>
-                <input
-                  name="name"
-                  required
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  placeholder="e.g. River Sand"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Type *</label>
-                <select
-                  name="type"
-                  required
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                >
-                  <option value="MATERIAL">Material</option>
-                  <option value="CEMENT">Cement</option>
-                  <option value="PAINT">Paint</option>
-                  <option value="TOOL">Tool</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Grade (Optional)</label>
-                <select
-                  name="grade"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                >
-                  <option value="">None</option>
-                  <option value="GRADE_A">Grade A</option>
-                  <option value="GRADE_B">Grade B</option>
-                  <option value="GRADE_C">Grade C</option>
-                </select>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
+    <PageShell>
+      <PageHeader
+        title="Master Item Ledger"
+        subtitle="Global catalog for materials and tools."
+        action={
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger
+              render={<Button className="flex items-center gap-2" />}
+            >
+              <Plus className="h-4 w-4" /> New Item
+            </SheetTrigger>
+            <SheetContent className="sm:max-w-md p-4">
+              <SheetHeader className="p-0">
+                <SheetTitle>Add Item to Catalog</SheetTitle>
+                <SheetDescription>
+                  Define a new material, tool, paint or cement type here.
+                </SheetDescription>
+              </SheetHeader>
+              <form onSubmit={handleSave} className="space-y-4 mt-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Unit *</label>
+                  <label className="text-sm font-medium">Item Name *</label>
                   <input
-                    name="unit"
+                    name="name"
                     required
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    placeholder="e.g. tonne, bag, kg"
+                    placeholder="e.g. River Sand"
                   />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Type *</label>
+                  <select
+                    name="type"
+                    required
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  >
+                    <option value="MATERIAL">Material</option>
+                    <option value="CEMENT">Cement</option>
+                    <option value="PAINT">Paint</option>
+                    <option value="TOOL">Tool</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Est. Unit Cost (₹) *
+                    Grade (Optional)
                   </label>
-                  <input
-                    name="unitCost"
-                    type="number"
-                    step="0.01"
-                    required
+                  <select
+                    name="grade"
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    placeholder="0.00"
-                  />
+                  >
+                    <option value="">None</option>
+                    <option value="GRADE_A">Grade A</option>
+                    <option value="GRADE_B">Grade B</option>
+                    <option value="GRADE_C">Grade C</option>
+                  </select>
                 </div>
-              </div>
-              <SheetFooter className="mt-6">
-                <SheetClose render={<Button variant="outline" type="button" />}>
-                  Cancel
-                </SheetClose>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Saving..." : "Save Item"}
-                </Button>
-              </SheetFooter>
-            </form>
-          </SheetContent>
-        </Sheet>
-      </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Unit *</label>
+                    <input
+                      name="unit"
+                      required
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      placeholder="e.g. tonne, bag, kg"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Est. Unit Cost (₹) *
+                    </label>
+                    <input
+                      name="unitCost"
+                      type="number"
+                      step="0.01"
+                      required
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <SheetFooter className="mt-6">
+                  <SheetClose
+                    render={<Button variant="outline" type="button" />}
+                  >
+                    Cancel
+                  </SheetClose>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Saving..." : "Save Item"}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </SheetContent>
+          </Sheet>
+        }
+      />
 
       {/* Mobile & Tablet Stacked Cards View (below lg breakpoint) */}
       <div className="lg:hidden space-y-3.5">
@@ -184,10 +188,7 @@ export default function ItemsPage() {
           </div>
         ) : (items || []).length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
-            <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground font-medium text-sm">
-              No items in the catalog yet.
-            </p>
+            <EmptyState icon={Package} message="No items in the catalog yet." />
           </div>
         ) : (
           (items || []).map((item) => (
@@ -289,10 +290,11 @@ export default function ItemsPage() {
             ) : (items || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-14">
-                  <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-                  <p className="text-muted-foreground font-medium">
-                    No items in the catalog yet.
-                  </p>
+                  <EmptyState
+                    icon={Package}
+                    message="No items in the catalog yet."
+                    variant="cell"
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -355,6 +357,6 @@ export default function ItemsPage() {
         confirmLabel="Deactivate"
         onConfirm={() => handleDeactivate(deactivateTarget!)}
       />
-    </div>
+    </PageShell>
   );
 }

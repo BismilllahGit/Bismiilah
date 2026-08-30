@@ -98,7 +98,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ type
       </ReportLayout>
     );
 
-    const buffer = await renderToBuffer(pdfDocument as any);
+    const buffer = await renderToBuffer(pdfDocument);
     const signedUrl = await uploadPdfAndGetSignedUrl(buffer, filePath);
     const redirectUrl = signedUrl.startsWith("http") ? signedUrl : new URL(signedUrl, request.url).toString();
     return NextResponse.redirect(redirectUrl);

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PaymentCycle } from "@prisma/client";
+import { PaymentCycle, Prisma } from "@prisma/client";
 import { z } from "zod";
 
 const updateSchema = z.object({
@@ -40,7 +40,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Worker type not found" }, { status: 404 });
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.WorkerTypeUpdateInput = {};
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
     if (parsed.data.defaultRate !== undefined) updateData.defaultRate = parsed.data.defaultRate;
     if (parsed.data.paymentCycle !== undefined) updateData.paymentCycle = parsed.data.paymentCycle as PaymentCycle;
@@ -60,8 +60,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       isCustom: updated.isCustom,
       isActive: updated.isActive
     });
-  } catch (error: any) {
-    if (error?.code === 'P2002') {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json({ error: "A worker type with this name already exists." }, { status: 409 });
     }
     console.error("Failed to update worker type:", error);

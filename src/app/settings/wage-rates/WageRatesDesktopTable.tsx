@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, Loader2 } from "lucide-react";
+import type { WageRatePreset } from "./page";
 
 export function WageRatesDesktopTable({
   loading,
@@ -23,7 +24,7 @@ export function WageRatesDesktopTable({
   handleSave,
 }: {
   loading: boolean;
-  sortedPresets: any[];
+  sortedPresets: WageRatePreset[];
   savingMap: Record<string, boolean>;
   editingValues: Record<string, string>;
   setEditingValues: React.Dispatch<

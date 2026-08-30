@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Trash2, ArrowUp, ArrowDown, Layers, Settings } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import type { BOQMilestoneUI } from "./BOQEditor";
 
 const cardInputClass =
   "w-full bg-white border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md px-3 py-2 text-sm outline-none transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed";
@@ -20,15 +21,19 @@ const labelClass =
   "text-[10px] font-bold uppercase text-slate-500 mb-1 block tracking-wider";
 
 interface BOQMilestonesPanelProps {
-  milestones: any[];
+  milestones: BOQMilestoneUI[];
   isDraft: boolean;
   isMutating: boolean;
   handleAddMilestone: () => void | Promise<void>;
-  handleMilestoneChange: (milestoneId: string, field: string, value: any) => void;
+  handleMilestoneChange: (
+    milestoneId: string,
+    field: string,
+    value: string,
+  ) => void;
   handleMilestoneBlur: (
     milestoneId: string,
     field: string,
-    value: any,
+    value: string,
   ) => void | Promise<void>;
   handleDeleteMilestone: (milestoneId: string) => void | Promise<void>;
   handleReorderMilestone: (
@@ -111,7 +116,7 @@ export function BOQMilestonesPanel({
                   </TableCell>
                 </TableRow>
               ) : (
-                milestones.map((m: any, idx: number) => (
+                milestones.map((m, idx: number) => (
                   <TableRow
                     key={m.id}
                     className={idx % 2 === 1 ? "bg-slate-50/50" : ""}
@@ -265,7 +270,7 @@ export function BOQMilestonesPanel({
                     ₹
                     {milestones
                       .reduce(
-                        (acc: number, m: any) => acc + Number(m.amount || 0),
+                        (acc: number, m) => acc + Number(m.amount || 0),
                         0,
                       )
                       .toLocaleString("en-IN", {
@@ -287,7 +292,7 @@ export function BOQMilestonesPanel({
               No payment milestones configured yet.
             </div>
           ) : (
-            milestones.map((m: any, idx: number) => (
+            milestones.map((m, idx: number) => (
               <Card key={m.id} className="shadow-sm border-slate-200">
                 <CardContent className="p-4 flex flex-col gap-4">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -448,7 +453,7 @@ export function BOQMilestonesPanel({
                   ₹
                   {milestones
                     .reduce(
-                      (acc: number, m: any) => acc + Number(m.amount || 0),
+                      (acc: number, m) => acc + Number(m.amount || 0),
                       0,
                     )
                     .toLocaleString("en-IN", {

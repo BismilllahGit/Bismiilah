@@ -1,6 +1,55 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
+interface DailyLabourSummaryRow {
+  entryCount: number;
+  totalHeadcount: number;
+  totalSpend: number;
+}
+
+// One `let` variable holds the result of whichever grouped query ran
+// (grouped by date, worker type, or project), so its row type is the union
+// of all three shapes — the fields actually populated depend on `groupBy`.
+// Field types (`date: Date`, nullable strings) mirror both actual
+// `$queryRaw` deserialization (postgres DATE columns come back as `Date`)
+// and the local `LabourGroupedRow`/`LabourFlatRow` shapes this data flows
+// into downstream in src/app/api/reports/pdf/route.tsx.
+//
+// Exported so src/app/labour/page.tsx and its LabourDesktopTable/
+// LabourMobileList satellites (Task 14) can type the grouped branch of
+// GET /api/daily-labour. Narrow, non-behavior-changing change: this
+// interface already existed, only its visibility changed.
+export interface DailyLabourGroupedRow {
+  date?: Date;
+  workerType?: string;
+  projectId?: string;
+  projectName?: string;
+  totalHeadcount: number;
+  totalSpend: number;
+}
+
+// Exported so src/app/projects/[id]/daily-labour/page.tsx (Task 13) can type
+// the flat listing GET /api/projects/[id]/daily-labour returns — that page
+// never passes `groupBy`, so it always gets this shape (see the flat-query
+// branch below). Narrow, non-behavior-changing change: this interface
+// already existed, only its visibility changed.
+export interface DailyLabourFlatRow {
+  id: string;
+  voucherNumber: string;
+  projectId: string;
+  projectName: string;
+  workerType: string | null;
+  date: Date;
+  headcount: number;
+  wageRate: number;
+  contractorId: string | null;
+  contractorName: string | null;
+  paidImmediately: boolean;
+  title: string | null;
+  note: string | null;
+  totalSpend: number;
+}
+
 export interface DailyLabourQueryParams {
   projectId?: string | null;
   startDate?: string | null;
@@ -48,7 +97,7 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
     : Prisma.empty;
 
   // Overall Summary Query
-  const summaryQuery = await prisma.$queryRaw<any[]>`
+  const summaryQuery = await prisma.$queryRaw<DailyLabourSummaryRow[]>`
     SELECT 
       COUNT(*)::int as "entryCount",
       COALESCE(SUM(dle.headcount), 0)::int as "totalHeadcount",
@@ -60,10 +109,10 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
   const summary = summaryQuery[0] || { entryCount: 0, totalHeadcount: 0, totalSpend: 0 };
 
   if (groupBy && groupBy !== "none") {
-    let groupedResult: any[] = [];
+    let groupedResult: DailyLabourGroupedRow[] = [];
     if (groupBy === "date") {
-      groupedResult = await prisma.$queryRaw<any[]>`
-        SELECT 
+      groupedResult = await prisma.$queryRaw<DailyLabourGroupedRow[]>`
+        SELECT
           dle.date,
           COALESCE(SUM(dle.headcount), 0)::int as "totalHeadcount",
           COALESCE(SUM(dle.headcount * dle.wage_rate), 0)::float as "totalSpend"
@@ -74,8 +123,8 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
         ORDER BY dle.date DESC
       `;
     } else if (groupBy === "workertype") {
-      groupedResult = await prisma.$queryRaw<any[]>`
-        SELECT 
+      groupedResult = await prisma.$queryRaw<DailyLabourGroupedRow[]>`
+        SELECT
           wt.name as "workerType",
           COALESCE(SUM(dle.headcount), 0)::int as "totalHeadcount",
           COALESCE(SUM(dle.headcount * dle.wage_rate), 0)::float as "totalSpend"
@@ -86,8 +135,8 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
         ORDER BY "totalSpend" DESC
       `;
     } else if (groupBy === "project") {
-      groupedResult = await prisma.$queryRaw<any[]>`
-        SELECT 
+      groupedResult = await prisma.$queryRaw<DailyLabourGroupedRow[]>`
+        SELECT
           p.id as "projectId",
           p.name as "projectName",
           COALESCE(SUM(dle.headcount), 0)::int as "totalHeadcount",
@@ -101,7 +150,10 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
       `;
     }
 
-    return { summary, data: groupedResult, isGrouped: true, groupBy };
+    // `as const` keeps `isGrouped` a `true`/`false` literal (rather than
+    // widening to `boolean`) so callers narrowing on `data.isGrouped` also
+    // narrow `data.data`'s element type between the grouped/flat row shapes.
+    return { summary, data: groupedResult, isGrouped: true as const, groupBy };
   }
 
   // Flat List Query
@@ -115,8 +167,8 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
   const orderDir = sortOrder === "asc" ? "ASC" : "DESC";
   const orderBySql = Prisma.raw(`ORDER BY ${orderByCol} ${orderDir}, dle.created_at DESC, dle.id DESC`);
 
-  const flatResult = await prisma.$queryRaw<any[]>`
-    SELECT 
+  const flatResult = await prisma.$queryRaw<DailyLabourFlatRow[]>`
+    SELECT
       dle.id,
       dle.voucher_number as "voucherNumber",
       dle.project_id as "projectId",
@@ -143,13 +195,20 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
   return {
     summary,
     data: flatResult,
-    isGrouped: false,
+    isGrouped: false as const,
     pagination: {
       page,
       limit,
       totalPages: Math.ceil(summary.entryCount / limit) || 1
     }
   };
+}
+
+interface LabourDueRow {
+  contractorId: string;
+  contractorName: string;
+  contractorPhone: string | null;
+  payableBalance: unknown;
 }
 
 export async function getSaturdayViewReportData() {
@@ -199,8 +258,8 @@ export async function getSaturdayViewReportData() {
   }).filter(c => c.balance > 0);
 
   // 2. Fetch labour contractors with positive payable balance using aggregate query
-  const rawLabourDues = await prisma.$queryRaw<any[]>`
-    SELECT 
+  const rawLabourDues = await prisma.$queryRaw<LabourDueRow[]>`
+    SELECT
       c.id as "contractorId",
       c.name as "contractorName",
       c.phone as "contractorPhone",
@@ -235,6 +294,17 @@ export async function getSaturdayViewReportData() {
   };
 }
 
+interface ClosureReportSummary {
+  totalBilled: number;
+  totalCollected: number;
+  outstandingReceivables: number;
+  totalExtraWork: number;
+  unbilledExtraWork: number;
+  totalSiteExpenses: number;
+  estimatedMaterialCost: number;
+  closureDate: string;
+}
+
 export async function getClosureReportData(projectId: string) {
   const project = await prisma.project.findUnique({
     where: { id: projectId }
@@ -254,7 +324,11 @@ export async function getClosureReportData(projectId: string) {
   if (existingReport && existingReport.summaryJson) {
     return {
       project: enrichedProject,
-      summary: existingReport.summaryJson as any,
+      // `summaryJson` is a Prisma `Json` column (typed `Prisma.JsonValue`);
+      // it's always written from the exact `summary` shape built below (see
+      // /api/projects/[id]/closure's POST route), so this cast is a
+      // behavior-preserving type assertion, not a real `any`.
+      summary: existingReport.summaryJson as unknown as ClosureReportSummary,
       isClosed: project.status === "CLOSED"
     };
   }
@@ -311,6 +385,15 @@ export async function getClosureReportData(projectId: string) {
   };
 }
 
+interface TopUsageRawRow {
+  itemId: string;
+  itemName: string;
+  unit: string;
+  unitCost: unknown;
+  totalQtyIssued: unknown;
+  totalValueIssued: unknown;
+}
+
 export async function getTopUsageReportData({ projectId, startDate, endDate, limit = 20 }: { projectId?: string | null, startDate?: string | null, endDate?: string | null, limit?: number }) {
   let dateFilter = Prisma.empty;
   if (startDate && endDate) {
@@ -327,8 +410,8 @@ export async function getTopUsageReportData({ projectId, startDate, endDate, lim
   }
 
   // Only consider authentic ISSUE transactions, explicitly excluding historical transfers
-  const rows = await prisma.$queryRaw<any[]>`
-    SELECT 
+  const rows = await prisma.$queryRaw<TopUsageRawRow[]>`
+    SELECT
       i.id as "itemId",
       i.name as "itemName",
       i.unit as unit,

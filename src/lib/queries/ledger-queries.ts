@@ -4,7 +4,27 @@ import {
   buildSearchFilter,
   finalizeDebitCreditLedger,
   paginateWithCarriedBalance,
+  RawLedgerRow,
 } from "./ledger-helpers";
+
+// Raw row shape of getInventoryLedgerData's `$queryRaw` — distinct from
+// RawLedgerRow (debit/credit ledgers) since it tracks quantity *and* value
+// running balances rather than a single debit/credit pair.
+interface InventoryLedgerRawRow {
+  id: string;
+  voucherNumber: string;
+  date: unknown;
+  description: string | null;
+  type: string;
+  qty_in: unknown;
+  qty_out: unknown;
+  unitCost: unknown;
+  transferGroupId: string | null;
+  linkedProjectName: string | null;
+  created_at: unknown;
+  runningQtyBalance: unknown;
+  runningValueBalance: unknown;
+}
 
 export interface LedgerQueryParams {
   startDate?: string | null;
@@ -68,13 +88,13 @@ export async function getVendorLedgerData(
   const searchOuterFilter = buildSearchFilter(search);
 
   // 2. Build the main query, applying the shared date/search filters
-  let rows: any[] = [];
+  let rows: RawLedgerRow[] = [];
   if (contact.type === "LABOUR_CONTRACTOR") {
     const dateFilterLabour = buildDateRangeFilter("dle.date", startDate, endDate);
     const dateFilterPayment = buildDateRangeFilter("payment_date", startDate, endDate);
     const dateFilterVendor = buildDateRangeFilter("date", startDate, endDate);
 
-    rows = await prisma.$queryRaw<any[]>`
+    rows = await prisma.$queryRaw<RawLedgerRow[]>`
       WITH contractor_ledger AS (
         SELECT 
           dle.id,
@@ -136,12 +156,12 @@ export async function getVendorLedgerData(
   } else {
     const dateFilter = buildDateRangeFilter("date", startDate, endDate);
 
-    rows = await prisma.$queryRaw<any[]>`
+    rows = await prisma.$queryRaw<RawLedgerRow[]>`
       WITH calculated AS (
-        SELECT 
+        SELECT
           id,
-          voucher_number as "voucherNumber", 
-          date, 
+          voucher_number as "voucherNumber",
+          date,
           description,
           CASE WHEN type = 'PAYMENT' THEN amount ELSE 0 END AS debit,
           CASE WHEN type = 'PURCHASE' THEN amount ELSE 0 END AS credit,
@@ -207,7 +227,7 @@ export async function getLabourContractorLedgerData(
   const dateFilterPayment = buildDateRangeFilter("payment_date", startDate, endDate);
   const searchOuterFilter = buildSearchFilter(search);
 
-  const rawRows = await prisma.$queryRaw<any[]>`
+  const rawRows = await prisma.$queryRaw<RawLedgerRow[]>`
     WITH combined AS (
       SELECT 
         dle.id,
@@ -309,10 +329,10 @@ export async function getClientLedgerData(
   const dateFilterPayments = buildDateRangeFilter("payment_date", startDate, endDate);
   const searchOuterFilter = buildSearchFilter(search);
 
-  const rows = await prisma.$queryRaw<any[]>`
+  const rows = await prisma.$queryRaw<RawLedgerRow[]>`
     WITH combined AS (
-      SELECT 
-        invoice_number AS "voucherNumber", 
+      SELECT
+        invoice_number AS "voucherNumber",
         issued_date AS date,
         COALESCE(NULLIF(notes, ''), CONCAT('Invoice raised (', invoice_number, ')')) AS description, 
         amount AS debit, 
@@ -406,9 +426,9 @@ export async function getInventoryLedgerData(
   const dateFilter = buildDateRangeFilter("it.date", startDate, endDate);
   const searchOuterFilter = buildSearchFilter(search);
 
-  const rows = await prisma.$queryRaw<any[]>`
+  const rows = await prisma.$queryRaw<InventoryLedgerRawRow[]>`
     WITH calculated AS (
-      SELECT 
+      SELECT
         it.id,
         it.voucher_number as "voucherNumber", 
         it.date, 

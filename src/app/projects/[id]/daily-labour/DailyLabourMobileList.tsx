@@ -1,9 +1,10 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import type { DailyLabourEntryRow } from "./page";
 
 interface DailyLabourMobileListProps {
-  entries: any[];
+  entries: DailyLabourEntryRow[];
   loading: boolean;
   summary: { totalHeadcount: number; totalSpend: number };
 }
@@ -26,7 +27,7 @@ export function DailyLabourMobileList({
       ) : (
         <>
           <div className="space-y-3.5">
-            {entries.map((entry: any) => (
+            {entries.map((entry: DailyLabourEntryRow) => (
               <div
                 key={entry.id}
                 className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"

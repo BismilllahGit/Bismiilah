@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { EntryRow } from "./page";
+import type { EntryRow, LabourContractor } from "./page";
 
 interface DailyLabourFormSheetProps {
   open: boolean;
@@ -23,11 +23,15 @@ interface DailyLabourFormSheetProps {
   formDate: string;
   onFormDateChange: (date: string) => void;
   formRows: EntryRow[];
-  onUpdateRow: (id: string, field: keyof EntryRow, value: any) => void;
+  onUpdateRow: (
+    id: string,
+    field: keyof EntryRow,
+    value: EntryRow[keyof EntryRow],
+  ) => void;
   onRemoveRow: (id: string) => void;
   onAddRow: () => void;
   workerTypeOptions: string[];
-  contractors: any[];
+  contractors: LabourContractor[];
   onCreateInlineWorkerType: (rowId: string, name: string) => void;
   saving: boolean;
 }

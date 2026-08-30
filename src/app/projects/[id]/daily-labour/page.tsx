@@ -6,6 +6,8 @@ import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { DailyLabourFormSheet } from "./DailyLabourFormSheet";
 import { DailyLabourMobileList } from "./DailyLabourMobileList";
 import { DailyLabourDesktopTable } from "./DailyLabourDesktopTable";
+import type { Contact, PaymentCycle } from "@prisma/client";
+import type { DailyLabourFlatRow } from "@/lib/queries/report-queries";
 
 export type EntryRow = {
   id: string;
@@ -17,6 +19,62 @@ export type EntryRow = {
   title: string;
   customTypeName?: string;
   creatingCustom?: boolean;
+};
+
+// Row shape returned by GET /api/projects/[id]/daily-labour (this page never
+// passes `groupBy`, so the API always returns the flat listing — see the
+// flat-query branch of getDailyLabourReportData in
+// src/lib/queries/report-queries.ts). `date` (a `Date` there, from the raw
+// SQL row) arrives as an ISO string over JSON.
+//
+// `broughtBy` is NOT part of the actual API response — Desktop/Mobile
+// satellites read `entry.contractorName || entry.broughtBy` as a fallback
+// that has always evaluated to `undefined` at runtime under the previous
+// `any` typing (pre-existing dead/vestigial code, not something this task
+// should silently remove). Declared optional here, always absent, to
+// preserve that existing behavior without changing it.
+export type DailyLabourEntryRow = Omit<DailyLabourFlatRow, "date"> & {
+  date: string;
+  broughtBy?: string;
+};
+
+// Contact rows returned by GET /api/contacts (src/app/api/contacts/route.ts),
+// filtered client-side to LABOUR_CONTRACTOR type. `createdAt`/`updatedAt`
+// (DateTime fields) arrive as ISO strings over JSON.
+export type LabourContractor = Omit<Contact, "createdAt" | "updatedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+// Presets fetched from GET /api/worker-types (src/app/api/worker-types/route.ts).
+// Only the fields this page actually reads are modeled; see WageRatePreset in
+// src/app/settings/wage-rates/page.tsx for the fuller shape of that same
+// endpoint's response (kept separate here so each feature stays self-contained).
+type WorkerTypePreset = {
+  id: string;
+  name: string;
+  workerType: string;
+  defaultRate: number;
+  paymentCycle: PaymentCycle;
+};
+
+// Response of POST /api/worker-types (src/app/api/worker-types/route.ts),
+// used here only for the fields this page reads back after inline-creating
+// a worker type.
+type CreatedWorkerType = {
+  name: string;
+  workerType: string;
+  defaultRate: number;
+  paymentCycle: PaymentCycle;
+};
+
+// Response of POST /api/projects/[id]/daily-labour
+// (src/app/api/projects/[id]/daily-labour/route.ts). `rows` isn't read by
+// this page, so it's left unmodeled (`unknown[]`) rather than typed further.
+type DailyLabourSubmitResult = {
+  rows: unknown[];
+  totalHeadcount: number;
+  totalSpend: number;
 };
 
 export default function DailyLabourPage({
@@ -37,12 +95,14 @@ export default function DailyLabourPage({
   const [formRows, setFormRows] = useState<EntryRow[]>([]);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const { data: presetsData, refetch: refetchPresets } = useApiResource<any[]>(
-    "/api/worker-types",
+  const { data: presetsData, refetch: refetchPresets } = useApiResource<
+    WorkerTypePreset[]
+  >("/api/worker-types");
+  const { data: contractorsRaw } = useApiResource<LabourContractor[]>(
+    "/api/contacts",
   );
-  const { data: contractorsRaw } = useApiResource<any[]>("/api/contacts");
   const contractors = (contractorsRaw || []).filter(
-    (c: any) => c.type === "LABOUR_CONTRACTOR",
+    (c: LabourContractor) => c.type === "LABOUR_CONTRACTOR",
   );
 
   const {
@@ -50,7 +110,7 @@ export default function DailyLabourPage({
     loading,
     refetch: refetchEntries,
   } = useApiResource<{
-    data: any[];
+    data: DailyLabourEntryRow[];
     summary: { totalHeadcount: number; totalSpend: number };
   }>(
     projectId
@@ -71,18 +131,25 @@ export default function DailyLabourPage({
     if (!presetsData) return;
     const map: Record<string, { defaultRate: number; paymentCycle: string }> =
       {};
-    presetsData.forEach((d: any) => {
+    presetsData.forEach((d: WorkerTypePreset) => {
       const typeName = d.workerType || d.name;
       map[typeName] = {
         defaultRate: Number(d.defaultRate || 0),
         paymentCycle: d.paymentCycle || "WEEKLY",
       };
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     setPresets(map);
   }, [presetsData]);
 
-  const createWorkerType = useApiMutation<any, any>("POST");
-  const logDailyLabour = useApiMutation<any, any>("POST");
+  const createWorkerType = useApiMutation<
+    Record<string, unknown>,
+    CreatedWorkerType
+  >("POST");
+  const logDailyLabour = useApiMutation<
+    Record<string, unknown>,
+    DailyLabourSubmitResult
+  >("POST");
 
   const handleOpenSheet = () => {
     setFormDate(date);
@@ -116,14 +183,26 @@ export default function DailyLabourPage({
     ]);
   };
 
-  const updateRow = (id: string, field: keyof EntryRow, value: any) => {
+  const updateRow = (
+    id: string,
+    field: keyof EntryRow,
+    value: EntryRow[keyof EntryRow],
+  ) => {
     setFormRows((prev) =>
       prev.map((row) => {
         if (row.id === id) {
           const updated = { ...row, [field]: value };
-          if (field === "workerType" && presets[value] !== undefined) {
-            updated.wageRate = presets[value].defaultRate.toString();
-            updated.paidImmediately = presets[value].paymentCycle === "DAILY";
+          // TS can't correlate the `field === "workerType"` check with
+          // `value`'s type across these two separate parameters (no
+          // discriminated union between them) — at runtime, callers only
+          // ever pass a string for `value` when `field` is "workerType"
+          // (it's always a <select>'s e.target.value). Cast preserves that
+          // existing behavior; EntryRow["workerType"] is `string`.
+          const workerTypeValue = value as EntryRow["workerType"];
+          if (field === "workerType" && presets[workerTypeValue] !== undefined) {
+            updated.wageRate = presets[workerTypeValue].defaultRate.toString();
+            updated.paidImmediately =
+              presets[workerTypeValue].paymentCycle === "DAILY";
           }
           return updated;
         }
@@ -171,8 +250,9 @@ export default function DailyLabourPage({
         }),
       );
       refetchPresets({ silent: true });
-    } catch (err: any) {
-      alert(err.message || "Failed to create worker type");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      alert(message || "Failed to create worker type");
       updateRow(rowId, "creatingCustom", false);
     }
   };
@@ -239,8 +319,9 @@ export default function DailyLabourPage({
       setTimeout(() => {
         setIsSheetOpen(false);
       }, 2000);
-    } catch (error: any) {
-      alert(error.message || "Failed to log daily labour.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      alert(message || "Failed to log daily labour.");
     } finally {
       setSaving(false);
     }

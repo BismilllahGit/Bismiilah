@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { MaterialEntry } from "./page";
 
 export default function MaterialsView({
@@ -29,10 +30,10 @@ export default function MaterialsView({
           </div>
         ) : materials.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
-            <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground text-sm font-medium">
-              No materials issued to this site yet.
-            </p>
+            <EmptyState
+              icon={Package}
+              message="No materials issued to this site yet."
+            />
           </div>
         ) : (
           materials.map((m) => {
@@ -116,14 +117,13 @@ export default function MaterialsView({
             ) : materials.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-10">
-                  <Package className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
-                  <p className="text-muted-foreground font-medium">
-                    No materials issued to this site yet.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Issue stock under Project Inventory to populate this
-                    view.
-                  </p>
+                  <EmptyState
+                    icon={Package}
+                    message="No materials issued to this site yet."
+                    description="Issue stock under Project Inventory to populate this view."
+                    variant="cell"
+                    compact
+                  />
                 </TableCell>
               </TableRow>
             ) : (

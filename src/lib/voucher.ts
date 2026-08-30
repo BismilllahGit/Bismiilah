@@ -19,7 +19,14 @@ export async function nextVoucherNumber(
   prefix: string,
   code: string
 ): Promise<string> {
-  const sequence = await tx.voucherSequence.upsert({
+  // NOTE (Task 6, type-safety cleanup): this first upsert's result was bound to
+  // an unused `sequence` variable (the no-unused-vars finding fixed here). The
+  // call itself is preserved as-is per the "no behavior changes" constraint —
+  // it already double-upserts `voucherSequence` per invocation (this call plus
+  // the `seq` upsert below, whose result is what's actually used), which looks
+  // like a pre-existing bug causing sequence values to skip by 2 rather than
+  // increment by 1. Not fixed here; flagged in the task report instead.
+  await tx.voucherSequence.upsert({
     where: { id: code },
     update: {
       nextVal: { increment: 1 },

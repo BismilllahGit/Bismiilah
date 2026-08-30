@@ -20,6 +20,8 @@ import {
   Settings,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import type { ComputedBOQSectionUI } from "./BOQEditor";
+import type { BOQGroup, Item, WorkerType } from "@prisma/client";
 
 const tableInputClass =
   "w-full min-w-0 bg-transparent outline-none px-2 py-1.5 focus:bg-white focus:ring-1 focus:ring-blue-500 hover:bg-slate-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
@@ -41,12 +43,12 @@ interface BOQSectionsHandlers {
     sectionId: string,
     itemId: string,
     field: string,
-    value: any,
+    value: string,
   ) => void;
   handleItemBlur: (
     itemId: string,
     field: string,
-    value: any,
+    value: string,
   ) => void | Promise<void>;
   handleDeleteItem: (itemId: string) => void | Promise<void>;
   handleReorderItem: (
@@ -58,13 +60,13 @@ interface BOQSectionsHandlers {
 }
 
 interface BOQSectionsDesktopViewProps {
-  computedSections: any[];
+  computedSections: ComputedBOQSectionUI[];
   isDraft: boolean;
   isMutating: boolean;
   isActive: boolean;
-  boqGroups: any[];
-  itemsList: any[];
-  workerTypes: any[];
+  boqGroups: BOQGroup[];
+  itemsList: Item[];
+  workerTypes: WorkerType[];
   handlers: BOQSectionsHandlers;
 }
 
@@ -245,7 +247,7 @@ export function BOQSectionsDesktopView({
                       </TableCell>
                     </TableRow>
                   ) : (
-                    sec.lineItems.map((li: any, lIdx: number) => {
+                    sec.lineItems.map((li, lIdx: number) => {
                       const isCalc = li.lineType === "CALCULATED";
                       const missingData =
                         isCalc &&
@@ -370,7 +372,7 @@ export function BOQSectionsDesktopView({
                             ) : (
                               <div
                                 className="p-2 text-xs truncate"
-                                title={li.make}
+                                title={li.make ?? undefined}
                               >
                                 {li.make || "-"}
                               </div>

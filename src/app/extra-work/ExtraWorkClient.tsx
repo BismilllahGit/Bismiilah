@@ -21,12 +21,22 @@ import {
 import { Hammer, MapPin } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
+import type { ExtraWork, Project } from "@prisma/client";
+
+// Matches the shape src/app/extra-work/page.tsx serializes server-side
+// (Decimal fields converted to strings before crossing to this client
+// component).
+type SerializedExtraWork = Omit<ExtraWork, "amount"> & {
+  amount: string;
+  project: Omit<Project, "agreedValue"> & { agreedValue: string };
+};
 
 export default function ExtraWorkClient({
   extraWork,
   projects,
 }: {
-  extraWork: any[];
+  extraWork: SerializedExtraWork[];
   projects: { id: string | number; name: string }[];
 }) {
   const [projectFilter, setProjectFilter] = useState("ALL");
@@ -169,10 +179,10 @@ export default function ExtraWorkClient({
       <div className="lg:hidden space-y-3.5">
         {filteredWork.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
-            <Hammer className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-            <p className="text-muted-foreground text-sm font-medium">
-              No extra work deviations found.
-            </p>
+            <EmptyState
+              icon={Hammer}
+              message="No extra work deviations found."
+            />
           </div>
         ) : (
           filteredWork.map((w) => (
@@ -258,10 +268,11 @@ export default function ExtraWorkClient({
             {filteredWork.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-12">
-                  <Hammer className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-                  <p className="text-muted-foreground font-medium">
-                    No extra work deviations found.
-                  </p>
+                  <EmptyState
+                    icon={Hammer}
+                    message="No extra work deviations found."
+                    variant="cell"
+                  />
                 </TableCell>
               </TableRow>
             ) : (

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { computeBOQRollups, computeActualsForBOQ } from "@/lib/queries/boq-queries";
 
 const updateBOQSchema = z.object({
@@ -30,7 +31,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!existing) return NextResponse.json({ error: "BOQ not found" }, { status: 404 });
 
     const { targetBudget, cgstRate, sgstRate, termsOverride, note, status } = parsed.data;
-    const updateData: any = {};
+    const updateData: Prisma.BOQUpdateInput = {};
     if (targetBudget !== undefined) updateData.targetBudget = targetBudget;
     if (cgstRate !== undefined) updateData.cgstRate = cgstRate;
     if (sgstRate !== undefined) updateData.sgstRate = sgstRate;

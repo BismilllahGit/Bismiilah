@@ -5,7 +5,8 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { EditProjectDrawer } from "./ProjectClientActions";
+import { TaskUrgencyBadge } from "@/components/ui/task-urgency-badge";
+import { EditProjectDrawer, DeleteProjectButton } from "./ProjectClientActions";
 import ProjectTabNavigation from "./ProjectTabNavigation";
 import { getProjectBOQActuals } from "@/lib/queries/boq-queries";
 
@@ -95,22 +96,8 @@ export default async function ProjectDetailLayout({
                 {unbilledExtraWorkCount > 1 ? "s" : ""}
               </Badge>
             )}
-            {overdueCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="bg-red-100 text-red-800 border-red-300 hover:bg-red-200"
-              >
-                ⚠️ {overdueCount} task{overdueCount > 1 ? "s" : ""} overdue
-              </Badge>
-            )}
-            {todayCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200"
-              >
-                📅 {todayCount} task{todayCount > 1 ? "s" : ""} due today
-              </Badge>
-            )}
+            <TaskUrgencyBadge kind="overdue" count={overdueCount} />
+            <TaskUrgencyBadge kind="dueToday" count={todayCount} />
             {(boqActuals.totalItemsOverBudget > 0 ||
               boqActuals.isTargetBudgetExceeded) && (
               <Badge
@@ -138,6 +125,7 @@ export default async function ProjectDetailLayout({
         </div>
         <div className="flex gap-2">
           <EditProjectDrawer project={serializedProject} />
+          <DeleteProjectButton projectId={project.id} />
         </div>
       </div>
 

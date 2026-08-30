@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PackageOpen } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Item = { id: string; name: string; unit: string; unitCost: number };
 type InventoryBalance = {
@@ -57,10 +58,13 @@ export function InventoryDesktopTable({
           ) : inventory.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-10">
-                <PackageOpen className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-20" />
-                <p className="text-muted-foreground">
-                  No inventory logged for this site.
-                </p>
+                <EmptyState
+                  icon={PackageOpen}
+                  message="No inventory logged for this site."
+                  messageClassName="text-muted-foreground"
+                  variant="cell"
+                  compact
+                />
               </TableCell>
             </TableRow>
           ) : (

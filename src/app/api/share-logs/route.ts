@@ -27,9 +27,9 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(shareLog, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating ShareLog:", error);
-    return NextResponse.json({ error: error.message || "Failed to create share log" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to create share log" }, { status: 500 });
   }
 }
 
@@ -49,8 +49,8 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(shareLogs);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching ShareLogs:", error);
-    return NextResponse.json({ error: error.message || "Failed to fetch share logs" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to fetch share logs" }, { status: 500 });
   }
 }

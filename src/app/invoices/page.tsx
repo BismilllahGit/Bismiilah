@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +24,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
 import { InvoiceFormSheet } from "./InvoiceFormSheet";
 import { InvoicesMobileList } from "./InvoicesMobileList";
 import { InvoicesDesktopTable } from "./InvoicesDesktopTable";
@@ -52,6 +54,21 @@ export type Invoice = {
   lineItems: InvoiceLineItem[];
 };
 
+type InvoicePaymentPayload = {
+  amount: number;
+  date: string | null;
+  method: string | null;
+  note: string | undefined;
+};
+
+type SuccessInvoicePaymentData = InvoicePaymentPayload & {
+  id: string;
+  clientName: string;
+  clientPhone: string | null;
+  projectName: string;
+  balance: number;
+};
+
 export default function InvoicesPage() {
   const {
     data: invoicesData,
@@ -68,15 +85,23 @@ export default function InvoicesPage() {
   const projects = projectsData || [];
   const loading = invoicesLoading || clientsLoading || projectsLoading;
 
-  const createInvoice = useApiMutation<any, Invoice>("POST");
-  const recordPayment = useApiMutation<any, { id: string }>("POST");
-  const changeInvoiceStatus = useApiMutation<any, Invoice>("PATCH");
+  const createInvoice = useApiMutation<Record<string, unknown>, Invoice>(
+    "POST",
+  );
+  const recordPayment = useApiMutation<
+    Record<string, unknown>,
+    { id: string }
+  >("POST");
+  const changeInvoiceStatus = useApiMutation<Record<string, unknown>, Invoice>(
+    "PATCH",
+  );
   const saving =
     createInvoice.mutating ||
     recordPayment.mutating ||
     changeInvoiceStatus.mutating;
 
-  const [successPaymentData, setSuccessPaymentData] = useState<any>(null);
+  const [successPaymentData, setSuccessPaymentData] =
+    useState<SuccessInvoicePaymentData | null>(null);
   const [open, setOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -122,11 +147,13 @@ export default function InvoicesPage() {
     if (!selectedInvoice) return;
 
     const formData = new FormData(e.currentTarget);
-    const payload = {
+    const payload: InvoicePaymentPayload = {
       amount: Number(formData.get("amount")),
-      date: formData.get("date"),
-      method: formData.get("method"),
-      note: formData.get("note") || undefined,
+      // These fields come from text/date/select inputs (never file inputs),
+      // so FormDataEntryValue is always a string here.
+      date: formData.get("date") as string | null,
+      method: formData.get("method") as string | null,
+      note: (formData.get("note") as string | null) || undefined,
     };
 
     try {
@@ -207,28 +234,23 @@ export default function InvoicesPage() {
     }, 0);
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Accounts Receivable
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage client invoices and incoming payments.
-          </p>
-        </div>
-
-        <InvoiceFormSheet
-          open={open}
-          onOpenChange={setOpen}
-          clients={clients}
-          projects={projects}
-          lineItems={lineItems}
-          setLineItems={setLineItems}
-          saving={saving}
-          onSubmit={handleSaveInvoice}
-        />
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Accounts Receivable"
+        subtitle="Manage client invoices and incoming payments."
+        action={
+          <InvoiceFormSheet
+            open={open}
+            onOpenChange={setOpen}
+            clients={clients}
+            projects={projects}
+            lineItems={lineItems}
+            setLineItems={setLineItems}
+            saving={saving}
+            onSubmit={handleSaveInvoice}
+          />
+        }
+      />
 
       <Card className="mb-6 w-full max-w-sm">
         <CardHeader className="pb-2">
@@ -438,7 +460,7 @@ export default function InvoicesPage() {
               <div className="pt-6 w-full space-y-3">
                 <ShareViaWhatsAppButton
                   phone={successPaymentData.clientPhone}
-                  message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${new Date(successPaymentData.date).toLocaleDateString()} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
+                  message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${new Date(successPaymentData.date ?? "").toLocaleDateString()} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
                   onShare={() => setPaymentOpen(false)}
                   className="w-full font-bold h-11"
                   size="lg"
@@ -556,6 +578,6 @@ export default function InvoicesPage() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </PageShell>
   );
 }

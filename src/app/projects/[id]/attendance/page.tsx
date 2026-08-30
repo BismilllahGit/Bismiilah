@@ -35,6 +35,7 @@ export default function AttendancePage() {
     workers.forEach((w) => {
       initialMap[w.id] = "PRESENT";
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs fetched data into locally-editable state for optimistic edits
     setAttendance(initialMap);
   }, [workers]);
 

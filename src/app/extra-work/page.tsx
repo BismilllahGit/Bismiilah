@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { PageShell } from "@/components/ui/page-shell";
+import { PageHeader } from "@/components/ui/page-header";
 import ExtraWorkClient from "./ExtraWorkClient";
 
 export default async function GlobalExtraWorkPage() {
@@ -27,17 +29,15 @@ export default async function GlobalExtraWorkPage() {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Global Extra Work Log
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Review and manage all out-of-scope deviations across all projects.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        layout="plain"
+        title="Global Extra Work Log"
+        subtitle="Review and manage all out-of-scope deviations across all projects."
+        subtitleClassName="text-muted-foreground mt-1"
+      />
 
       <ExtraWorkClient extraWork={serializedList} projects={allProjects} />
-    </div>
+    </PageShell>
   );
 }

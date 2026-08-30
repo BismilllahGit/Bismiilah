@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ReceiptIndianRupee, IndianRupee, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type { Invoice } from "./page";
 
@@ -27,10 +28,10 @@ export function InvoicesMobileList({
         </div>
       ) : invoices.length === 0 ? (
         <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
-          <ReceiptIndianRupee className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
-          <p className="text-muted-foreground text-sm font-medium">
-            No invoices generated yet.
-          </p>
+          <EmptyState
+            icon={ReceiptIndianRupee}
+            message="No invoices generated yet."
+          />
         </div>
       ) : (
         invoices.map((inv) => {

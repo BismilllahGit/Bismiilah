@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import type { LabourRow } from "./page";
 
 export function LabourDesktopTable({
   loading,
@@ -18,10 +19,10 @@ export function LabourDesktopTable({
   formatCurrency,
 }: {
   loading: boolean;
-  data: any[];
+  data: LabourRow[];
   groupBy: string;
   summary: { totalHeadcount: number; totalSpend: number; entryCount: number };
-  formatCurrency: (val: number) => string;
+  formatCurrency: (val: number | undefined) => string;
 }) {
   return (
     <div className="hidden lg:block rounded-xl border bg-white shadow-sm overflow-hidden">
@@ -82,12 +83,12 @@ export function LabourDesktopTable({
               </TableCell>
             </TableRow>
           ) : (
-            data.map((row: any, i) => (
+            data.map((row, i) => (
               <TableRow key={row.id || i} className="hover:bg-slate-50/50">
                 {groupBy === "NONE" && (
                   <>
                     <TableCell className="whitespace-nowrap font-medium">
-                      {new Date(row.date).toLocaleDateString()}
+                      {new Date(row.date ?? "").toLocaleDateString()}
                     </TableCell>
                     <TableCell className="font-medium">
                       {row.projectName}
@@ -131,7 +132,7 @@ export function LabourDesktopTable({
                 {groupBy === "date" && (
                   <>
                     <TableCell className="font-medium whitespace-nowrap">
-                      {new Date(row.date).toLocaleDateString()}
+                      {new Date(row.date ?? "").toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {row.totalHeadcount}
