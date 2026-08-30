@@ -5,7 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { EditProjectDrawer } from "./ProjectClientActions";
+import { EditProjectDrawer, DeleteProjectButton } from "./ProjectClientActions";
 import ProjectTabNavigation from "./ProjectTabNavigation";
 import { getProjectBOQActuals } from "@/lib/queries/boq-queries";
 
@@ -138,6 +138,7 @@ export default async function ProjectDetailLayout({
         </div>
         <div className="flex gap-2">
           <EditProjectDrawer project={serializedProject} />
+          <DeleteProjectButton projectId={project.id} />
         </div>
       </div>
 

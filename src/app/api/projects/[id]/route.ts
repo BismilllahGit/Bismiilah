@@ -3,6 +3,9 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { requireSession } from "@/app/api/_lib/auth-guard";
+import { withApiHandler } from "@/app/api/_lib/handler";
+import { deleteProject } from "@/lib/services/projects";
 
 const updateProjectSchema = z.object({
   name: z.string().optional(),
@@ -68,3 +71,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
   }
 }
+
+export const DELETE = withApiHandler<{ params: Promise<{ id: string }> }>(
+  "Failed to delete project",
+  async (request, { params }) => {
+    await requireSession();
+    const { id } = await params;
+    await deleteProject(id);
+    return new NextResponse(null, { status: 204 });
+  },
+);

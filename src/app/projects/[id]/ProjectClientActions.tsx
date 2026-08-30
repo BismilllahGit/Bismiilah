@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useRouter } from "next/navigation";
 import type { Project as PrismaProject } from "@prisma/client";
 
@@ -208,6 +209,48 @@ export function EditProjectDrawer({ project }: { project: EditableProject }) {
           </div>
         </SheetContent>
       </Sheet>
+    </>
+  );
+}
+
+export function DeleteProjectButton({ projectId }: { projectId: string }) {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleDelete = async () => {
+    const res = await fetch(`/api/projects/${projectId}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      router.push("/projects");
+      router.refresh();
+    } else {
+      const errorData = await res.json().catch(() => ({}));
+      console.error("Server error details:", errorData);
+      alert("Failed to delete project. Check console for details.");
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="destructive"
+        className="flex items-center gap-2"
+        onClick={() => setIsOpen(true)}
+      >
+        <Trash2 className="h-4 w-4" /> Delete Project
+      </Button>
+
+      <ConfirmDialog
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        title="Delete this project?"
+        description="This permanently deletes the project and everything scoped to it — tasks, expenses, invoices, BOQs, inventory records, and the activity log. This cannot be undone."
+        confirmLabel="Delete Project"
+        destructive
+        onConfirm={handleDelete}
+      />
     </>
   );
 }
