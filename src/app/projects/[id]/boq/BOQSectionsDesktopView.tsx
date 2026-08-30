@@ -666,7 +666,7 @@ export function BOQSectionsDesktopView({
                           </TableCell>
 
                           <TableCell className="p-1.5 align-top bg-blue-50/30">
-                            {isActive ? (
+                            {isDraft || isActive ? (
                               <input
                                 type="number"
                                 className={`${tableInputClass} text-right text-sm font-mono font-bold text-blue-700 w-full bg-white border border-blue-200 shadow-sm`}
@@ -696,7 +696,7 @@ export function BOQSectionsDesktopView({
                           </TableCell>
 
                           <TableCell className="p-1.5 align-top bg-blue-50/30">
-                            {isActive ? (
+                            {isDraft || isActive ? (
                               <input
                                 type="number"
                                 className={`${tableInputClass} text-right text-sm font-mono font-bold text-blue-800 w-full bg-white border border-blue-200 shadow-sm`}
