@@ -609,7 +609,7 @@ export function BOQSectionsMobileView({
                               </div>
                             )}
 
-                            {isActive && (
+                            {(isDraft || isActive) && (
                               <div className="bg-blue-50 rounded p-3 mt-4 border border-blue-100">
                                 <span className="text-[10px] uppercase text-blue-600 font-bold block mb-2 tracking-wider">
                                   Execution (Actuals)
