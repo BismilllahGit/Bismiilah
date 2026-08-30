@@ -20,6 +20,7 @@ import { BOQSettingsPanel } from "./BOQSettingsPanel";
 import { BOQMilestonesPanel } from "./BOQMilestonesPanel";
 import { BOQSectionsDesktopView } from "./BOQSectionsDesktopView";
 import { BOQSectionsMobileView } from "./BOQSectionsMobileView";
+import { TemplatePickerSheet } from "./TemplatePickerSheet";
 import type {
   Prisma,
   BOQ,
@@ -793,13 +794,21 @@ export default function BOQEditor({
           Initialize a new BOQ estimate for this project to start adding items,
           tracking budgets, and generating quotation PDFs.
         </p>
-        <Button
-          onClick={handleInitializeBOQ}
-          size="lg"
-          className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 shadow-md"
-        >
-          <Plus className="mr-2 h-5 w-5" /> Initialize Blank BOQ
-        </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <Button
+            onClick={handleInitializeBOQ}
+            size="lg"
+            className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 shadow-md"
+          >
+            <Plus className="mr-2 h-5 w-5" /> Initialize Blank BOQ
+          </Button>
+          <TemplatePickerSheet
+            mode="create"
+            projectId={projectId}
+            onCreated={() => fetchAllData()}
+            onError={(message) => showStatus(message, "error")}
+          />
+        </div>
       </div>
     );
   }
@@ -978,6 +987,16 @@ export default function BOQEditor({
         itemsList={itemsList}
         workerTypes={workerTypes}
         handlers={sectionsHandlers}
+        importTemplateSlot={
+          <TemplatePickerSheet
+            mode="import"
+            projectId={projectId}
+            boqId={currentBOQ.id}
+            disabled={isMutating}
+            onCreated={() => fetchAllData(true)}
+            onError={(message) => showStatus(message, "error")}
+          />
+        }
       />
 
       {/* --- MOBILE VIEW: CARD-BASED LAYOUT FOR ITEMS (Visible only on < xl screens) --- */}
@@ -990,6 +1009,17 @@ export default function BOQEditor({
         itemsList={itemsList}
         workerTypes={workerTypes}
         handlers={sectionsHandlers}
+        importTemplateSlot={
+          <TemplatePickerSheet
+            mode="import"
+            projectId={projectId}
+            boqId={currentBOQ.id}
+            disabled={isMutating}
+            triggerClassName="w-full border-dashed border-slate-400 font-bold bg-white hover:bg-slate-100 text-slate-700 h-12 shadow-sm disabled:opacity-50"
+            onCreated={() => fetchAllData(true)}
+            onError={(message) => showStatus(message, "error")}
+          />
+        }
       />
 
       {/* --- ROLLUP SUMMARY (GRAND TOTALS) --- */}

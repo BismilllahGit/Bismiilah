@@ -56,6 +56,10 @@ interface BOQSectionsMobileViewProps {
   itemsList: Item[];
   workerTypes: WorkerType[];
   handlers: BOQSectionsHandlers;
+  // Pre-built <TemplatePickerSheet mode="import" .../> trigger, rendered
+  // beside "Add New Section" while a draft is open. Kept as a slot so this
+  // view stays agnostic of projectId/boqId/template-fetch details.
+  importTemplateSlot?: React.ReactNode;
 }
 
 export function BOQSectionsMobileView({
@@ -67,6 +71,7 @@ export function BOQSectionsMobileView({
   itemsList,
   workerTypes,
   handlers,
+  importTemplateSlot,
 }: BOQSectionsMobileViewProps) {
   const [deleteSectionTarget, setDeleteSectionTarget] = useState<
     string | null
@@ -744,14 +749,17 @@ export function BOQSectionsMobileView({
         )}
 
         {isDraft && (
-          <Button
-            variant="outline"
-            onClick={handlers.handleAddSection}
-            disabled={isMutating}
-            className="w-full border-dashed border-slate-400 font-bold bg-white text-slate-700 h-12 shadow-sm disabled:opacity-50"
-          >
-            <Plus className="mr-2 h-5 w-5" /> Add New Section
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              onClick={handlers.handleAddSection}
+              disabled={isMutating}
+              className="w-full border-dashed border-slate-400 font-bold bg-white text-slate-700 h-12 shadow-sm disabled:opacity-50"
+            >
+              <Plus className="mr-2 h-5 w-5" /> Add New Section
+            </Button>
+            {importTemplateSlot}
+          </div>
         )}
       </div>
 

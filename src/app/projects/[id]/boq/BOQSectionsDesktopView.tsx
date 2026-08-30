@@ -68,6 +68,10 @@ interface BOQSectionsDesktopViewProps {
   itemsList: Item[];
   workerTypes: WorkerType[];
   handlers: BOQSectionsHandlers;
+  // Pre-built <TemplatePickerSheet mode="import" .../> trigger, rendered
+  // beside "Add Section" while a draft is open. Kept as a slot so this
+  // view stays agnostic of projectId/boqId/template-fetch details.
+  importTemplateSlot?: React.ReactNode;
 }
 
 export function BOQSectionsDesktopView({
@@ -79,6 +83,7 @@ export function BOQSectionsDesktopView({
   itemsList,
   workerTypes,
   handlers,
+  importTemplateSlot,
 }: BOQSectionsDesktopViewProps) {
   const [deleteSectionTarget, setDeleteSectionTarget] = useState<
     string | null
@@ -810,7 +815,7 @@ export function BOQSectionsDesktopView({
         </Table>
 
         {isDraft && (
-          <div className="p-4 bg-slate-50 border-t border-slate-200 sticky left-0">
+          <div className="p-4 bg-slate-50 border-t border-slate-200 sticky left-0 flex items-center gap-3">
             <Button
               variant="outline"
               onClick={handlers.handleAddSection}
@@ -819,6 +824,7 @@ export function BOQSectionsDesktopView({
             >
               <Plus className="mr-2 h-4 w-4" /> Add Section
             </Button>
+            {importTemplateSlot}
           </div>
         )}
       </div>
