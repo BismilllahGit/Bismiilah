@@ -259,7 +259,7 @@ export function LedgerTable({
                 className="w-full sm:w-auto h-9"
                 buttonText="Download Statement"
               />
-              {shareLinkType && contactName && contactPhone && (
+              {/* {shareLinkType && contactName && contactPhone && (
                 <ShareViaWhatsAppButton
                   phone={contactPhone}
                   message={`Hi ${contactName}, here is your ledger statement from Bismillah Construction. View it here: ${typeof window !== "undefined" ? window.location.origin : ""}/share/${shareLinkType}/${pdfParams.contactId}?startDate=${activeStart || ""}&endDate=${activeEnd || ""}&search=${searchText || ""}`}
@@ -275,7 +275,7 @@ export function LedgerTable({
                   referenceId={pdfParams.contactId}
                   referenceType="Contact"
                 />
-              )}
+              )} */}
             </div>
           )}
         </div>
