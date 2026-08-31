@@ -114,7 +114,11 @@ export async function POST(request: Request) {
     // the public share route (title, 3 of 6 column headers, row-level Dr/Cr
     // suffix, 3 of 4 summary labels) — not safe to unify, left as-is.
     else if (reportType === "client_ledger") {
-      const data = await getClientLedgerData(params.clientId, {
+      // The page sends the id as `contactId`, same as every other ledger
+      // type on this route (vendor_ledger, labour_ledger) — this branch was
+      // the one outlier reading `params.clientId`, which the caller never
+      // actually sends, so this always 500'd with a Prisma "needs id" error.
+      const data = await getClientLedgerData(params.contactId, {
         ...params,
         limit: 2000,
         page: 1,
