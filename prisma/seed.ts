@@ -1,16 +1,8 @@
 import {
   PrismaClient,
-  UserRole,
   ProjectStatus,
   TaskStatus,
   PaymentCycle,
-  ItemType,
-  ItemGrade,
-  TransactionType,
-  ContactType,
-  VendorTransactionType,
-  InvoiceStatus,
-  ExtraWorkStatus,
   BOQStatus,
   BOQLineType,
 } from "@prisma/client";
@@ -18,25 +10,18 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
-// Simple sequential voucher generator
-let voucherCount = 1000;
-const generateVoucher = (prefix: string) => {
-  voucherCount++;
-  return `${prefix}-${voucherCount}`;
-};
-
 async function main() {
-  console.log("🌱 Starting clean, realistic database seeding...");
+  console.log("🌱 Starting professional database seeding with FULL BOQ...");
 
   // ==========================================
   // 1. ADMIN USER & BUSINESS PROFILE
   // ==========================================
-  const password = await bcrypt.hash("redacted", 10);
+  const password = await bcrypt.hash("<redacted>", 10);
 
   await prisma.user.upsert({
-    where: { email: "redacted@gmail.com" },
+    where: { email: "<redacted>@gmail.com" },
     update: { password, role: "ADMIN" },
-    create: { email: "redacted@gmail.com", password, role: "ADMIN" },
+    create: { email: "<redacted>@gmail.com", password, role: "ADMIN" },
   });
 
   await prisma.businessProfile.upsert({
@@ -45,13 +30,12 @@ async function main() {
     create: {
       id: "default",
       companyName: "Bismillah Construction",
-      tagline: "Quality Building Solutions",
+      tagline: "Precision and Quality",
       address: "Kochi, Kerala",
       phone: "+91 98765 43210",
-      email: "redacted@gmail.com",
+      email: "<redacted>@gmail.com",
       gstNumber: "32ABCDE1234F1Z5",
-      defaultTerms:
-        "1. Payment within 15 days of invoice.\n2. Materials remain property of the company until fully paid.",
+      defaultTerms: "Payment due within 15 days of invoice generation.",
     },
   });
 
@@ -74,10 +58,8 @@ async function main() {
   }
 
   // ==========================================
-  // 2. MASTER DATA
+  // 2. MASTER DATA (Groups & Workers)
   // ==========================================
-
-  // BOQ Groups
   const groups = {
     civil: await prisma.bOQGroup.upsert({
       where: { name: "Civil Works" },
@@ -95,514 +77,445 @@ async function main() {
       create: { name: "Plumbing Works", sortOrder: 3 },
     }),
     finishing: await prisma.bOQGroup.upsert({
-      where: { name: "Finishing Works" },
+      where: { name: "Interior Works" },
       update: {},
-      create: { name: "Finishing Works", sortOrder: 4 },
+      create: { name: "Interior Works", sortOrder: 4 },
     }),
   };
 
-  // Comprehensive Worker Types
-  const workerTypeDefinitions = [
-    { name: "Mason", defaultRate: 1100, paymentCycle: PaymentCycle.WEEKLY },
-    { name: "Carpenter", defaultRate: 1200, paymentCycle: PaymentCycle.WEEKLY },
-    {
-      name: "Cupboard Carpenter",
-      defaultRate: 1300,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
-    { name: "Painter", defaultRate: 1000, paymentCycle: PaymentCycle.WEEKLY },
-    {
-      name: "Electrician",
-      defaultRate: 1300,
-      paymentCycle: PaymentCycle.DAILY,
-    },
-    {
-      name: "Tiles Mason",
-      defaultRate: 1200,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
+  const workerTypes = [
+    { name: "Mason", rate: 1100, cycle: PaymentCycle.WEEKLY },
+    { name: "Carpenter", rate: 1200, cycle: PaymentCycle.WEEKLY },
+    { name: "Cupboard Carpenter", rate: 1300, cycle: PaymentCycle.WEEKLY },
+    { name: "Painter", rate: 1000, cycle: PaymentCycle.WEEKLY },
+    { name: "Electrician", rate: 1300, cycle: PaymentCycle.DAILY },
+    { name: "Tiles Mason", rate: 1200, cycle: PaymentCycle.WEEKLY },
     {
       name: "Bar Bender / Steel Fixer",
-      defaultRate: 1100,
-      paymentCycle: PaymentCycle.WEEKLY,
+      rate: 1100,
+      cycle: PaymentCycle.WEEKLY,
     },
     {
       name: "Centering / Shuttering Workers",
-      defaultRate: 1100,
-      paymentCycle: PaymentCycle.WEEKLY,
+      rate: 1100,
+      cycle: PaymentCycle.WEEKLY,
     },
-    {
-      name: "Glass Worker",
-      defaultRate: 1200,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
-    { name: "SS Worker", defaultRate: 1200, paymentCycle: PaymentCycle.WEEKLY },
-    {
-      name: "Chipping Worker",
-      defaultRate: 900,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
-    { name: "Plumber", defaultRate: 1200, paymentCycle: PaymentCycle.DAILY },
-    { name: "Welder", defaultRate: 1200, paymentCycle: PaymentCycle.WEEKLY },
+    { name: "Glass Worker", rate: 1200, cycle: PaymentCycle.WEEKLY },
+    { name: "SS Worker", rate: 1200, cycle: PaymentCycle.WEEKLY },
+    { name: "Chipping Worker", rate: 900, cycle: PaymentCycle.WEEKLY },
+    { name: "Plumber", rate: 1200, cycle: PaymentCycle.DAILY },
+    { name: "Welder", rate: 1200, cycle: PaymentCycle.WEEKLY },
     {
       name: "Aluminium / UPVC Door & Window Installer",
-      defaultRate: 1200,
-      paymentCycle: PaymentCycle.WEEKLY,
+      rate: 1200,
+      cycle: PaymentCycle.WEEKLY,
     },
     {
       name: "CNC / ACP Cladding Worker",
-      defaultRate: 1300,
-      paymentCycle: PaymentCycle.WEEKLY,
+      rate: 1300,
+      cycle: PaymentCycle.WEEKLY,
     },
     {
       name: "POP / Gypsum Ceiling Worker",
-      defaultRate: 1200,
-      paymentCycle: PaymentCycle.WEEKLY,
+      rate: 1200,
+      cycle: PaymentCycle.WEEKLY,
     },
-    {
-      name: "Granite / Marble Worker",
-      defaultRate: 1300,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
-    {
-      name: "Excavation Workers",
-      defaultRate: 900,
-      paymentCycle: PaymentCycle.DAILY,
-    },
-    { name: "Helpers", defaultRate: 800, paymentCycle: PaymentCycle.WEEKLY },
-    {
-      name: "Scaffolding Workers",
-      defaultRate: 1000,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
-    {
-      name: "Roofing Workers",
-      defaultRate: 1100,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
-    {
-      name: "Paver Block Workers",
-      defaultRate: 1000,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
+    { name: "Granite / Marble Worker", rate: 1300, cycle: PaymentCycle.WEEKLY },
+    { name: "Excavation Workers", rate: 900, cycle: PaymentCycle.DAILY },
+    { name: "Helpers", rate: 800, cycle: PaymentCycle.WEEKLY },
+    { name: "Scaffolding Workers", rate: 1000, cycle: PaymentCycle.WEEKLY },
+    { name: "Roofing Workers", rate: 1100, cycle: PaymentCycle.WEEKLY },
+    { name: "Paver Block Workers", rate: 1000, cycle: PaymentCycle.WEEKLY },
     {
       name: "Hydraulic / Earthmoving Machine Operators",
-      defaultRate: 1500,
-      paymentCycle: PaymentCycle.DAILY,
+      rate: 1500,
+      cycle: PaymentCycle.DAILY,
     },
-    {
-      name: "Housekeeping Staff",
-      defaultRate: 700,
-      paymentCycle: PaymentCycle.WEEKLY,
-    },
+    { name: "Housekeeping Staff", rate: 700, cycle: PaymentCycle.WEEKLY },
   ];
 
-  const workers: Record<string, any> = {};
-  for (const wt of workerTypeDefinitions) {
-    workers[wt.name] = await prisma.workerType.upsert({
+  for (const wt of workerTypes) {
+    await prisma.workerType.upsert({
       where: { name: wt.name },
       update: {},
-      create: {
-        name: wt.name,
-        defaultRate: wt.defaultRate,
-        paymentCycle: wt.paymentCycle,
-      },
+      create: { name: wt.name, defaultRate: wt.rate, paymentCycle: wt.cycle },
     });
   }
 
-  // Items
-  const items = {
-    cement: await prisma.item.create({
-      data: {
-        name: "UltraTech Cement OPC 53",
-        type: ItemType.CEMENT,
-        grade: ItemGrade.GRADE_A,
-        unit: "bag",
-        unitCost: 420,
-      },
-    }),
-    steel: await prisma.item.create({
-      data: {
-        name: "Tata Tiscon Fe500D 10mm",
-        type: ItemType.MATERIAL,
-        grade: ItemGrade.GRADE_A,
-        unit: "kg",
-        unitCost: 75,
-      },
-    }),
-    sand: await prisma.item.create({
-      data: {
-        name: "M-Sand",
-        type: ItemType.MATERIAL,
-        unit: "cft",
-        unitCost: 65,
-      },
-    }),
-    paint: await prisma.item.create({
-      data: {
-        name: "Asian Paints Apex",
-        type: ItemType.PAINT,
-        grade: ItemGrade.GRADE_A,
-        unit: "litre",
-        unitCost: 320,
-      },
-    }),
-  };
-
-  // Contacts
-  const client = await prisma.client.create({
-    data: {
-      name: "Mohammed Tariq",
-      phone: "+91 99988 87776",
-      address: "Calicut",
-    },
-  });
-  const vendor = await prisma.contact.create({
-    data: {
-      name: "Malabar Steel & Cements",
-      type: ContactType.VENDOR,
-      phone: "+91 88877 76665",
-    },
-  });
-  const contractor = await prisma.contact.create({
-    data: {
-      name: "Raju Labour Contractors",
-      type: ContactType.LABOUR_CONTRACTOR,
-      phone: "+91 77766 65554",
-    },
-  });
-
-  // BOQ Template
+  // ==========================================
+  // 3. FULL BOQ TEMPLATE
+  // ==========================================
   const template = await prisma.bOQTemplate.create({
-    data: { name: "Premium Residential Villa", category: "Residential" },
+    data: { name: "Stilt+2 Construction Template", category: "Residential" },
   });
-  const templateSec = await prisma.bOQTemplateSection.create({
+
+  const civilTemplateSec = await prisma.bOQTemplateSection.create({
     data: {
       templateId: template.id,
-      name: "Foundation",
+      name: "Part A - Construction Quote",
       groupId: groups.civil.id,
+      sortOrder: 1,
     },
   });
   await prisma.bOQTemplateLineItem.createMany({
     data: [
       {
-        sectionId: templateSec.id,
-        title: "Earthwork Excavation",
+        sectionId: civilTemplateSec.id,
+        title: "Stilt Parking Area",
         sortOrder: 1,
       },
-      { sectionId: templateSec.id, title: "PCC 1:4:8", sortOrder: 2 },
+      { sectionId: civilTemplateSec.id, title: "Buildup Area", sortOrder: 2 },
+      {
+        sectionId: civilTemplateSec.id,
+        title: "Borewell - 100 Feet Depth",
+        sortOrder: 3,
+      },
+      {
+        sectionId: civilTemplateSec.id,
+        title: "Sump - 8,000 Litres Capacity",
+        sortOrder: 4,
+      },
+      {
+        sectionId: civilTemplateSec.id,
+        title: "Civil Overhead Water Tank - 3,000 Litres",
+        sortOrder: 5,
+      },
+      {
+        sectionId: civilTemplateSec.id,
+        title: "Front Elevation Work (Texture Painting)",
+        sortOrder: 6,
+      },
+      {
+        sectionId: civilTemplateSec.id,
+        title: "Weathering Course",
+        sortOrder: 7,
+      },
+      { sectionId: civilTemplateSec.id, title: "Pressure Pump", sortOrder: 8 },
+      {
+        sectionId: civilTemplateSec.id,
+        title: "Motorised Grill Gate",
+        sortOrder: 9,
+      },
+      { sectionId: civilTemplateSec.id, title: "Soil Test", sortOrder: 10 },
+    ],
+  });
+
+  const interiorTemplateSec = await prisma.bOQTemplateSection.create({
+    data: {
+      templateId: template.id,
+      name: "Part B - Interior Works",
+      groupId: groups.finishing.id,
+      sortOrder: 2,
+    },
+  });
+  await prisma.bOQTemplateLineItem.createMany({
+    data: [
+      {
+        sectionId: interiorTemplateSec.id,
+        title: "Plain Gypsum False Ceiling",
+        sortOrder: 1,
+      },
+      {
+        sectionId: interiorTemplateSec.id,
+        title: "Modular Kitchen Bottom Unit",
+        sortOrder: 2,
+      },
+      {
+        sectionId: interiorTemplateSec.id,
+        title: "Modular Kitchen Wall Unit",
+        sortOrder: 3,
+      },
+      { sectionId: interiorTemplateSec.id, title: "Loft", sortOrder: 4 },
+      {
+        sectionId: interiorTemplateSec.id,
+        title: "Master Bedroom Wardrobe",
+        sortOrder: 5,
+      },
+      {
+        sectionId: interiorTemplateSec.id,
+        title: "Master Bedroom TV Unit",
+        sortOrder: 6,
+      },
+      { sectionId: interiorTemplateSec.id, title: "Pooja Unit", sortOrder: 7 },
     ],
   });
 
   // ==========================================
-  // 3. DETAILED PROJECT: SEAVIEW VILLA
+  // 4. THE SINGLE PROJECT WITH FULL BOQ
   // ==========================================
   const projectDate = new Date();
-  projectDate.setMonth(projectDate.getMonth() - 2); // Started 2 months ago
 
   const project = await prisma.project.create({
     data: {
-      name: "Seaview Villa Construction",
-      location: "Kozhikode, Kerala",
+      name: "Stilt+2 Construction - Mr Sai Bharath",
+      location: "Noombal Village, Chennai-600 122",
       status: ProjectStatus.ACTIVE,
       startDate: projectDate,
-      agreedValue: 12500000.0, // 1.25 Cr
-      notes:
-        "G+1 Premium Residential Villa with specialized EV charging infrastructure.",
+      agreedValue: 8525213.0,
+      notes: "Ref No: SVN/CON/55. Detailed Construction and Interior Quote.",
     },
   });
 
-  // Tasks
-  await prisma.projectTask.createMany({
-    data: [
-      {
-        projectId: project.id,
-        title: "Site Clearing & Survey",
-        targetDate: projectDate,
-        status: TaskStatus.COMPLETED,
-        completedAt: projectDate,
-      },
-      {
-        projectId: project.id,
-        title: "Foundation Concrete",
-        targetDate: new Date(projectDate.getTime() + 15 * 86400000),
-        status: TaskStatus.COMPLETED,
-        completedAt: new Date(projectDate.getTime() + 15 * 86400000),
-      },
-      {
-        projectId: project.id,
-        title: "Ground Floor Blockwork",
-        targetDate: new Date(),
-        status: TaskStatus.IN_PROGRESS,
-      },
-      {
-        projectId: project.id,
-        title: "First Floor Roof Slab",
-        targetDate: new Date(Date.now() + 30 * 86400000),
-        status: TaskStatus.PENDING,
-      },
-    ],
-  });
-
-  // ==========================================
-  // 4. BILL OF QUANTITIES (BOQ)
-  // ==========================================
   const boq = await prisma.bOQ.create({
     data: {
       projectId: project.id,
       versionNumber: 1,
       status: BOQStatus.ACTIVE,
-      targetBudget: 11000000.0,
+      targetBudget: 8525213.0,
       approvedAt: projectDate,
     },
   });
 
-  await prisma.bOQPaymentMilestone.createMany({
-    data: [
-      {
-        boqId: boq.id,
-        stageName: "Mobilization Advance",
-        percentage: 10,
-        amount: 1250000,
-        sortOrder: 1,
-      },
-      {
-        boqId: boq.id,
-        stageName: "Foundation Completion",
-        percentage: 20,
-        amount: 2500000,
-        sortOrder: 2,
-      },
-      {
-        boqId: boq.id,
-        stageName: "Ground Floor Roof Slab",
-        percentage: 25,
-        amount: 3125000,
-        sortOrder: 3,
-      },
-    ],
-  });
-
-  const civilSec = await prisma.bOQSection.create({
+  // Project Part A Items
+  const partASec = await prisma.bOQSection.create({
     data: {
       boqId: boq.id,
       groupId: groups.civil.id,
-      name: "Substructure",
+      name: "Part A - Construction Cost",
       sortOrder: 1,
     },
   });
-
   await prisma.bOQLineItem.createMany({
     data: [
       {
-        sectionId: civilSec.id,
-        itemNo: "1.1",
-        title: "Earthwork Excavation",
+        sectionId: partASec.id,
+        itemNo: "1",
+        title: "Stilt Parking Area",
         lineType: BOQLineType.CALCULATED,
-        quantity: 150,
-        unit: "cum",
-        rate: 450,
-        amount: 67500,
-        executedQuantity: 150,
-        executedAmount: 67500,
-        sortOrder: 1,
+        quantity: 1205,
+        unit: "Sq.ft",
+        rate: 1500,
+        amount: 1807500,
+        executedQuantity: 0,
+        executedAmount: 0,
       },
       {
-        sectionId: civilSec.id,
-        itemNo: "1.2",
-        title: "PCC 1:4:8 Base",
+        sectionId: partASec.id,
+        itemNo: "2",
+        title: "Buildup Area",
         lineType: BOQLineType.CALCULATED,
-        quantity: 40,
-        unit: "cum",
-        rate: 4800,
-        amount: 192000,
-        executedQuantity: 40,
-        executedAmount: 192000,
-        itemId: items.cement.id,
-        sortOrder: 2,
+        quantity: 2394,
+        unit: "Sq.ft",
+        rate: 2250,
+        amount: 5386500,
+        executedQuantity: 0,
+        executedAmount: 0,
       },
       {
-        sectionId: civilSec.id,
-        itemNo: "1.3",
-        title: "Laterite Stone Masonry",
+        sectionId: partASec.id,
+        itemNo: "3",
+        title: "Borewell - 100 Feet Depth",
         lineType: BOQLineType.CALCULATED,
-        quantity: 120,
-        unit: "cum",
-        rate: 3500,
-        amount: 420000,
-        executedQuantity: 60,
-        executedAmount: 210000,
-        sortOrder: 3,
+        quantity: 100,
+        unit: "Rft",
+        rate: 550,
+        amount: 55000,
+        executedQuantity: 0,
+        executedAmount: 0,
       },
       {
-        sectionId: civilSec.id,
-        itemNo: "1.4",
-        title: "Anti-Termite Treatment",
-        lineType: BOQLineType.LUMP_SUM,
-        amount: 15000,
-        executedAmount: 15000,
-        sortOrder: 4,
+        sectionId: partASec.id,
+        itemNo: "4",
+        title: "Sump - 8,000 Litres Capacity",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 8000,
+        unit: "Litres",
+        rate: 35,
+        amount: 280000,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partASec.id,
+        itemNo: "5",
+        title: "Civil Overhead Water Tank - 3,000 Litres",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 3000,
+        unit: "Litres",
+        rate: 40,
+        amount: 120000,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partASec.id,
+        itemNo: "6",
+        title: "Front Elevation Work",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 216,
+        unit: "Sq.ft",
+        rate: 175,
+        amount: 37713,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partASec.id,
+        itemNo: "7",
+        title: "Weathering Course",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 1008,
+        unit: "Sq.ft",
+        rate: 50,
+        amount: 50400,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partASec.id,
+        itemNo: "8",
+        title: "Pressure Pump",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 1,
+        unit: "Nos",
+        rate: 12001,
+        amount: 12001,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partASec.id,
+        itemNo: "9",
+        title: "Motorised Grill Gate",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 137,
+        unit: "Sq.ft",
+        rate: 2000,
+        amount: 0,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partASec.id,
+        itemNo: "10",
+        title: "Soil Test",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 1,
+        unit: "Ls",
+        rate: 16000,
+        amount: 16000,
+        executedQuantity: 0,
+        executedAmount: 0,
       },
     ],
   });
 
-  // ==========================================
-  // 5. TRANSACTIONS (Materials, Labour, Finance)
-  // ==========================================
-
-  // Inventory Activity
-  await prisma.projectInventory.create({
+  // Project Part B Items
+  const partBSec = await prisma.bOQSection.create({
     data: {
-      projectId: project.id,
-      itemId: items.cement.id,
-      qtyBought: 500,
-      qtyIssued: 350,
+      boqId: boq.id,
+      groupId: groups.finishing.id,
+      name: "Part B - Interior Works",
+      sortOrder: 2,
     },
   });
-  await prisma.inventoryTransaction.create({
-    data: {
-      projectId: project.id,
-      itemId: items.cement.id,
-      voucherNumber: generateVoucher("ITX"),
-      type: TransactionType.BUY,
-      quantity: 500,
-      unitCost: 420,
-      date: projectDate,
-    },
-  });
-  await prisma.inventoryTransaction.create({
-    data: {
-      projectId: project.id,
-      itemId: items.cement.id,
-      voucherNumber: generateVoucher("ITX"),
-      type: TransactionType.ISSUE,
-      quantity: 350,
-      unitCost: 420,
-      date: new Date(projectDate.getTime() + 10 * 86400000),
-    },
-  });
-
-  // Labour Entries referencing the new dynamic worker array
-  await prisma.dailyLabourEntry.create({
-    data: {
-      projectId: project.id,
-      workerTypeId: workers["Mason"].id,
-      contractorId: contractor.id,
-      voucherNumber: generateVoucher("DL"),
-      date: new Date(),
-      headcount: 4,
-      wageRate: workers["Mason"].defaultRate,
-      title: "Blockwork - Ground Floor",
-      paidImmediately: false,
-    },
-  });
-  await prisma.dailyLabourEntry.create({
-    data: {
-      projectId: project.id,
-      workerTypeId: workers["Helpers"].id,
-      contractorId: contractor.id,
-      voucherNumber: generateVoucher("DL"),
-      date: new Date(),
-      headcount: 6,
-      wageRate: workers["Helpers"].defaultRate,
-      title: "Blockwork - Ground Floor",
-      paidImmediately: false,
-    },
-  });
-
-  // Site Expenses
-  await prisma.siteExpense.create({
-    data: {
-      projectId: project.id,
-      voucherNumber: generateVoucher("EXP"),
-      category: "Food & Tea",
-      amount: 850,
-      date: new Date(),
-      description: "Tea and snacks for workers",
-    },
-  });
-  await prisma.siteExpense.create({
-    data: {
-      projectId: project.id,
-      voucherNumber: generateVoucher("EXP"),
-      category: "Transport",
-      amount: 1500,
-      date: new Date(),
-      description: "Auto fare for urgent material delivery",
-    },
-  });
-
-  // Extra Work
-  await prisma.extraWork.create({
-    data: {
-      projectId: project.id,
-      voucherNumber: generateVoucher("EW"),
-      date: new Date(),
-      description: "Additional 15 Amp socket for EV Charger",
-      amount: 8500,
-      status: ExtraWorkStatus.UNBILLED,
-    },
-  });
-
-  // Invoicing & Payments
-  const invoice = await prisma.invoice.create({
-    data: {
-      projectId: project.id,
-      clientId: client.id,
-      invoiceNumber: "INV-2026-001",
-      amount: 1250000,
-      status: InvoiceStatus.PAID,
-      issuedDate: projectDate,
-      dueDate: new Date(projectDate.getTime() + 7 * 86400000),
-      notes: "Mobilization Advance",
-      lineItems: {
-        create: [
-          {
-            description: "Mobilization Advance as per contract",
-            quantity: 1,
-            unitPrice: 1250000,
-            total: 1250000,
-          },
-        ],
+  await prisma.bOQLineItem.createMany({
+    data: [
+      {
+        sectionId: partBSec.id,
+        itemNo: "11",
+        title: "Plain Gypsum False Ceiling",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 2216,
+        unit: "Sq Ft",
+        rate: 150,
+        amount: 0,
+        executedQuantity: 0,
+        executedAmount: 0,
       },
-    },
-  });
-
-  const payment = await prisma.clientPayment.create({
-    data: {
-      clientId: client.id,
-      invoiceId: invoice.id,
-      voucherNumber: generateVoucher("CPAY"),
-      amount: 1250000,
-      paymentDate: new Date(projectDate.getTime() + 2 * 86400000),
-      method: "NEFT",
-      note: "Advance Payment Received",
-      allocations: {
-        create: [{ invoiceId: invoice.id, allocatedAmount: 1250000 }],
+      {
+        sectionId: partBSec.id,
+        itemNo: "12",
+        title: "Modular Kitchen Bottom Unit",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 63,
+        unit: "Sq.ft",
+        rate: 1800,
+        amount: 113400,
+        executedQuantity: 0,
+        executedAmount: 0,
       },
-    },
+      {
+        sectionId: partBSec.id,
+        itemNo: "13",
+        title: "Modular Kitchen Wall Unit",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 42,
+        unit: "Sq.ft",
+        rate: 1600,
+        amount: 67200,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partBSec.id,
+        itemNo: "14",
+        title: "Loft",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 179,
+        unit: "Sq.ft",
+        rate: 850,
+        amount: 152150,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partBSec.id,
+        itemNo: "15",
+        title: "Master Bedroom Wardrobe",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 388.5,
+        unit: "Sq.ft",
+        rate: 1100,
+        amount: 427350,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partBSec.id,
+        itemNo: "16",
+        title: "Master Bedroom TV Unit",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 168,
+        unit: "Sq.ft",
+        rate: 750,
+        amount: 0,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+      {
+        sectionId: partBSec.id,
+        itemNo: "17",
+        title: "Pooja Unit",
+        lineType: BOQLineType.CALCULATED,
+        quantity: 49,
+        unit: "Sq.ft",
+        rate: 1600,
+        amount: 0,
+        executedQuantity: 0,
+        executedAmount: 0,
+      },
+    ],
   });
 
-  // Share Log
-  await prisma.shareLog.create({
+  await prisma.projectTask.create({
     data: {
-      type: "CLIENT_RECEIPT",
-      referenceId: payment.id,
-      referenceType: "ClientPayment",
-      recipientPhone: client.phone!,
+      projectId: project.id,
+      title: "Site Mobilization & Survey",
+      targetDate: new Date(),
+      status: TaskStatus.COMPLETED,
+      completedAt: new Date(),
     },
   });
 
   console.log(
-    "\n✅ SEEDING COMPLETE! The complete worker registry and project are ready.",
+    "✅ SEEDING COMPLETE! A clean, single project with the FULL BOQ is ready.",
   );
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error during seeding:", e);
+    console.error("❌ Error:", e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(async () => await prisma.$disconnect());
