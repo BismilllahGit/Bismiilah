@@ -43,7 +43,7 @@ export default function LabourEntriesView({
                 className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
               >
                 <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
-                  <span className="font-bold text-slate-900 text-base block break-words">
+                  <span className="font-bold text-slate-900 text-base block wrap-break-word">
                     {l.workerType?.name || l.title || "General Labour"}
                   </span>
                   <span className="text-xs font-medium text-slate-500 shrink-0">
@@ -94,10 +94,10 @@ export default function LabourEntriesView({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[700px]">
+        <Table className="min-w-175">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-[130px] font-semibold">Date</TableHead>
+              <TableHead className="w-32.5 font-semibold">Date</TableHead>
               <TableHead className="font-semibold">
                 Worker Type / Role
               </TableHead>

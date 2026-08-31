@@ -151,7 +151,7 @@ export default function SiteActivityPage({
         <Table>
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-[150px]">Date</TableHead>
+              <TableHead className="w-37.5">Date</TableHead>
               <TableHead>Activity Description</TableHead>
             </TableRow>
           </TableHeader>

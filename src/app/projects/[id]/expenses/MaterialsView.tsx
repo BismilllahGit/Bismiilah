@@ -44,7 +44,7 @@ export default function MaterialsView({
                 className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
               >
                 <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
-                  <span className="font-bold text-slate-900 text-base block break-words">
+                  <span className="font-bold text-slate-900 text-base block wrap-break-word">
                     {m.item.name}
                   </span>
                   <Badge
@@ -86,12 +86,10 @@ export default function MaterialsView({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[650px]">
+        <Table className="min-w-162.5">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-[220px] font-semibold">
-                Item Name
-              </TableHead>
+              <TableHead className="w-55 font-semibold">Item Name</TableHead>
               <TableHead className="font-semibold">Unit</TableHead>
               <TableHead className="text-right font-semibold">
                 Quantity Issued

@@ -176,7 +176,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div
             className={cn(
               "flex-1 overflow-auto py-4",
-              !isCollapsed && "min-w-[253px]",
+              !isCollapsed && "min-w-63.25",
             )}
           >
             <nav className="grid items-start px-2 text-sm font-medium gap-1">

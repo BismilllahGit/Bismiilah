@@ -120,7 +120,7 @@ export default function ExtraWorkClient({
             if (val) setProjectFilter(val);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[250px] max-sm:h-11 max-sm:text-sm bg-white">
+          <SelectTrigger className="w-full sm:w-62.5 max-sm:h-11 max-sm:text-sm bg-white">
             <SelectValue placeholder="Filter by Project">
               {projectFilter === "ALL"
                 ? "All Projects"
@@ -150,7 +150,7 @@ export default function ExtraWorkClient({
             if (val) setStatusFilter(val);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[200px] max-sm:h-11 max-sm:text-sm bg-white">
+          <SelectTrigger className="w-full sm:w-50 max-sm:h-11 max-sm:text-sm bg-white">
             <SelectValue placeholder="Filter by Status">
               {statusFilter === "ALL" ? "All Statuses" : statusFilter}
             </SelectValue>
@@ -206,7 +206,7 @@ export default function ExtraWorkClient({
                 </span>
               </div>
 
-              <div className="text-sm text-slate-700 font-medium break-words">
+              <div className="text-sm text-slate-700 font-medium wrap-break-word">
                 {w.description}
               </div>
 
@@ -244,10 +244,10 @@ export default function ExtraWorkClient({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[700px]">
+        <Table className="min-w-175">
           <TableHeader className="bg-slate-50/80 border-b border-slate-200">
             <TableRow>
-              <TableHead className="w-[140px] font-semibold text-slate-700">
+              <TableHead className="w-35 font-semibold text-slate-700">
                 Date
               </TableHead>
               <TableHead className="font-semibold text-slate-700">

@@ -291,10 +291,10 @@ export default function ExtraWorkPage({
 
       {/* Desktop/Tablet Table View (md breakpoint and above) */}
       <div className="hidden md:block border rounded-md bg-white shadow-sm">
-        <Table className="min-w-[600px]">
+        <Table className="min-w-150">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-[120px]">Date</TableHead>
+              <TableHead className="w-30">Date</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>

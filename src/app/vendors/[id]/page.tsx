@@ -236,7 +236,7 @@ export default function VendorLedgerPage({
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight wrap-break-word">
             {vendor?.name || "Loading..."}
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5 flex flex-wrap items-center gap-2">
@@ -287,7 +287,7 @@ export default function VendorLedgerPage({
                 : "Current Balance"}
             </h3>
             <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 break-words">
+              <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 wrap-break-word">
                 {formatCurrency(ledgerData.closingBalance)}
               </span>
               <span className="text-xs sm:text-sm font-semibold text-slate-600">

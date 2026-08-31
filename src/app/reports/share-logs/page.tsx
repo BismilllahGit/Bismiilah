@@ -123,7 +123,7 @@ export default function ShareLogsPage() {
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="w-[180px]">Triggered At</TableHead>
+                <TableHead className="w-45">Triggered At</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Recipient Phone</TableHead>
                 <TableHead>Reference</TableHead>

@@ -88,10 +88,9 @@ export default function InvoicesPage() {
   const createInvoice = useApiMutation<Record<string, unknown>, Invoice>(
     "POST",
   );
-  const recordPayment = useApiMutation<
-    Record<string, unknown>,
-    { id: string }
-  >("POST");
+  const recordPayment = useApiMutation<Record<string, unknown>, { id: string }>(
+    "POST",
+  );
   const changeInvoiceStatus = useApiMutation<Record<string, unknown>, Invoice>(
     "PATCH",
   );
@@ -332,7 +331,7 @@ export default function InvoicesPage() {
                         key={li.id}
                         className="bg-slate-50 border border-slate-200/80 rounded-lg p-3 space-y-1.5 text-xs"
                       >
-                        <div className="font-semibold text-slate-900 text-sm break-words">
+                        <div className="font-semibold text-slate-900 text-sm wrap-break-word">
                           {li.description}
                         </div>
                         <div className="flex justify-between items-center text-slate-600 pt-1 border-t border-slate-200/60">
@@ -348,10 +347,10 @@ export default function InvoicesPage() {
                     ))}
                   </div>
                   <div className="hidden sm:block border rounded-md overflow-hidden">
-                    <Table className="min-w-[450px] mb-3">
+                    <Table className="min-w-112.5 mb-3">
                       <TableHeader className="bg-slate-50 text-xs">
                         <TableRow>
-                          <TableHead className="w-[220px] font-semibold text-slate-700">
+                          <TableHead className="w-55 font-semibold text-slate-700">
                             Description
                           </TableHead>
                           <TableHead className="text-right font-semibold text-slate-700">

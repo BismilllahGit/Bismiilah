@@ -33,8 +33,8 @@ export function LabourDuesView({
             Payments Due This Week
           </h2>
           <p className="text-xs text-muted-foreground">
-            Contractors with a positive running payable balance awaiting
-            weekly Saturday settlement
+            Contractors with a positive running payable balance awaiting weekly
+            Saturday settlement
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -50,8 +50,7 @@ export function LabourDuesView({
           <div className="text-center py-12 border rounded-xl bg-white p-6 shadow-sm">
             <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
             <p className="font-medium text-slate-700 text-sm">
-              No pending labour payments due this week! All contractors
-              settled.
+              No pending labour payments due this week! All contractors settled.
             </p>
           </div>
         ) : (
@@ -63,7 +62,7 @@ export function LabourDuesView({
               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                 <Link
                   href={`/vendors/${contractor.contractorId}`}
-                  className="font-bold text-slate-900 hover:text-blue-600 flex items-center gap-2 text-base break-words"
+                  className="font-bold text-slate-900 hover:text-blue-600 flex items-center gap-2 text-base wrap-break-word"
                 >
                   <HardHat className="h-4 w-4 text-orange-500 shrink-0" />
                   <span>{contractor.contractorName}</span>
@@ -110,19 +109,19 @@ export function LabourDuesView({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[750px]">
+        <Table className="min-w-187.5">
           <TableHeader className="bg-slate-50/80 border-b border-slate-200">
             <TableRow>
-              <TableHead className="w-[260px] font-semibold text-slate-700">
+              <TableHead className="w-65 font-semibold text-slate-700">
                 Labour Contractor
               </TableHead>
-              <TableHead className="w-[220px] font-semibold text-slate-700">
+              <TableHead className="w-55 font-semibold text-slate-700">
                 Contact Phone
               </TableHead>
-              <TableHead className="text-right w-[180px] font-semibold text-slate-700">
+              <TableHead className="text-right w-45 font-semibold text-slate-700">
                 Payable Balance (₹)
               </TableHead>
-              <TableHead className="text-right w-[150px] font-semibold text-slate-700">
+              <TableHead className="text-right w-37.5 font-semibold text-slate-700">
                 Action
               </TableHead>
             </TableRow>
@@ -137,8 +136,8 @@ export function LabourDuesView({
                   <div className="flex flex-col items-center justify-center gap-2">
                     <CheckCircle2 className="h-8 w-8 text-emerald-500" />
                     <p className="font-medium">
-                      No pending labour payments due this week! All
-                      contractors settled.
+                      No pending labour payments due this week! All contractors
+                      settled.
                     </p>
                   </div>
                 </TableCell>

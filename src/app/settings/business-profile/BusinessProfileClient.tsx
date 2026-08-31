@@ -125,7 +125,7 @@ export default function BusinessProfileClient() {
                 name="address"
                 value={profile?.address || ""}
                 onChange={handleChange}
-                className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
+                className="flex min-h-20 w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
                 placeholder="Full business address..."
               />
             </div>
@@ -153,7 +153,7 @@ export default function BusinessProfileClient() {
                 name="licenseDetails"
                 value={profile?.licenseDetails || ""}
                 onChange={handleChange}
-                className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
+                className="flex min-h-20 w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
                 placeholder="e.g. Licensed Civil Engineer-RE2001162019"
               />
             </div>
@@ -249,7 +249,7 @@ export default function BusinessProfileClient() {
             name="defaultTerms"
             value={profile?.defaultTerms || ""}
             onChange={handleChange}
-            className="flex min-h-[150px] w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
+            className="flex min-h-37.5 w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
             placeholder="1. Payment is due within 15 days...&#10;2. Rates are exclusive of GST..."
           />
         </CardContent>

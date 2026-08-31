@@ -132,7 +132,7 @@ export default function NewProjectPage() {
               <textarea
                 id="description"
                 name="description"
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 placeholder="Brief details about the project..."
               />
             </div>
@@ -187,7 +187,7 @@ export default function NewProjectPage() {
                 Select workers to assign to this site immediately. You can
                 always change this later.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto p-2 border rounded-md">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-50 overflow-y-auto p-2 border rounded-md">
                 {workers.map((w) => (
                   <label
                     key={w.id}

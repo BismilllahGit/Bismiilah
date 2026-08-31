@@ -1,9 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { HardHat, Package, Receipt, PieChart as PieChartIcon, Loader2, DollarSign, RefreshCw } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
+import {
+  HardHat,
+  Package,
+  Receipt,
+  PieChart as PieChartIcon,
+  Loader2,
+  DollarSign,
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type BreakdownItem = {
@@ -70,9 +91,11 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             Computing Live Cost Breakdown...
           </CardTitle>
-          <CardDescription>Aggregating per-project wages, materials, and expenses</CardDescription>
+          <CardDescription>
+            Aggregating per-project wages, materials, and expenses
+          </CardDescription>
         </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
+        <CardContent className="h-75 flex items-center justify-center text-muted-foreground">
           <span className="text-sm">Fetching live transaction data...</span>
         </CardContent>
       </Card>
@@ -105,7 +128,8 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
             Live Cost Breakdown (Buy-Side)
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground mt-1">
-            Independent percentage breakdown for this site (labour vs. material vs. petty cash)
+            Independent percentage breakdown for this site (labour vs. material
+            vs. petty cash)
           </CardDescription>
         </div>
         <Button
@@ -116,7 +140,9 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
           className="h-8 px-2 text-xs flex items-center gap-1.5 bg-white shadow-xs"
           title="Refresh live metrics"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-primary" : "text-slate-500"}`} />
+          <RefreshCw
+            className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-primary" : "text-slate-500"}`}
+          />
           <span>Refresh</span>
         </Button>
       </CardHeader>
@@ -126,16 +152,27 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
         <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200/60">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <span className="text-xs uppercase font-semibold text-slate-500 tracking-wider">Total Project Outflow</span>
+              <span className="text-xs uppercase font-semibold text-slate-500 tracking-wider">
+                Total Project Outflow
+              </span>
               <div className="text-2xl font-bold font-mono text-slate-900 mt-0.5">
-                ₹{data.totalProjectCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ₹
+                {data.totalProjectCost.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })}
               </div>
             </div>
             {data.agreedValue ? (
               <div className="text-left sm:text-right">
-                <span className="text-xs text-muted-foreground block">Project Agreed Budget</span>
+                <span className="text-xs text-muted-foreground block">
+                  Project Agreed Budget
+                </span>
                 <span className="text-sm font-medium font-mono text-emerald-700">
-                  ₹{data.agreedValue.toLocaleString()} ({((data.totalProjectCost / data.agreedValue) * 100).toFixed(1)}% used)
+                  ₹{data.agreedValue.toLocaleString()} (
+                  {((data.totalProjectCost / data.agreedValue) * 100).toFixed(
+                    1,
+                  )}
+                  % used)
                 </span>
               </div>
             ) : null}
@@ -180,15 +217,19 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
         {!hasCosts ? (
           <div className="py-12 text-center bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
             <PieChartIcon className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-slate-700">No costs logged against this project yet.</p>
+            <p className="text-sm font-medium text-slate-700">
+              No costs logged against this project yet.
+            </p>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-              As daily labour wages, material purchases (BUY transactions), and site expenses are recorded, live charts and percentage percentages will populate here.
+              As daily labour wages, material purchases (BUY transactions), and
+              site expenses are recorded, live charts and percentage percentages
+              will populate here.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             {/* Recharts Donut Pie Chart */}
-            <div className="h-[240px] w-full flex items-center justify-center">
+            <div className="h-60 w-full flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -201,10 +242,17 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
                     dataKey="value"
                     nameKey="name"
                     labelLine={false}
-                    label={({ percent }: { percent?: number }) => `${((percent || 0) * 100).toFixed(1)}%`}
+                    label={({ percent }: { percent?: number }) =>
+                      `${((percent || 0) * 100).toFixed(1)}%`
+                    }
                   >
                     {data.breakdown.map((entry) => (
-                      <Cell key={entry.id} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
+                      <Cell
+                        key={entry.id}
+                        fill={entry.color}
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                      />
                     ))}
                   </Pie>
                   <Tooltip
@@ -219,7 +267,11 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
                       boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                     }}
                   />
-                  <Legend verticalAlign="bottom" height={24} iconType="circle" />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={24}
+                    iconType="circle"
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -240,7 +292,10 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: item.color }} />
+                        <span
+                          className="w-2 h-2 rounded-full inline-block"
+                          style={{ backgroundColor: item.color }}
+                        />
                         {item.name}
                       </div>
                       <span className="text-xs font-mono text-muted-foreground">
@@ -250,18 +305,27 @@ export function ProjectCostBreakdown({ projectId }: { projectId: string }) {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-mono font-bold text-slate-900">
-                      ₹{item.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ₹
+                      {item.value.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      })}
                     </div>
                     <span className="text-[10px] uppercase font-semibold text-slate-400">
-                      {item.id === "material" ? "Excl. transfers" : item.id === "labour" ? "Wage spend" : "Petty cash"}
+                      {item.id === "material"
+                        ? "Excl. transfers"
+                        : item.id === "labour"
+                          ? "Wage spend"
+                          : "Petty cash"}
                     </span>
                   </div>
                 </div>
               ))}
-              
+
               <div className="border-t border-slate-200 pt-2 flex justify-between items-center px-1 text-xs font-medium text-slate-500">
                 <span>Total Calculated Share:</span>
-                <span className="font-mono font-bold text-slate-800">100.0%</span>
+                <span className="font-mono font-bold text-slate-800">
+                  100.0%
+                </span>
               </div>
             </div>
           </div>

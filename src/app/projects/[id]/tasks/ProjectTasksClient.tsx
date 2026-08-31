@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Plus,
-  CheckCircle2,
-  Circle,
-  Trash2,
-  Calendar,
-} from "lucide-react";
+import { Plus, CheckCircle2, Circle, Trash2, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { Button } from "@/components/ui/button";
@@ -46,9 +40,7 @@ export default function ProjectTasksClient({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deleteTaskTarget, setDeleteTaskTarget] = useState<string | null>(
-    null,
-  );
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<string | null>(null);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -327,7 +319,7 @@ export default function ProjectTasksClient({
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
+                className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
                 placeholder="Additional details..."
               />
             </div>

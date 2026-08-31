@@ -175,7 +175,7 @@ export default function SiteExpensesPage({
 
       {/* Categorized Line Item Tables */}
       <Tabs defaultValue="labour" className="w-full space-y-6">
-        <TabsList className="grid !h-auto w-full grid-cols-2 lg:grid-cols-4 items-stretch gap-1.5 bg-slate-100 p-1.5 rounded-lg">
+        <TabsList className="grid h-auto! w-full grid-cols-2 lg:grid-cols-4 items-stretch gap-1.5 bg-slate-100 p-1.5 rounded-lg">
           <TabsTrigger
             value="labour"
             className="flex h-auto min-w-0 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-xs sm:text-sm font-medium leading-tight whitespace-normal text-center cursor-pointer data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-orange-700"

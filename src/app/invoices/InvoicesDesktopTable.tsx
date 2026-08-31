@@ -30,15 +30,13 @@ export function InvoicesDesktopTable({
 }: InvoicesDesktopTableProps) {
   return (
     <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-      <Table className="min-w-[850px]">
+      <Table className="min-w-212.5">
         <TableHeader className="bg-slate-50/80 border-b border-slate-200">
           <TableRow>
-            <TableHead className="w-[140px] font-semibold text-slate-700">
+            <TableHead className="w-35 font-semibold text-slate-700">
               Invoice #
             </TableHead>
-            <TableHead className="font-semibold text-slate-700">
-              Date
-            </TableHead>
+            <TableHead className="font-semibold text-slate-700">Date</TableHead>
             <TableHead className="font-semibold text-slate-700">
               Client & Project
             </TableHead>

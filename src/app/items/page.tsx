@@ -45,9 +45,7 @@ export default function ItemsPage() {
   } = useApiResource<Item[]>("/api/items");
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-  const [deactivateTarget, setDeactivateTarget] = useState<string | null>(
-    null,
-  );
+  const [deactivateTarget, setDeactivateTarget] = useState<string | null>(null);
   const createItem = useApiMutation<Record<string, unknown>, Item>("POST");
   const deactivateItem = useApiMutation<undefined, void>("DELETE");
 
@@ -198,7 +196,7 @@ export default function ItemsPage() {
             >
               <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
                 <div>
-                  <h3 className="font-bold text-slate-900 text-base break-words">
+                  <h3 className="font-bold text-slate-900 text-base wrap-break-word">
                     {item.name}
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
@@ -254,10 +252,10 @@ export default function ItemsPage() {
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[700px]">
+        <Table className="min-w-175">
           <TableHeader className="bg-slate-50/80 border-b border-slate-200">
             <TableRow>
-              <TableHead className="w-[240px] font-semibold text-slate-700">
+              <TableHead className="w-60 font-semibold text-slate-700">
                 Item Name
               </TableHead>
               <TableHead className="font-semibold text-slate-700">

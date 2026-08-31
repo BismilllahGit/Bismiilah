@@ -321,7 +321,7 @@ export function LedgerTable({
                 </div>
 
                 {/* Middle Row: Description */}
-                <div className="text-sm text-slate-700 leading-relaxed break-words font-normal">
+                <div className="text-sm text-slate-700 leading-relaxed wrap-break-word font-normal">
                   {row.description || (
                     <span className="italic text-muted-foreground">
                       No description
@@ -334,7 +334,7 @@ export function LedgerTable({
                   <div className="bg-slate-50/80 rounded-lg p-2.5 flex flex-col justify-center border border-slate-100/80">
                     {row.debit > 0 ? (
                       <>
-                        <span className="text-slate-500 text-[10px] uppercase tracking-wider font-semibold mb-0.5 break-words">
+                        <span className="text-slate-500 text-[10px] uppercase tracking-wider font-semibold mb-0.5 wrap-break-word">
                           {debitLabel}
                         </span>
                         <span className="font-mono font-bold text-orange-600 text-sm sm:text-base">
@@ -343,7 +343,7 @@ export function LedgerTable({
                       </>
                     ) : row.credit > 0 ? (
                       <>
-                        <span className="text-slate-500 text-[10px] uppercase tracking-wider font-semibold mb-0.5 break-words">
+                        <span className="text-slate-500 text-[10px] uppercase tracking-wider font-semibold mb-0.5 wrap-break-word">
                           {creditLabel}
                         </span>
                         <span className="font-mono font-bold text-green-600 text-sm sm:text-base">
@@ -393,7 +393,7 @@ export function LedgerTable({
         <div className="bg-slate-900 text-white rounded-xl p-4 shadow-md space-y-3.5 border border-slate-800">
           <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-800 text-center">
             <div className="bg-slate-800/90 rounded-lg p-2.5 border border-slate-700/60">
-              <span className="block text-slate-400 text-[10px] uppercase tracking-wider font-semibold mb-1 break-words">
+              <span className="block text-slate-400 text-[10px] uppercase tracking-wider font-semibold mb-1 wrap-break-word">
                 Total {debitLabel}
               </span>
               <span className="font-mono font-bold text-orange-400 text-sm sm:text-base">
@@ -401,7 +401,7 @@ export function LedgerTable({
               </span>
             </div>
             <div className="bg-slate-800/90 rounded-lg p-2.5 border border-slate-700/60">
-              <span className="block text-slate-400 text-[10px] uppercase tracking-wider font-semibold mb-1 break-words">
+              <span className="block text-slate-400 text-[10px] uppercase tracking-wider font-semibold mb-1 wrap-break-word">
                 Total {creditLabel}
               </span>
               <span className="font-mono font-bold text-green-400 text-sm sm:text-base">
@@ -423,23 +423,17 @@ export function LedgerTable({
 
       {/* Desktop Table View (lg and above) */}
       <div className="hidden lg:block border rounded-md bg-white shadow-sm">
-        <Table className="min-w-[800px]">
+        <Table className="min-w-200">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-[120px]">Date</TableHead>
-              <TableHead className="w-[150px]">Voucher No.</TableHead>
+              <TableHead className="w-30">Date</TableHead>
+              <TableHead className="w-37.5">Voucher No.</TableHead>
               <TableHead>Particulars</TableHead>
-              <TableHead className="text-right w-[140px]">
-                {debitLabel}
-              </TableHead>
-              <TableHead className="text-right w-[140px]">
-                {creditLabel}
-              </TableHead>
-              <TableHead className="text-right w-[160px]">Balance</TableHead>
+              <TableHead className="text-right w-35">{debitLabel}</TableHead>
+              <TableHead className="text-right w-35">{creditLabel}</TableHead>
+              <TableHead className="text-right w-40">Balance</TableHead>
               {showValueBalance && (
-                <TableHead className="text-right w-[160px]">
-                  Value (₹)
-                </TableHead>
+                <TableHead className="text-right w-40">Value (₹)</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -571,7 +565,7 @@ export function LedgerTable({
               size="sm"
               disabled={page <= 1 || loading}
               onClick={() => onPageChange && onPageChange(page - 1)}
-              className="h-8 max-sm:h-10 max-sm:px-4 max-sm:min-h-[40px] max-sm:min-w-[70px] text-xs max-sm:text-sm"
+              className="h-8 max-sm:h-10 max-sm:px-4 max-sm:min-h-10 max-sm:min-w-17.5 text-xs max-sm:text-sm"
             >
               Previous
             </Button>
@@ -581,7 +575,7 @@ export function LedgerTable({
               size="sm"
               disabled={page >= totalPages || loading}
               onClick={() => onPageChange && onPageChange(page + 1)}
-              className="h-8 max-sm:h-10 max-sm:px-4 max-sm:min-h-[40px] max-sm:min-w-[70px] text-xs max-sm:text-sm"
+              className="h-8 max-sm:h-10 max-sm:px-4 max-sm:min-h-10 max-sm:min-w-17.5 text-xs max-sm:text-sm"
             >
               Next
             </Button>

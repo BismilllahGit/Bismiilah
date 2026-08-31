@@ -41,14 +41,14 @@ export default function SiteExpensesView({
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
             >
               <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
-                <span className="font-bold text-slate-900 text-base block break-words">
+                <span className="font-bold text-slate-900 text-base block wrap-break-word">
                   {exp.category}
                 </span>
                 <span className="text-xs font-medium text-slate-500 shrink-0">
                   {new Date(exp.date).toLocaleDateString()}
                 </span>
               </div>
-              <div className="text-sm text-slate-700 break-words">
+              <div className="text-sm text-slate-700 wrap-break-word">
                 {exp.description || (
                   <span className="text-slate-400 italic font-normal text-xs">
                     No description provided
@@ -73,15 +73,13 @@ export default function SiteExpensesView({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[600px]">
+        <Table className="min-w-150">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-[130px] font-semibold">Date</TableHead>
+              <TableHead className="w-32.5 font-semibold">Date</TableHead>
               <TableHead className="font-semibold">Category</TableHead>
               <TableHead className="font-semibold">Description</TableHead>
-              <TableHead className="text-right font-semibold">
-                Amount
-              </TableHead>
+              <TableHead className="text-right font-semibold">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -112,9 +110,7 @@ export default function SiteExpensesView({
                   <TableCell className="font-medium whitespace-nowrap">
                     {new Date(exp.date).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="font-medium">
-                    {exp.category}
-                  </TableCell>
+                  <TableCell className="font-medium">{exp.category}</TableCell>
                   <TableCell className="text-sm text-slate-600">
                     {exp.description || (
                       <span className="text-muted-foreground italic">

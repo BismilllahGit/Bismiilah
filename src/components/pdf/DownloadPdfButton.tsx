@@ -70,7 +70,7 @@ export function DownloadPdfButton({
       size={size}
       onClick={handleDownload}
       disabled={loading || disabled}
-      className={`max-sm:h-10 max-sm:min-h-[40px] max-sm:px-3 font-medium transition-colors ${className}`}
+      className={`max-sm:h-10 max-sm:min-h-10 max-sm:px-3 font-medium transition-colors ${className}`}
     >
       {loading ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />

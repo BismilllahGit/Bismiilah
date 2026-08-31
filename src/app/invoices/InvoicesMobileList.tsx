@@ -81,7 +81,7 @@ export function InvoicesMobileList({
               </div>
 
               <div className="space-y-0.5">
-                <h3 className="font-bold text-slate-900 text-base break-words">
+                <h3 className="font-bold text-slate-900 text-base wrap-break-word">
                   {inv.client.name}
                 </h3>
                 <p className="text-xs font-medium text-slate-500">

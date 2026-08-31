@@ -290,7 +290,7 @@ export default function ClientDetailPage({
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <User className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground shrink-0" />
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight wrap-break-word">
               {client?.name || "Loading..."}
             </h1>
           </div>
@@ -303,7 +303,7 @@ export default function ClientDetailPage({
             {client?.address && (
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4 shrink-0" />{" "}
-                <span className="break-words">{client.address}</span>
+                <span className="wrap-break-word">{client.address}</span>
               </div>
             )}
           </div>

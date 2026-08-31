@@ -56,8 +56,7 @@ export function ClientDuesView({
           </div>
         ) : (
           clientDues.map((due) => {
-            const isPastDue =
-              new Date(due.dueDate).getTime() < today.getTime();
+            const isPastDue = new Date(due.dueDate).getTime() < today.getTime();
             return (
               <div
                 key={due.id}
@@ -96,7 +95,7 @@ export function ClientDuesView({
                 <div className="space-y-1">
                   <Link
                     href={`/clients/${due.clientId}`}
-                    className="font-bold text-base text-blue-600 hover:underline block break-words"
+                    className="font-bold text-base text-blue-600 hover:underline block wrap-break-word"
                   >
                     {due.clientName}
                   </Link>
@@ -137,28 +136,28 @@ export function ClientDuesView({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[850px]">
+        <Table className="min-w-212.5">
           <TableHeader className="bg-slate-50/80 border-b border-slate-200">
             <TableRow>
-              <TableHead className="w-[140px] font-semibold text-slate-700">
+              <TableHead className="w-35 font-semibold text-slate-700">
                 Due Date
               </TableHead>
-              <TableHead className="w-[140px] font-semibold text-slate-700">
+              <TableHead className="w-35 font-semibold text-slate-700">
                 Invoice #
               </TableHead>
               <TableHead className="font-semibold text-slate-700">
                 Client & Project
               </TableHead>
-              <TableHead className="w-[160px] font-semibold text-slate-700">
+              <TableHead className="w-40 font-semibold text-slate-700">
                 Contact
               </TableHead>
-              <TableHead className="w-[110px] font-semibold text-slate-700">
+              <TableHead className="w-27.5 font-semibold text-slate-700">
                 Status
               </TableHead>
-              <TableHead className="text-right w-[150px] font-semibold text-slate-700">
+              <TableHead className="text-right w-37.5 font-semibold text-slate-700">
                 Balance Due (₹)
               </TableHead>
-              <TableHead className="text-right w-[140px] font-semibold text-slate-700">
+              <TableHead className="text-right w-35 font-semibold text-slate-700">
                 Action
               </TableHead>
             </TableRow>

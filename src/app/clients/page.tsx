@@ -46,9 +46,7 @@ export default function ClientsPage() {
   } = useApiResource<Client[]>("/api/clients");
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-  const [deactivateTarget, setDeactivateTarget] = useState<string | null>(
-    null,
-  );
+  const [deactivateTarget, setDeactivateTarget] = useState<string | null>(null);
   const createClient = useApiMutation<Record<string, unknown>, Client>("POST");
   const deactivateClient = useApiMutation<undefined, void>("DELETE");
 
@@ -173,7 +171,7 @@ export default function ClientsPage() {
               >
                 <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
                   <div className="space-y-0.5">
-                    <h3 className="font-bold text-slate-900 text-base break-words">
+                    <h3 className="font-bold text-slate-900 text-base wrap-break-word">
                       {client.name}
                     </h3>
                     {client.phone ? (
@@ -224,10 +222,10 @@ export default function ClientsPage() {
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[650px]">
+        <Table className="min-w-162.5">
           <TableHeader className="bg-slate-50/80 border-b border-slate-200">
             <TableRow>
-              <TableHead className="w-[240px] font-semibold text-slate-700">
+              <TableHead className="w-60 font-semibold text-slate-700">
                 Client Name
               </TableHead>
               <TableHead className="font-semibold text-slate-700">

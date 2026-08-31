@@ -42,7 +42,7 @@ export default function VendorTransactionsView({
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
             >
               <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
-                <span className="font-bold text-slate-900 text-base block break-words">
+                <span className="font-bold text-slate-900 text-base block wrap-break-word">
                   {v.contact.name}
                 </span>
                 <span className="text-xs font-medium text-slate-500 shrink-0">
@@ -50,7 +50,7 @@ export default function VendorTransactionsView({
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-slate-700 text-sm font-medium break-words">
+                <span className="text-slate-700 text-sm font-medium wrap-break-word">
                   {v.description || (
                     <span className="text-slate-400 italic font-normal">
                       No description provided
@@ -86,16 +86,14 @@ export default function VendorTransactionsView({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-[650px]">
+        <Table className="min-w-162.5">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-[130px] font-semibold">Date</TableHead>
+              <TableHead className="w-32.5 font-semibold">Date</TableHead>
               <TableHead className="font-semibold">Vendor Name</TableHead>
               <TableHead className="font-semibold">Type</TableHead>
               <TableHead className="font-semibold">Description</TableHead>
-              <TableHead className="text-right font-semibold">
-                Amount
-              </TableHead>
+              <TableHead className="text-right font-semibold">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

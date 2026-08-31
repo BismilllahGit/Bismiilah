@@ -85,9 +85,8 @@ export function RecordPaymentSheet({
               Payment Recorded!
             </h3>
             <p className="text-slate-500 text-center text-sm px-4">
-              Successfully logged ₹
-              {successPaymentData.amount.toLocaleString()} for{" "}
-              {successPaymentData.projectName}.
+              Successfully logged ₹{successPaymentData.amount.toLocaleString()}{" "}
+              for {successPaymentData.projectName}.
             </p>
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
@@ -154,9 +153,7 @@ export function RecordPaymentSheet({
                     className="mt-1"
                   />
                   <div>
-                    <div className="font-semibold">
-                      Advance / Split Payment
-                    </div>
+                    <div className="font-semibold">Advance / Split Payment</div>
                     <div className="text-muted-foreground text-xs">
                       Record advance funds or split payment across multiple
                       invoices.
@@ -175,7 +172,7 @@ export function RecordPaymentSheet({
                   step="0.01"
                   min="1"
                   required
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm font-bold text-lg"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm font-bold md:text-lg"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder="0.00"
@@ -211,8 +208,8 @@ export function RecordPaymentSheet({
                     Allocate to Invoices (Optional)
                   </label>
                   <div className="text-xs text-muted-foreground mb-3">
-                    Any unallocated amount will remain as an advance credit
-                    on the ledger.
+                    Any unallocated amount will remain as an advance credit on
+                    the ledger.
                   </div>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                     {unpaidInvoices.map((inv) => {
@@ -279,9 +276,7 @@ export function RecordPaymentSheet({
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Payment Method
-                  </label>
+                  <label className="text-sm font-medium">Payment Method</label>
                   <select
                     name="method"
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"

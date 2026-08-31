@@ -147,7 +147,7 @@ export default async function Home() {
           </CardHeader>
           <CardContent>
             {recentActivities.length === 0 ? (
-              <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-md">
+              <div className="flex h-50 items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-md">
                 No recent activity to display.
               </div>
             ) : (
