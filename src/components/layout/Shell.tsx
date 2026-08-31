@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   Building2,
   Users,
@@ -15,6 +16,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -62,6 +64,32 @@ export function Shell({ children }: { children: React.ReactNode }) {
     return () => stopTimer(); // Cleanup on unmount
   }, [isCollapsed, startTimer, stopTimer]);
 
+  const handleLogout = React.useCallback(() => {
+    // Guarantee the redirect happens even if the signOut request itself
+    // fails (network blip, etc.) — proxy.ts will re-check the session on
+    // arrival at /login regardless, but the user should never be stranded
+    // on an authenticated page with no way forward.
+    signOut({ callbackUrl: "/login" }).catch(() => {
+      window.location.href = "/login";
+    });
+  }, []);
+
+  // Shell only ever renders for an authenticated request. If the browser
+  // restores this page from its back/forward cache (e.g. pressing Back after
+  // logging out), the DOM — sidebar included — reappears instantly from
+  // memory with no server round-trip, so `proxy.ts` never gets a chance to
+  // re-check the session. `pageshow` fires even on a bfcache restore; force
+  // a real reload so the auth check actually re-runs.
+  React.useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 md:flex-row">
       {/* Mobile Nav */}
@@ -108,6 +136,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   </nav>
                 </div>
               </ScrollArea>
+              <div className="border-t p-4">
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-red-50 hover:text-red-600"
+                >
+                  <LogOut className="h-5 w-5 shrink-0" />
+                  Logout
+                </button>
+              </div>
             </SheetContent>
           </Sheet>
           <Link
@@ -126,7 +163,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         onMouseLeave={() => {
           if (!isCollapsed) startTimer();
         }}
-        className={`hidden shrink-0 border-r bg-white md:block sticky top-0 h-screen transition-all duration-300 ease-in-out ${
+        className={`hidden shrink-0 border-r bg-white md:flex md:flex-col sticky top-0 h-screen transition-all duration-300 ease-in-out ${
           isCollapsed ? "w-16" : "w-56 lg:w-67.5"
         }`}
       >
@@ -172,7 +209,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </Link>
           {!isCollapsed && <GlobalTaskNotification />}
         </div>
-        <ScrollArea className="h-[calc(100vh-60px)]">
+        <ScrollArea className="flex-1 min-h-0">
           <div
             className={cn(
               "flex-1 overflow-auto py-4",
@@ -203,6 +240,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
         </ScrollArea>
+        <div className="shrink-0 border-t p-2">
+          <button
+            onClick={handleLogout}
+            title={isCollapsed ? "Logout" : undefined}
+            className={`flex w-full items-center rounded-lg py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-red-50 hover:text-red-600 cursor-pointer ${
+              isCollapsed ? "justify-center px-0" : "gap-3 px-3"
+            }`}
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            {!isCollapsed && <span>Logout</span>}
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
