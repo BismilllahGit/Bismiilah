@@ -24,9 +24,24 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // getToken()'s own auto-detection of the `__Secure-` cookie prefix falls
+  // back to reading `NEXTAUTH_URL` — which is "http://localhost:3000" in
+  // this project's env even in production. That makes it look for the
+  // unprefixed cookie name while NextAuth's core (used by getServerSession
+  // in the root layout) derives secure-vs-not from the actual incoming
+  // request and correctly uses the `__Secure-` prefix on HTTPS. The two
+  // disagreeing meant an authenticated production user was treated as
+  // logged out here while the root layout still saw them as logged in —
+  // sidebar and login form rendering at once. Derive it from the request
+  // instead, so both checks agree.
+  const secureCookie =
+    request.nextUrl.protocol === "https:" ||
+    request.headers.get("x-forwarded-proto") === "https";
+
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
+    secureCookie,
   });
 
   if (!token) {
