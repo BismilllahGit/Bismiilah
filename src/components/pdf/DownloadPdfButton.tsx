@@ -29,6 +29,10 @@ export function DownloadPdfButton({
   const handleDownload = async () => {
     setLoading(true);
     setError(null);
+    // Open the tab synchronously, inside the click handler, so browsers still
+    // treat it as a direct result of the user gesture (avoids popup blockers)
+    // — we point it at the PDF once it's ready below.
+    const newTab = window.open("", "_blank");
     try {
       const res = await fetch("/api/reports/pdf", {
         method: "POST",
@@ -46,15 +50,34 @@ export function DownloadPdfButton({
         throw new Error(errorData.error || "Failed to generate PDF report");
       }
 
-      const { url } = await res.json();
+      // Server streams the PDF bytes directly (no object storage involved),
+      // so pull it down as a blob: open it in the reserved tab, and also
+      // save a copy via a download link.
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const fileNameMatch = disposition.match(/filename="?([^";]+)"?/);
+      const fileName = fileNameMatch?.[1] || `${reportType}.pdf`;
+      const blobUrl = window.URL.createObjectURL(blob);
 
-      if (url) {
-        // Open signed URL in a new tab / trigger download
-        window.open(url, "_blank");
+      if (newTab) {
+        newTab.location.href = blobUrl;
       } else {
-        throw new Error("No download URL returned from server");
+        // Popup was blocked despite the synchronous open — fall back to
+        // navigating the current tab.
+        window.location.href = blobUrl;
       }
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      // Give the tab time to actually load the blob before freeing it.
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
     } catch (err) {
+      newTab?.close();
       console.error("PDF Export error:", err);
       const message = err instanceof Error ? err.message : undefined;
       setError(message || "Export failed");

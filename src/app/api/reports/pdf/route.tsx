@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { ReportLayout, PdfTable, PdfColumn } from "@/lib/pdf/ReportLayout";
-import { uploadPdfAndGetSignedUrl } from "@/lib/storage";
 import {
   getClientLedgerData,
   getInventoryLedgerData,
@@ -492,12 +491,20 @@ export async function POST(request: Request) {
 
     const buffer = await renderToBuffer(pdfDocument);
 
-    // Upload to Cloudflare R2 (or local fallback) under reports/{reportType}/{timestamp}.pdf
+    // Stream the PDF straight back in the response — no disk/object-storage
+    // write involved, so this works the same in serverless production (where
+    // the deployment filesystem is read-only) as it does locally.
     const timestamp = Date.now();
-    const filePath = `reports/${reportType}/${timestamp}.pdf`;
-    const signedUrl = await uploadPdfAndGetSignedUrl(buffer, filePath);
+    const fileName = `${reportType}_${timestamp}.pdf`;
 
-    return NextResponse.json({ url: signedUrl, expirySeconds: 3600 });
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Length": String(buffer.length),
+      },
+    });
   } catch (error) {
     console.error("PDF Generation failed:", error);
     return NextResponse.json(

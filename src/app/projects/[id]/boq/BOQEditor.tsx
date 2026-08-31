@@ -704,6 +704,10 @@ export default function BOQEditor({
   const handleDownloadQuotation = async () => {
     if (!currentBOQ || isMutating) return;
     setExportingPdf(true);
+    // Open the tab synchronously, inside the click handler, so browsers still
+    // treat it as a direct result of the user gesture (avoids popup blockers)
+    // — we point it at the PDF once it's ready below.
+    const newTab = window.open("", "_blank");
     try {
       const res = await fetch("/api/reports/pdf", {
         method: "POST",
@@ -714,9 +718,35 @@ export default function BOQEditor({
         }),
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data.url) window.open(data.url, "_blank");
+        const blob = await res.blob();
+        const disposition = res.headers.get("Content-Disposition") || "";
+        const fileNameMatch = disposition.match(/filename="?([^";]+)"?/);
+        const fileName = fileNameMatch?.[1] || "boq.pdf";
+        const blobUrl = window.URL.createObjectURL(blob);
+
+        if (newTab) {
+          newTab.location.href = blobUrl;
+        } else {
+          // Popup was blocked despite the synchronous open — fall back to
+          // navigating the current tab.
+          window.location.href = blobUrl;
+        }
+
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        // Give the tab time to actually load the blob before freeing it.
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+      } else {
+        newTab?.close();
       }
+    } catch (err) {
+      newTab?.close();
+      throw err;
     } finally {
       setExportingPdf(false);
     }
