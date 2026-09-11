@@ -9,6 +9,7 @@ const settingsNav = [
   { name: "Business Profile", href: "/settings/business-profile" },
   { name: "Wage Rates", href: "/settings/wage-rates" },
   { name: "BOQ Templates", href: "/settings/templates" },
+  { name: "Account Settings", href: "/settings/account" },
 ];
 
 export default function SettingsLayout({
