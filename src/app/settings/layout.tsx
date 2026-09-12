@@ -9,6 +9,7 @@ const settingsNav = [
   { name: "Business Profile", href: "/settings/business-profile" },
   { name: "Wage Rates", href: "/settings/wage-rates" },
   { name: "BOQ Templates", href: "/settings/templates" },
+  { name: "Account Settings", href: "/settings/account" },
 ];
 
 export default function SettingsLayout({
@@ -29,13 +30,13 @@ export default function SettingsLayout({
 
       <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
         <aside className="mx-4 lg:w-1/6">
-          <nav className="flex space-x-2 gap-y-1.5 lg:flex-col lg:space-x-0 lg:space-y-1">
+          <nav className="grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:space-x-0 lg:space-y-1">
             {settingsNav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "justify-start px-4 py-2 text-sm text-center md:text-left font-medium rounded-md hover:bg-slate-100 hover:text-slate-900",
+                  "block w-full whitespace-nowrap px-4 py-2 text-sm text-center md:text-left font-medium rounded-md hover:bg-slate-100 hover:text-slate-900",
                   pathname === item.href
                     ? "bg-slate-100 text-slate-900"
                     : "text-slate-500",
