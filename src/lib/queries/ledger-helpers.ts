@@ -45,12 +45,9 @@ export function buildSearchFilter(search?: string | null): Prisma.Sql {
  * page starts past the end of the list, it's the final running balance;
  * otherwise it's the un-paginated opening balance.
  */
-export function paginateWithCarriedBalance<Row extends { runningBalance: number }>(
-  rows: Row[],
-  openingBalance: number,
-  page: number,
-  limit: number,
-) {
+export function paginateWithCarriedBalance<
+  Row extends { runningBalance: number },
+>(rows: Row[], openingBalance: number, page: number, limit: number) {
   const total = rows.length;
   const totalPages = Math.ceil(total / limit) || 1;
   const offset = (page - 1) * limit;
@@ -79,6 +76,7 @@ export interface RawLedgerRow {
   debit: unknown;
   credit: unknown;
   runningBalance: unknown;
+  entryType?: string;
 }
 
 export interface FormattedLedgerRow {
@@ -89,6 +87,7 @@ export interface FormattedLedgerRow {
   debit: number;
   credit: number;
   runningBalance: number;
+  entryType?: string;
 }
 
 /**
@@ -99,7 +98,12 @@ export interface FormattedLedgerRow {
  */
 export function finalizeDebitCreditLedger(
   rawRows: RawLedgerRow[],
-  opts: { openingBalance: number; page: number; limit: number; creditIncreasesBalance: boolean },
+  opts: {
+    openingBalance: number;
+    page: number;
+    limit: number;
+    creditIncreasesBalance: boolean;
+  },
 ) {
   let totalDebit = 0;
   let totalCredit = 0;
@@ -117,6 +121,7 @@ export function finalizeDebitCreditLedger(
       debit,
       credit,
       runningBalance: Number(row.runningBalance),
+      entryType: row.entryType,
     };
   });
 
@@ -124,12 +129,13 @@ export function finalizeDebitCreditLedger(
     ? opts.openingBalance + totalCredit - totalDebit
     : opts.openingBalance + totalDebit - totalCredit;
 
-  const { total, totalPages, pageOpeningBalance, pageRows } = paginateWithCarriedBalance(
-    formattedRows,
-    opts.openingBalance,
-    opts.page,
-    opts.limit,
-  );
+  const { total, totalPages, pageOpeningBalance, pageRows } =
+    paginateWithCarriedBalance(
+      formattedRows,
+      opts.openingBalance,
+      opts.page,
+      opts.limit,
+    );
 
   return {
     rows: pageRows,

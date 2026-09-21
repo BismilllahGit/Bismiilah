@@ -90,8 +90,16 @@ export async function getVendorLedgerData(
   // 2. Build the main query, applying the shared date/search filters
   let rows: RawLedgerRow[] = [];
   if (contact.type === "LABOUR_CONTRACTOR") {
-    const dateFilterLabour = buildDateRangeFilter("dle.date", startDate, endDate);
-    const dateFilterPayment = buildDateRangeFilter("payment_date", startDate, endDate);
+    const dateFilterLabour = buildDateRangeFilter(
+      "dle.date",
+      startDate,
+      endDate,
+    );
+    const dateFilterPayment = buildDateRangeFilter(
+      "payment_date",
+      startDate,
+      endDate,
+    );
     const dateFilterVendor = buildDateRangeFilter("date", startDate, endDate);
 
     rows = await prisma.$queryRaw<RawLedgerRow[]>`
@@ -103,7 +111,8 @@ export async function getVendorLedgerData(
           CONCAT('Daily Labour: ', dle.headcount, ' x ₹', dle.wage_rate, ' (', COALESCE(wt.name, 'WORKER'), ')', CASE WHEN dle.title IS NOT NULL AND dle.title <> '' THEN CONCAT(' - ', dle.title) ELSE '' END) as description,
           0::float as debit,
           (dle.headcount * dle.wage_rate)::float as credit,
-          dle.created_at
+          dle.created_at,
+          'labour_entry' AS "entryType"
         FROM daily_labour_entries dle
         LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
         WHERE dle.contractor_id = ${contactId} AND dle.paid_immediately = false
@@ -111,34 +120,36 @@ export async function getVendorLedgerData(
 
         UNION ALL
 
-        SELECT 
+        SELECT
           id,
           voucher_number as "voucherNumber",
           payment_date as date,
           CONCAT('Labour Payment (', method, ')', CASE WHEN note IS NOT NULL AND note <> '' THEN CONCAT(': ', note) ELSE '' END) as description,
           amount::float as debit,
           0::float as credit,
-          created_at
+          created_at,
+          'labour_payment' AS "entryType"
         FROM labour_payments
         WHERE contact_id = ${contactId}
         ${dateFilterPayment}
 
         UNION ALL
 
-        SELECT 
+        SELECT
           id,
           voucher_number as "voucherNumber",
           date,
           COALESCE(description, 'Vendor Transaction') as description,
           CASE WHEN type = 'PAYMENT' THEN amount::float ELSE 0::float END as debit,
           CASE WHEN type = 'PURCHASE' THEN amount::float ELSE 0::float END as credit,
-          created_at
+          created_at,
+          'vendor_transaction' AS "entryType"
         FROM vendor_transactions
         WHERE contact_id = ${contactId}
         ${dateFilterVendor}
       ),
       calculated AS (
-        SELECT 
+        SELECT
           id,
           "voucherNumber",
           date,
@@ -146,6 +157,7 @@ export async function getVendorLedgerData(
           debit,
           credit,
           created_at,
+          "entryType",
           ${openingBalance} + SUM(credit - debit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
         FROM contractor_ledger
       )
@@ -166,6 +178,7 @@ export async function getVendorLedgerData(
           CASE WHEN type = 'PAYMENT' THEN amount ELSE 0 END AS debit,
           CASE WHEN type = 'PURCHASE' THEN amount ELSE 0 END AS credit,
           created_at,
+          'vendor_transaction' AS "entryType",
           ${openingBalance} + SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE -amount END)
             OVER (ORDER BY date, created_at, id) AS "runningBalance"
         FROM vendor_transactions
@@ -224,7 +237,11 @@ export async function getLabourContractorLedgerData(
   }
 
   const dateFilterLabour = buildDateRangeFilter("dle.date", startDate, endDate);
-  const dateFilterPayment = buildDateRangeFilter("payment_date", startDate, endDate);
+  const dateFilterPayment = buildDateRangeFilter(
+    "payment_date",
+    startDate,
+    endDate,
+  );
   const searchOuterFilter = buildSearchFilter(search);
 
   const rawRows = await prisma.$queryRaw<RawLedgerRow[]>`
@@ -237,9 +254,10 @@ export async function getLabourContractorLedgerData(
           WHEN dle.title IS NULL OR dle.title = '' THEN CONCAT('Labour supplied: ', dle.headcount, ' ', COALESCE(wt.name, 'WORKER'), ' @ ₹', dle.wage_rate)
           ELSE CONCAT(dle.title, ' (', dle.headcount, ' ', COALESCE(wt.name, 'WORKER'), ' @ ₹', dle.wage_rate, ')')
         END AS description,
-        (dle.headcount * dle.wage_rate)::float AS debit, 
-        0::float AS credit, 
-        dle.created_at
+        (dle.headcount * dle.wage_rate)::float AS debit,
+        0::float AS credit,
+        dle.created_at,
+        'labour_entry' AS "entryType"
       FROM daily_labour_entries dle
       LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
       WHERE dle.contractor_id = ${contactId} AND dle.paid_immediately = false
@@ -247,23 +265,24 @@ export async function getLabourContractorLedgerData(
 
       UNION ALL
 
-      SELECT 
+      SELECT
         id,
-        voucher_number AS "voucherNumber", 
+        voucher_number AS "voucherNumber",
         payment_date AS date,
-        CASE 
+        CASE
           WHEN note IS NULL OR note = '' THEN CONCAT('Payment out (', method, ')')
           ELSE CONCAT(note, ' (', method, ')')
         END AS description,
-        0::float AS debit, 
-        amount::float AS credit, 
-        created_at
+        0::float AS debit,
+        amount::float AS credit,
+        created_at,
+        'labour_payment' AS "entryType"
       FROM labour_payments
       WHERE contact_id = ${contactId}
       ${dateFilterPayment}
     ),
     calculated AS (
-      SELECT 
+      SELECT
         id,
         "voucherNumber",
         date,
@@ -271,6 +290,7 @@ export async function getLabourContractorLedgerData(
         debit,
         credit,
         created_at,
+        "entryType",
         ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
       FROM combined
     )
@@ -325,8 +345,16 @@ export async function getClientLedgerData(
     openingBalance = Number(result[0]?.opening_balance) || 0;
   }
 
-  const dateFilterInvoices = buildDateRangeFilter("issued_date", startDate, endDate);
-  const dateFilterPayments = buildDateRangeFilter("payment_date", startDate, endDate);
+  const dateFilterInvoices = buildDateRangeFilter(
+    "issued_date",
+    startDate,
+    endDate,
+  );
+  const dateFilterPayments = buildDateRangeFilter(
+    "payment_date",
+    startDate,
+    endDate,
+  );
   const searchOuterFilter = buildSearchFilter(search);
 
   const rows = await prisma.$queryRaw<RawLedgerRow[]>`
@@ -334,31 +362,33 @@ export async function getClientLedgerData(
       SELECT
         invoice_number AS "voucherNumber",
         issued_date AS date,
-        COALESCE(NULLIF(notes, ''), CONCAT('Invoice raised (', invoice_number, ')')) AS description, 
-        amount AS debit, 
+        COALESCE(NULLIF(notes, ''), CONCAT('Invoice raised (', invoice_number, ')')) AS description,
+        amount AS debit,
         0 AS credit,
-        created_at, 
-        id
-      FROM invoices 
+        created_at,
+        id,
+        'invoice' AS "entryType"
+      FROM invoices
       WHERE client_id = ${clientId} AND status != 'VOID'
       ${dateFilterInvoices}
-      
+
       UNION ALL
-      
-      SELECT 
-        voucher_number AS "voucherNumber", 
+
+      SELECT
+        voucher_number AS "voucherNumber",
         payment_date AS date,
         COALESCE(NULLIF(note, ''), CASE WHEN invoice_id IS NULL THEN 'Advance payment (unallocated)' ELSE 'Payment received' END) AS description,
-        0 AS debit, 
+        0 AS debit,
         amount AS credit,
-        created_at, 
-        id
-      FROM client_payments 
+        created_at,
+        id,
+        'payment' AS "entryType"
+      FROM client_payments
       WHERE client_id = ${clientId}
       ${dateFilterPayments}
     ),
     calculated AS (
-      SELECT 
+      SELECT
         id,
         "voucherNumber",
         date,
@@ -366,6 +396,7 @@ export async function getClientLedgerData(
         debit,
         credit,
         created_at,
+        "entryType",
         ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
       FROM combined
     )

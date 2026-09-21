@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -29,6 +30,12 @@ export type LedgerRow = {
   credit: number;
   runningBalance: number;
   runningValueBalance?: number;
+  entryType?:
+    | "invoice"
+    | "payment"
+    | "vendor_transaction"
+    | "labour_entry"
+    | "labour_payment";
 };
 
 interface LedgerTableProps {
@@ -53,6 +60,8 @@ interface LedgerTableProps {
   contactName?: string;
   contactPhone?: string | null;
   shareLinkType?: "vendor_ledger" | "client_ledger" | "labour_ledger";
+  onEditRow?: (row: LedgerRow) => void;
+  onDeleteRow?: (row: LedgerRow) => void;
 }
 
 export function LedgerTable({
@@ -77,6 +86,8 @@ export function LedgerTable({
   contactName,
   contactPhone,
   shareLinkType,
+  onEditRow,
+  onDeleteRow,
 }: LedgerTableProps) {
   const [datePreset, setDatePreset] = useState("all-time");
   const [customStart, setCustomStart] = useState("");
@@ -262,7 +273,7 @@ export function LedgerTable({
               {/* {shareLinkType && contactName && contactPhone && (
                 <ShareViaWhatsAppButton
                   phone={contactPhone}
-                  message={`Hi ${contactName}, here is your ledger statement from Bismillah Construction. View it here: ${typeof window !== "undefined" ? window.location.origin : ""}/share/${shareLinkType}/${pdfParams.contactId}?startDate=${activeStart || ""}&endDate=${activeEnd || ""}&search=${searchText || ""}`}
+                  message={`Hi ${contactName}, here is your ledger statement from Veneer and Keying. View it here: ${typeof window !== "undefined" ? window.location.origin : ""}/share/${shareLinkType}/${pdfParams.contactId}?startDate=${activeStart || ""}&endDate=${activeEnd || ""}&search=${searchText || ""}`}
                   variant="secondary"
                   className="w-full sm:w-auto h-9"
                   logType={
@@ -315,9 +326,31 @@ export function LedgerTable({
                   <span className="font-bold text-slate-800 text-sm">
                     {new Date(row.date).toLocaleDateString("en-GB")}
                   </span>
-                  <span className="font-mono bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-md font-semibold">
-                    {row.voucherNumber || "VOUCHER"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-md font-semibold">
+                      {row.voucherNumber || "VOUCHER"}
+                    </span>
+                    {onEditRow && row.id && (
+                      <button
+                        type="button"
+                        aria-label="Edit transaction"
+                        onClick={() => onEditRow(row)}
+                        className="p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {onDeleteRow && row.id && (
+                      <button
+                        type="button"
+                        aria-label="Delete transaction"
+                        onClick={() => onDeleteRow(row)}
+                        className="p-1 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Middle Row: Description */}
@@ -435,6 +468,9 @@ export function LedgerTable({
               {showValueBalance && (
                 <TableHead className="text-right w-40">Value (₹)</TableHead>
               )}
+              {(onEditRow || onDeleteRow) && (
+                <TableHead className="w-20"></TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
@@ -457,12 +493,17 @@ export function LedgerTable({
               {showValueBalance && (
                 <TableCell className="text-right font-mono text-slate-700"></TableCell>
               )}
+              {(onEditRow || onDeleteRow) && <TableCell></TableCell>}
             </TableRow>
 
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={showValueBalance ? 7 : 6}
+                  colSpan={
+                    6 +
+                    (showValueBalance ? 1 : 0) +
+                    (onEditRow || onDeleteRow ? 1 : 0)
+                  }
                   className="text-center py-8 text-muted-foreground"
                 >
                   Loading ledger data...
@@ -471,7 +512,11 @@ export function LedgerTable({
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={showValueBalance ? 7 : 6}
+                  colSpan={
+                    6 +
+                    (showValueBalance ? 1 : 0) +
+                    (onEditRow || onDeleteRow ? 1 : 0)
+                  }
                   className="text-center py-8 text-muted-foreground"
                 >
                   No transactions found for this period.
@@ -506,6 +551,34 @@ export function LedgerTable({
                       )}
                     </TableCell>
                   )}
+                  {(onEditRow || onDeleteRow) && (
+                    <TableCell className="text-right">
+                      {row.id && (
+                        <div className="flex items-center justify-end gap-1">
+                          {onEditRow && (
+                            <button
+                              type="button"
+                              aria-label="Edit transaction"
+                              onClick={() => onEditRow(row)}
+                              className="p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {onDeleteRow && (
+                            <button
+                              type="button"
+                              aria-label="Delete transaction"
+                              onClick={() => onDeleteRow(row)}
+                              className="p-1 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
@@ -528,6 +601,7 @@ export function LedgerTable({
               {showValueBalance && (
                 <TableCell className="text-right font-mono text-slate-900 border-t-2 border-slate-300 font-bold"></TableCell>
               )}
+              {(onEditRow || onDeleteRow) && <TableCell></TableCell>}
             </TableRow>
           </TableBody>
 
@@ -545,6 +619,7 @@ export function LedgerTable({
               </TableCell>
               <TableCell></TableCell>
               {showValueBalance && <TableCell></TableCell>}
+              {(onEditRow || onDeleteRow) && <TableCell></TableCell>}
             </TableRow>
           </TableFooter>
         </Table>

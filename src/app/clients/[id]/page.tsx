@@ -7,6 +7,8 @@ import { LedgerTable, LedgerRow } from "@/components/ui/ledger-table";
 import { PageShell } from "@/components/ui/page-shell";
 import { CreateInvoiceSheet } from "./CreateInvoiceSheet";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
+import { EditInvoiceSheet } from "./EditInvoiceSheet";
+import { EditPaymentSheet } from "./EditPaymentSheet";
 
 type Invoice = {
   id: string;
@@ -75,6 +77,9 @@ export default function ClientDetailPage({
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
 
   const [currentStart, setCurrentStart] = useState("");
   const [currentEnd, setCurrentEnd] = useState("");
@@ -267,6 +272,61 @@ export default function ClientDetailPage({
     fetchLedger(currentStart, currentEnd, 1, search);
   };
 
+  const handleEditRow = (row: LedgerRow) => {
+    if (!row.id) return;
+    if (row.entryType === "invoice") {
+      setEditingInvoiceId(row.id);
+    } else if (row.entryType === "payment") {
+      setEditingPaymentId(row.id);
+    }
+  };
+
+  const handleEditSaved = () => {
+    fetchClientAndProjects();
+    fetchLedger();
+  };
+
+  const handleDeleteRow = async (row: LedgerRow) => {
+    if (!row.id) return;
+
+    if (row.entryType === "invoice") {
+      if (
+        !confirm(
+          "Void this invoice? It will be removed from the ledger and outstanding balance.",
+        )
+      )
+        return;
+      const reason = prompt("Enter a reason for voiding this invoice:");
+      if (!reason) return;
+
+      const res = await fetch(`/api/invoices/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "VOID", voidReason: reason }),
+      });
+      if (res.ok) {
+        fetchClientAndProjects();
+        fetchLedger();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to void invoice");
+      }
+    } else if (row.entryType === "payment") {
+      if (!confirm("Delete this payment? This cannot be undone.")) return;
+
+      const res = await fetch(`/api/clients/${clientId}/payments/${row.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchClientAndProjects();
+        fetchLedger();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to delete payment");
+      }
+    }
+  };
+
   const formatCurrency = (val: number) => {
     return `₹${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -387,12 +447,33 @@ export default function ClientDetailPage({
           contactName={client?.name}
           contactPhone={client?.phone}
           shareLinkType="client_ledger"
+          onEditRow={handleEditRow}
+          onDeleteRow={handleDeleteRow}
         />
       ) : (
         <div className="text-center py-10 text-muted-foreground">
           Loading ledger...
         </div>
       )}
+
+      <EditInvoiceSheet
+        invoiceId={editingInvoiceId}
+        open={editingInvoiceId !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingInvoiceId(null);
+        }}
+        onSaved={handleEditSaved}
+      />
+
+      <EditPaymentSheet
+        clientId={clientId}
+        paymentId={editingPaymentId}
+        open={editingPaymentId !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingPaymentId(null);
+        }}
+        onSaved={handleEditSaved}
+      />
     </PageShell>
   );
 }

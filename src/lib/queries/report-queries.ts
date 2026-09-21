@@ -1,455 +1,556 @@
 import prisma from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import {
+  buildDateRangeFilter,
+  buildSearchFilter,
+  finalizeDebitCreditLedger,
+  paginateWithCarriedBalance,
+  RawLedgerRow,
+} from "./ledger-helpers";
 
-interface DailyLabourSummaryRow {
-  entryCount: number;
-  totalHeadcount: number;
-  totalSpend: number;
-}
-
-// One `let` variable holds the result of whichever grouped query ran
-// (grouped by date, worker type, or project), so its row type is the union
-// of all three shapes — the fields actually populated depend on `groupBy`.
-// Field types (`date: Date`, nullable strings) mirror both actual
-// `$queryRaw` deserialization (postgres DATE columns come back as `Date`)
-// and the local `LabourGroupedRow`/`LabourFlatRow` shapes this data flows
-// into downstream in src/app/api/reports/pdf/route.tsx.
-//
-// Exported so src/app/labour/page.tsx and its LabourDesktopTable/
-// LabourMobileList satellites (Task 14) can type the grouped branch of
-// GET /api/daily-labour. Narrow, non-behavior-changing change: this
-// interface already existed, only its visibility changed.
-export interface DailyLabourGroupedRow {
-  date?: Date;
-  workerType?: string;
-  projectId?: string;
-  projectName?: string;
-  totalHeadcount: number;
-  totalSpend: number;
-}
-
-// Exported so src/app/projects/[id]/daily-labour/page.tsx (Task 13) can type
-// the flat listing GET /api/projects/[id]/daily-labour returns — that page
-// never passes `groupBy`, so it always gets this shape (see the flat-query
-// branch below). Narrow, non-behavior-changing change: this interface
-// already existed, only its visibility changed.
-export interface DailyLabourFlatRow {
+// Raw row shape of getInventoryLedgerData's `$queryRaw` — distinct from
+// RawLedgerRow (debit/credit ledgers) since it tracks quantity *and* value
+// running balances rather than a single debit/credit pair.
+interface InventoryLedgerRawRow {
   id: string;
   voucherNumber: string;
-  projectId: string;
-  projectName: string;
-  workerType: string | null;
-  date: Date;
-  headcount: number;
-  wageRate: number;
-  contractorId: string | null;
-  contractorName: string | null;
-  paidImmediately: boolean;
-  title: string | null;
-  note: string | null;
-  totalSpend: number;
+  date: unknown;
+  description: string | null;
+  type: string;
+  qty_in: unknown;
+  qty_out: unknown;
+  unitCost: unknown;
+  transferGroupId: string | null;
+  linkedProjectName: string | null;
+  created_at: unknown;
+  runningQtyBalance: unknown;
+  runningValueBalance: unknown;
 }
 
-export interface DailyLabourQueryParams {
-  projectId?: string | null;
+export interface LedgerQueryParams {
   startDate?: string | null;
   endDate?: string | null;
-  workerType?: string | null;
-  groupBy?: string | null;
-  sortBy?: string | null;
-  sortOrder?: string | null;
+  search?: string | null;
   page?: number;
   limit?: number;
 }
 
-export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
-  const { 
-    projectId, 
-    startDate, 
-    endDate, 
-    workerType, 
-    groupBy: rawGroupBy,
-    sortBy = "date",
-    sortOrder = "desc",
-    page = 1,
-    limit = 1000 
-  } = params;
+export async function getVendorLedgerData(
+  contactId: string,
+  params: LedgerQueryParams,
+) {
+  const { startDate, endDate, page = 1, limit = 50 } = params;
+  const search = params.search?.trim();
 
-  const groupBy = rawGroupBy?.toLowerCase();
-  const offset = (page - 1) * limit;
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { id: true, name: true, type: true, phone: true },
+  });
 
-  const conditions = [];
-  if (projectId && projectId !== "ALL") {
-    conditions.push(Prisma.sql`dle.project_id = ${projectId}`);
+  if (!contact) {
+    throw new Error("Contact not found");
   }
-  if (workerType && workerType !== "ALL") {
-    conditions.push(Prisma.sql`(wt.name = ${workerType.toUpperCase()} OR wt.id = ${workerType})`);
-  }
+
+  // 1. Calculate opening balance (before startDate)
+  let openingBalance = 0;
   if (startDate) {
-    conditions.push(Prisma.sql`dle.date >= CAST(${startDate} as date)`);
+    const startDt = new Date(startDate);
+    if (contact.type === "LABOUR_CONTRACTOR") {
+      const creditRes = await prisma.$queryRaw<{ total_credit: number }[]>`
+        SELECT COALESCE(SUM(headcount * wage_rate), 0) as total_credit
+        FROM daily_labour_entries
+        WHERE contractor_id = ${contactId} AND date < ${startDt} AND paid_immediately = false
+      `;
+      const debitRes = await prisma.$queryRaw<{ total_debit: number }[]>`
+        SELECT COALESCE(SUM(amount), 0) as total_debit
+        FROM labour_payments
+        WHERE contact_id = ${contactId} AND payment_date < ${startDt}
+      `;
+      const vendorRes = await prisma.$queryRaw<{ opening_balance: number }[]>`
+        SELECT COALESCE(SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE -amount END), 0) as opening_balance
+        FROM vendor_transactions
+        WHERE contact_id = ${contactId} AND date < ${startDt}
+      `;
+      openingBalance =
+        (Number(creditRes[0]?.total_credit) || 0) -
+        (Number(debitRes[0]?.total_debit) || 0) +
+        (Number(vendorRes[0]?.opening_balance) || 0);
+    } else {
+      const result = await prisma.$queryRaw<{ opening_balance: number }[]>`
+        SELECT COALESCE(SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE -amount END), 0) as opening_balance
+        FROM vendor_transactions
+        WHERE contact_id = ${contactId} AND date < ${startDt}
+      `;
+      openingBalance = Number(result[0]?.opening_balance) || 0;
+    }
   }
-  if (endDate) {
-    conditions.push(Prisma.sql`dle.date <= CAST(${endDate} as date)`);
-  }
 
-  const whereClause = conditions.length > 0 
-    ? Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}` 
-    : Prisma.empty;
+  // Define the outer search filter to apply AFTER balances are calculated
+  const searchOuterFilter = buildSearchFilter(search);
 
-  // Overall Summary Query
-  const summaryQuery = await prisma.$queryRaw<DailyLabourSummaryRow[]>`
-    SELECT 
-      COUNT(*)::int as "entryCount",
-      COALESCE(SUM(dle.headcount), 0)::int as "totalHeadcount",
-      COALESCE(SUM(dle.headcount * dle.wage_rate), 0)::float as "totalSpend"
-    FROM daily_labour_entries dle
-    LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
-    ${whereClause}
-  `;
-  const summary = summaryQuery[0] || { entryCount: 0, totalHeadcount: 0, totalSpend: 0 };
+  // 2. Build the main query, applying the shared date/search filters
+  let rows: RawLedgerRow[] = [];
+  if (contact.type === "LABOUR_CONTRACTOR") {
+    const dateFilterLabour = buildDateRangeFilter(
+      "dle.date",
+      startDate,
+      endDate,
+    );
+    const dateFilterPayment = buildDateRangeFilter(
+      "payment_date",
+      startDate,
+      endDate,
+    );
+    const dateFilterVendor = buildDateRangeFilter("date", startDate, endDate);
 
-  if (groupBy && groupBy !== "none") {
-    let groupedResult: DailyLabourGroupedRow[] = [];
-    if (groupBy === "date") {
-      groupedResult = await prisma.$queryRaw<DailyLabourGroupedRow[]>`
-        SELECT
+    rows = await prisma.$queryRaw<RawLedgerRow[]>`
+      WITH contractor_ledger AS (
+        SELECT 
+          dle.id,
+          dle.voucher_number as "voucherNumber",
           dle.date,
-          COALESCE(SUM(dle.headcount), 0)::int as "totalHeadcount",
-          COALESCE(SUM(dle.headcount * dle.wage_rate), 0)::float as "totalSpend"
+          CONCAT('Daily Labour: ', dle.headcount, ' x ₹', dle.wage_rate, ' (', COALESCE(wt.name, 'WORKER'), ')', CASE WHEN dle.title IS NOT NULL AND dle.title <> '' THEN CONCAT(' - ', dle.title) ELSE '' END) as description,
+          0::float as debit,
+          (dle.headcount * dle.wage_rate)::float as credit,
+          dle.created_at
         FROM daily_labour_entries dle
         LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
-        ${whereClause}
-        GROUP BY dle.date
-        ORDER BY dle.date DESC
-      `;
-    } else if (groupBy === "workertype") {
-      groupedResult = await prisma.$queryRaw<DailyLabourGroupedRow[]>`
-        SELECT
-          wt.name as "workerType",
-          COALESCE(SUM(dle.headcount), 0)::int as "totalHeadcount",
-          COALESCE(SUM(dle.headcount * dle.wage_rate), 0)::float as "totalSpend"
-        FROM daily_labour_entries dle
-        LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
-        ${whereClause}
-        GROUP BY wt.name
-        ORDER BY "totalSpend" DESC
-      `;
-    } else if (groupBy === "project") {
-      groupedResult = await prisma.$queryRaw<DailyLabourGroupedRow[]>`
-        SELECT
-          p.id as "projectId",
-          p.name as "projectName",
-          COALESCE(SUM(dle.headcount), 0)::int as "totalHeadcount",
-          COALESCE(SUM(dle.headcount * dle.wage_rate), 0)::float as "totalSpend"
-        FROM daily_labour_entries dle
-        JOIN projects p ON p.id = dle.project_id
-        LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
-        ${whereClause}
-        GROUP BY p.id, p.name
-        ORDER BY "totalSpend" DESC
-      `;
-    }
+        WHERE dle.contractor_id = ${contactId} AND dle.paid_immediately = false
+        ${dateFilterLabour}
 
-    // `as const` keeps `isGrouped` a `true`/`false` literal (rather than
-    // widening to `boolean`) so callers narrowing on `data.isGrouped` also
-    // narrow `data.data`'s element type between the grouped/flat row shapes.
-    return { summary, data: groupedResult, isGrouped: true as const, groupBy };
+        UNION ALL
+
+        SELECT 
+          id,
+          voucher_number as "voucherNumber",
+          payment_date as date,
+          CONCAT('Labour Payment (', method, ')', CASE WHEN note IS NOT NULL AND note <> '' THEN CONCAT(': ', note) ELSE '' END) as description,
+          amount::float as debit,
+          0::float as credit,
+          created_at
+        FROM labour_payments
+        WHERE contact_id = ${contactId}
+        ${dateFilterPayment}
+
+        UNION ALL
+
+        SELECT 
+          id,
+          voucher_number as "voucherNumber",
+          date,
+          COALESCE(description, 'Vendor Transaction') as description,
+          CASE WHEN type = 'PAYMENT' THEN amount::float ELSE 0::float END as debit,
+          CASE WHEN type = 'PURCHASE' THEN amount::float ELSE 0::float END as credit,
+          created_at
+        FROM vendor_transactions
+        WHERE contact_id = ${contactId}
+        ${dateFilterVendor}
+      ),
+      calculated AS (
+        SELECT 
+          id,
+          "voucherNumber",
+          date,
+          description,
+          debit,
+          credit,
+          created_at,
+          ${openingBalance} + SUM(credit - debit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
+        FROM contractor_ledger
+      )
+      SELECT * FROM calculated
+      ${searchOuterFilter}
+      ORDER BY date, created_at, id
+    `;
+  } else {
+    const dateFilter = buildDateRangeFilter("date", startDate, endDate);
+
+    rows = await prisma.$queryRaw<RawLedgerRow[]>`
+      WITH calculated AS (
+        SELECT
+          id,
+          voucher_number as "voucherNumber",
+          date,
+          description,
+          CASE WHEN type = 'PAYMENT' THEN amount ELSE 0 END AS debit,
+          CASE WHEN type = 'PURCHASE' THEN amount ELSE 0 END AS credit,
+          created_at,
+          ${openingBalance} + SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE -amount END)
+            OVER (ORDER BY date, created_at, id) AS "runningBalance"
+        FROM vendor_transactions
+        WHERE contact_id = ${contactId}
+        ${dateFilter}
+      )
+      SELECT * FROM calculated
+      ${searchOuterFilter}
+      ORDER BY date, created_at, id
+    `;
   }
 
-  // Flat List Query
-  const sortMap: Record<string, string> = {
-    date: "dle.date",
-    workerType: "wt.name",
-    project: "p.name",
-    totalSpend: "(dle.headcount * dle.wage_rate)",
-  };
-  const orderByCol = (sortBy && sortMap[sortBy]) || "dle.date";
-  const orderDir = sortOrder === "asc" ? "ASC" : "DESC";
-  const orderBySql = Prisma.raw(`ORDER BY ${orderByCol} ${orderDir}, dle.created_at DESC, dle.id DESC`);
-
-  const flatResult = await prisma.$queryRaw<DailyLabourFlatRow[]>`
-    SELECT
-      dle.id,
-      dle.voucher_number as "voucherNumber",
-      dle.project_id as "projectId",
-      p.name as "projectName",
-      wt.name as "workerType",
-      dle.date,
-      dle.headcount,
-      dle.wage_rate::float as "wageRate",
-      dle.contractor_id as "contractorId",
-      c.name as "contractorName",
-      dle.paid_immediately as "paidImmediately",
-      dle.title,
-      dle.note,
-      (dle.headcount * dle.wage_rate)::float as "totalSpend"
-    FROM daily_labour_entries dle
-    JOIN projects p ON p.id = dle.project_id
-    LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
-    LEFT JOIN contacts c ON c.id = dle.contractor_id
-    ${whereClause}
-    ${orderBySql}
-    LIMIT ${limit} OFFSET ${offset}
-  `;
-
-  return {
-    summary,
-    data: flatResult,
-    isGrouped: false as const,
-    pagination: {
-      page,
-      limit,
-      totalPages: Math.ceil(summary.entryCount / limit) || 1
-    }
-  };
-}
-
-interface LabourDueRow {
-  contractorId: string;
-  contractorName: string;
-  contractorPhone: string | null;
-  payableBalance: unknown;
-}
-
-export async function getSaturdayViewReportData() {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
-  const daysUntilSaturday = dayOfWeek === 6 ? 0 : 6 - dayOfWeek;
-  const comingSaturday = new Date(today);
-  comingSaturday.setDate(today.getDate() + daysUntilSaturday);
-  comingSaturday.setHours(23, 59, 59, 999);
-
-  // 1. Fetch pending invoices due on or before Saturday
-  const pendingInvoices = await prisma.invoice.findMany({
-    where: {
-      status: { notIn: ["PAID", "VOID"] },
-      dueDate: { lte: comingSaturday }
-    },
-    select: {
-      id: true,
-      clientId: true,
-      invoiceNumber: true,
-      dueDate: true,
-      amount: true,
-      status: true,
-      client: { select: { name: true, phone: true } },
-      project: { select: { name: true } },
-      clientPayments: { select: { amount: true } },
-      paymentAllocations: { select: { allocatedAmount: true } }
-    },
-    orderBy: { dueDate: "asc" }
+  const finalized = finalizeDebitCreditLedger(rows, {
+    openingBalance,
+    page,
+    limit,
+    creditIncreasesBalance: true,
   });
 
-  const dueClients = pendingInvoices.map(inv => {
-    const totalPaid = inv.clientPayments.reduce((acc, p) => acc + Number(p.amount), 0) + 
-                      inv.paymentAllocations.reduce((acc, p) => acc + Number(p.allocatedAmount), 0);
-    const balance = Number(inv.amount) - totalPaid;
-    return {
-      id: inv.id,
-      clientId: inv.clientId,
-      invoiceNumber: inv.invoiceNumber,
-      clientName: inv.client.name,
-      clientPhone: inv.client.phone || null,
-      projectName: inv.project.name,
-      dueDate: inv.dueDate.toISOString(),
-      balance: balance,
-      status: inv.status
-    };
-  }).filter(c => c.balance > 0);
+  return { contact, ...finalized };
+}
 
-  // 2. Fetch labour contractors with positive payable balance using aggregate query
-  const rawLabourDues = await prisma.$queryRaw<LabourDueRow[]>`
-    SELECT
-      c.id as "contractorId",
-      c.name as "contractorName",
-      c.phone as "contractorPhone",
-      COALESCE(labour.total_supplied, 0) - COALESCE(payments.total_paid, 0) as "payableBalance"
-    FROM contacts c
-    LEFT JOIN (
-      SELECT contractor_id, COALESCE(SUM(headcount * wage_rate), 0) as total_supplied
+export async function getLabourContractorLedgerData(
+  contactId: string,
+  params: LedgerQueryParams,
+) {
+  const { startDate, endDate, page = 1, limit = 50 } = params;
+  const search = params.search?.trim();
+
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { id: true, name: true, type: true, phone: true },
+  });
+
+  if (!contact) {
+    throw new Error("Contact not found");
+  }
+
+  // 1. Calculate opening balance before startDate
+  let openingBalance = 0;
+  if (startDate) {
+    const startDt = new Date(startDate);
+    const creditRes = await prisma.$queryRaw<{ total_labour: number }[]>`
+      SELECT COALESCE(SUM(headcount * wage_rate), 0) as total_labour
       FROM daily_labour_entries
-      WHERE paid_immediately = false AND contractor_id IS NOT NULL
-      GROUP BY contractor_id
-    ) labour ON c.id = labour.contractor_id
-    LEFT JOIN (
-      SELECT contact_id, COALESCE(SUM(amount), 0) as total_paid
+      WHERE contractor_id = ${contactId} AND date < ${startDt} AND paid_immediately = false
+    `;
+    const debitRes = await prisma.$queryRaw<{ total_paid: number }[]>`
+      SELECT COALESCE(SUM(amount), 0) as total_paid
       FROM labour_payments
-      GROUP BY contact_id
-    ) payments ON c.id = payments.contact_id
-    WHERE c.type = 'LABOUR_CONTRACTOR' 
-      AND c.is_active = true 
-      AND (COALESCE(labour.total_supplied, 0) - COALESCE(payments.total_paid, 0)) > 0
-    ORDER BY "payableBalance" DESC
-  `;
-
-  const totalClientDues = dueClients.reduce((acc, c) => acc + c.balance, 0);
-  const totalLabourDues = rawLabourDues.reduce((acc, c) => acc + Number(c.payableBalance), 0);
-
-  return {
-    dueClients,
-    labourDues: rawLabourDues.map(d => ({ ...d, payableBalance: Number(d.payableBalance) })),
-    totalClientDues,
-    totalLabourDues,
-    comingSaturday: comingSaturday.toISOString()
-  };
-}
-
-interface ClosureReportSummary {
-  totalBilled: number;
-  totalCollected: number;
-  outstandingReceivables: number;
-  totalExtraWork: number;
-  unbilledExtraWork: number;
-  totalSiteExpenses: number;
-  estimatedMaterialCost: number;
-  closureDate: string;
-}
-
-export async function getClosureReportData(projectId: string) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId }
-  });
-
-  if (!project) throw new Error("Project not found");
-
-  const client = await prisma.client.findFirst({
-    where: { invoices: { some: { projectId } } }
-  });
-  const enrichedProject = { ...project, client };
-
-  const existingReport = await prisma.closureReport.findUnique({
-    where: { projectId }
-  });
-
-  if (existingReport && existingReport.summaryJson) {
-    return {
-      project: enrichedProject,
-      // `summaryJson` is a Prisma `Json` column (typed `Prisma.JsonValue`);
-      // it's always written from the exact `summary` shape built below (see
-      // /api/projects/[id]/closure's POST route), so this cast is a
-      // behavior-preserving type assertion, not a real `any`.
-      summary: existingReport.summaryJson as unknown as ClosureReportSummary,
-      isClosed: project.status === "CLOSED"
-    };
+      WHERE contact_id = ${contactId} AND payment_date < ${startDt}
+    `;
+    openingBalance =
+      (Number(creditRes[0]?.total_labour) || 0) -
+      (Number(debitRes[0]?.total_paid) || 0);
   }
 
-  // Calculate closure summary live
-  const invoices = await prisma.invoice.findMany({
-    where: { projectId, status: { not: "VOID" } },
-    select: {
-      amount: true,
-      clientPayments: { select: { amount: true } },
-      paymentAllocations: { select: { allocatedAmount: true } },
-    }
-  });
-
-  const totalBilled = invoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
-  const totalCollected = invoices.reduce((sum, inv) => 
-    sum + inv.clientPayments.reduce((pSum, p) => pSum + Number(p.amount), 0) + inv.paymentAllocations.reduce((pSum, p) => pSum + Number(p.allocatedAmount), 0)
-  , 0);
-
-  const extraWork = await prisma.extraWork.findMany({
-    where: { projectId },
-    select: { amount: true, status: true }
-  });
-  const totalExtraWork = extraWork.reduce((sum, ew) => sum + Number(ew.amount), 0);
-  const unbilledExtraWork = extraWork.filter(ew => ew.status === "UNBILLED").reduce((sum, ew) => sum + Number(ew.amount), 0);
-
-  const siteExpenses = await prisma.siteExpense.aggregate({
-    where: { projectId },
-    _sum: { amount: true }
-  });
-  const totalSiteExpenses = Number(siteExpenses._sum.amount || 0);
-
-  const inventory = await prisma.projectInventory.findMany({
-    where: { projectId },
-    select: { qtyIssued: true, item: { select: { unitCost: true } } }
-  });
-  const totalMaterialCost = inventory.reduce((sum, inv) => sum + (Number(inv.qtyIssued) * Number(inv.item.unitCost)), 0);
-
-  const summary = {
-    totalBilled,
-    totalCollected,
-    outstandingReceivables: totalBilled - totalCollected,
-    totalExtraWork,
-    unbilledExtraWork,
-    totalSiteExpenses,
-    estimatedMaterialCost: totalMaterialCost,
-    closureDate: new Date().toISOString()
-  };
-
-  return {
-    project: enrichedProject,
-    summary,
-    isClosed: project.status === "CLOSED"
-  };
-}
-
-interface TopUsageRawRow {
-  itemId: string;
-  itemName: string;
-  unit: string;
-  unitCost: unknown;
-  totalQtyIssued: unknown;
-  totalValueIssued: unknown;
-}
-
-export async function getTopUsageReportData({ projectId, startDate, endDate, limit = 20 }: { projectId?: string | null, startDate?: string | null, endDate?: string | null, limit?: number }) {
-  let dateFilter = Prisma.empty;
-  if (startDate && endDate) {
-    dateFilter = Prisma.sql`AND date >= CAST(${startDate} as date) AND date <= CAST(${endDate} as date)`;
-  } else if (startDate) {
-    dateFilter = Prisma.sql`AND date >= CAST(${startDate} as date)`;
-  } else if (endDate) {
-    dateFilter = Prisma.sql`AND date <= CAST(${endDate} as date)`;
-  }
-
-  let projectFilter = Prisma.empty;
-  if (projectId && projectId !== "ALL") {
-    projectFilter = Prisma.sql`AND project_id = ${projectId}`;
-  }
-
-  // Only consider authentic ISSUE transactions, explicitly excluding historical transfers
-  const rows = await prisma.$queryRaw<TopUsageRawRow[]>`
-    SELECT
-      i.id as "itemId",
-      i.name as "itemName",
-      i.unit as unit,
-      i.unit_cost as "unitCost",
-      COALESCE(SUM(it.quantity), 0)::float as "totalQtyIssued",
-      COALESCE(SUM(it.quantity * it.unit_cost), 0)::float as "totalValueIssued"
-    FROM inventory_transactions it
-    JOIN items i ON i.id = it.item_id
-    WHERE it.type = 'ISSUE'
-    ${projectFilter}
-    ${dateFilter}
-    GROUP BY i.id, i.name, i.unit, i.unit_cost
-    ORDER BY "totalValueIssued" DESC
-    LIMIT ${limit}
-  `;
-
-  let totalValue = 0;
-  let totalItems = 0;
-  const formattedRows = rows.map(r => {
-    const value = Number(r.totalValueIssued) || 0;
-    const qty = Number(r.totalQtyIssued) || 0;
-    totalValue += value;
-    totalItems += 1;
-    return {
-      itemId: r.itemId,
-      itemName: r.itemName,
-      unit: r.unit,
-      unitCost: Number(r.unitCost) || 0,
-      totalQtyIssued: qty,
-      totalValueIssued: value
-    };
-  });
-
-  return {
-    rows: formattedRows,
-    totalValue,
-    totalItems,
+  const dateFilterLabour = buildDateRangeFilter("dle.date", startDate, endDate);
+  const dateFilterPayment = buildDateRangeFilter(
+    "payment_date",
     startDate,
-    endDate
+    endDate,
+  );
+  const searchOuterFilter = buildSearchFilter(search);
+
+  const rawRows = await prisma.$queryRaw<RawLedgerRow[]>`
+    WITH combined AS (
+      SELECT 
+        dle.id,
+        dle.voucher_number AS "voucherNumber", 
+        dle.date, 
+        CASE 
+          WHEN dle.title IS NULL OR dle.title = '' THEN CONCAT('Labour supplied: ', dle.headcount, ' ', COALESCE(wt.name, 'WORKER'), ' @ ₹', dle.wage_rate)
+          ELSE CONCAT(dle.title, ' (', dle.headcount, ' ', COALESCE(wt.name, 'WORKER'), ' @ ₹', dle.wage_rate, ')')
+        END AS description,
+        (dle.headcount * dle.wage_rate)::float AS debit, 
+        0::float AS credit, 
+        dle.created_at
+      FROM daily_labour_entries dle
+      LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
+      WHERE dle.contractor_id = ${contactId} AND dle.paid_immediately = false
+      ${dateFilterLabour}
+
+      UNION ALL
+
+      SELECT 
+        id,
+        voucher_number AS "voucherNumber", 
+        payment_date AS date,
+        CASE 
+          WHEN note IS NULL OR note = '' THEN CONCAT('Payment out (', method, ')')
+          ELSE CONCAT(note, ' (', method, ')')
+        END AS description,
+        0::float AS debit, 
+        amount::float AS credit, 
+        created_at
+      FROM labour_payments
+      WHERE contact_id = ${contactId}
+      ${dateFilterPayment}
+    ),
+    calculated AS (
+      SELECT 
+        id,
+        "voucherNumber",
+        date,
+        description,
+        debit,
+        credit,
+        created_at,
+        ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
+      FROM combined
+    )
+    SELECT * FROM calculated
+    ${searchOuterFilter}
+    ORDER BY date, created_at, id
+  `;
+
+  const finalized = finalizeDebitCreditLedger(rawRows, {
+    openingBalance,
+    page,
+    limit,
+    creditIncreasesBalance: false,
+  });
+
+  return { contact, ...finalized };
+}
+
+export async function getClientLedgerData(
+  clientId: string,
+  params: LedgerQueryParams,
+) {
+  const { startDate, endDate, page = 1, limit = 50 } = params;
+  const search = params.search?.trim();
+
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { id: true, name: true, phone: true },
+  });
+
+  if (!client) {
+    throw new Error("Client not found");
+  }
+
+  let openingBalance = 0;
+  if (startDate) {
+    const startDt = new Date(startDate);
+    const result = await prisma.$queryRaw<{ opening_balance: number }[]>`
+      WITH combined AS (
+        SELECT amount AS debit, 0 AS credit, issued_date as date
+        FROM invoices 
+        WHERE client_id = ${clientId} AND status != 'VOID'
+        UNION ALL
+        SELECT 0 AS debit, amount AS credit, payment_date as date
+        FROM client_payments 
+        WHERE client_id = ${clientId}
+      )
+      SELECT COALESCE(SUM(debit - credit), 0) as opening_balance
+      FROM combined
+      WHERE date < ${startDt}
+    `;
+    openingBalance = Number(result[0]?.opening_balance) || 0;
+  }
+
+  const dateFilterInvoices = buildDateRangeFilter(
+    "issued_date",
+    startDate,
+    endDate,
+  );
+  const dateFilterPayments = buildDateRangeFilter(
+    "payment_date",
+    startDate,
+    endDate,
+  );
+  const searchOuterFilter = buildSearchFilter(search);
+
+  const rows = await prisma.$queryRaw<RawLedgerRow[]>`
+    WITH combined AS (
+      SELECT
+        invoice_number AS "voucherNumber",
+        issued_date AS date,
+        COALESCE(NULLIF(notes, ''), CONCAT('Invoice raised (', invoice_number, ')')) AS description,
+        amount AS debit,
+        0 AS credit,
+        created_at,
+        id,
+        'invoice' AS "entryType"
+      FROM invoices
+      WHERE client_id = ${clientId} AND status != 'VOID'
+      ${dateFilterInvoices}
+
+      UNION ALL
+
+      SELECT
+        voucher_number AS "voucherNumber",
+        payment_date AS date,
+        COALESCE(NULLIF(note, ''), CASE WHEN invoice_id IS NULL THEN 'Advance payment (unallocated)' ELSE 'Payment received' END) AS description,
+        0 AS debit,
+        amount AS credit,
+        created_at,
+        id,
+        'payment' AS "entryType"
+      FROM client_payments
+      WHERE client_id = ${clientId}
+      ${dateFilterPayments}
+    ),
+    calculated AS (
+      SELECT
+        id,
+        "voucherNumber",
+        date,
+        description,
+        debit,
+        credit,
+        created_at,
+        "entryType",
+        ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
+      FROM combined
+    )
+    SELECT * FROM calculated
+    ${searchOuterFilter}
+    ORDER BY date, created_at, id
+  `;
+
+  const finalized = finalizeDebitCreditLedger(rows, {
+    openingBalance,
+    page,
+    limit,
+    creditIncreasesBalance: false,
+  });
+
+  return { client, ...finalized };
+}
+
+export async function getInventoryLedgerData(
+  projectId: string,
+  itemId: string,
+  params: LedgerQueryParams,
+) {
+  const { startDate, endDate, page = 1, limit = 50 } = params;
+  const search = params.search?.trim();
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { name: true, id: true },
+  });
+  const item = await prisma.item.findUnique({
+    where: { id: itemId },
+    select: { name: true, unit: true, unitCost: true },
+  });
+
+  if (!project || !item) {
+    throw new Error("Project or Item not found");
+  }
+
+  let openingQtyBalance = 0;
+  let openingValueBalance = 0;
+
+  if (startDate) {
+    const startDt = new Date(startDate);
+    const result = await prisma.$queryRaw<
+      { opening_qty_balance: number; opening_value_balance: number }[]
+    >`
+      SELECT 
+        COALESCE(SUM(CASE WHEN type IN ('BUY','RETURN','TRANSFER_IN') THEN quantity ELSE -quantity END), 0) AS opening_qty_balance,
+        COALESCE(SUM((CASE WHEN type IN ('BUY','RETURN','TRANSFER_IN') THEN quantity ELSE -quantity END) * unit_cost), 0) AS opening_value_balance
+      FROM inventory_transactions
+      WHERE project_id = ${projectId} AND item_id = ${itemId} AND date < ${startDt}
+    `;
+    openingQtyBalance = Number(result[0]?.opening_qty_balance) || 0;
+    openingValueBalance = Number(result[0]?.opening_value_balance) || 0;
+  }
+
+  const dateFilter = buildDateRangeFilter("it.date", startDate, endDate);
+  const searchOuterFilter = buildSearchFilter(search);
+
+  const rows = await prisma.$queryRaw<InventoryLedgerRawRow[]>`
+    WITH calculated AS (
+      SELECT
+        it.id,
+        it.voucher_number as "voucherNumber", 
+        it.date, 
+        it.note as description,
+        it.type,
+        CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE 0 END AS qty_in,
+        CASE WHEN it.type NOT IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE 0 END AS qty_out,
+        it.unit_cost as "unitCost",
+        it.transfer_group_id as "transferGroupId",
+        linked_project.name as "linkedProjectName",
+        it.created_at,
+        ${openingQtyBalance} + SUM(CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE -it.quantity END)
+          OVER (ORDER BY it.date, it.created_at, it.id) AS "runningQtyBalance",
+        ${openingValueBalance} + SUM((CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE -it.quantity END) * it.unit_cost)
+          OVER (ORDER BY it.date, it.created_at, it.id) AS "runningValueBalance"
+      FROM inventory_transactions it
+      LEFT JOIN inventory_transactions linked_tx 
+        ON linked_tx.transfer_group_id = it.transfer_group_id 
+        AND linked_tx.id != it.id
+      LEFT JOIN projects linked_project
+        ON linked_project.id = linked_tx.project_id
+      WHERE it.project_id = ${projectId} AND it.item_id = ${itemId}
+      ${dateFilter}
+    )
+    SELECT * FROM calculated
+    ${searchOuterFilter}
+    ORDER BY date, created_at, id
+  `;
+
+  let totalQtyIn = 0;
+  let totalQtyOut = 0;
+  let totalValueIn = 0;
+  let totalValueOut = 0;
+
+  const formattedRows = rows.map((row) => {
+    const qtyIn = Number(row.qty_in);
+    const qtyOut = Number(row.qty_out);
+    const unitCost = Number(row.unitCost);
+    const valueIn = qtyIn * unitCost;
+    const valueOut = qtyOut * unitCost;
+
+    totalQtyIn += qtyIn;
+    totalQtyOut += qtyOut;
+    totalValueIn += valueIn;
+    totalValueOut += valueOut;
+
+    return {
+      id: row.id,
+      voucherNumber: row.voucherNumber,
+      date: row.date,
+      description: row.description,
+      type: row.type,
+      qtyIn,
+      qtyOut,
+      unitCost,
+      transferGroupId: row.transferGroupId,
+      linkedProjectName: row.linkedProjectName,
+      runningQtyBalance: Number(row.runningQtyBalance),
+      runningValueBalance: Number(row.runningValueBalance),
+    };
+  });
+
+  const closingQtyBalance = openingQtyBalance + totalQtyIn - totalQtyOut;
+  const closingValueBalance =
+    openingValueBalance + totalValueIn - totalValueOut;
+
+  const qtyPage = paginateWithCarriedBalance(
+    formattedRows.map((r) => ({ runningBalance: r.runningQtyBalance })),
+    openingQtyBalance,
+    page,
+    limit,
+  );
+  const valuePage = paginateWithCarriedBalance(
+    formattedRows.map((r) => ({ runningBalance: r.runningValueBalance })),
+    openingValueBalance,
+    page,
+    limit,
+  );
+  const paginatedRows = formattedRows.slice(
+    qtyPage.offset,
+    qtyPage.offset + limit,
+  );
+
+  return {
+    project,
+    item,
+    openingQtyBalance: qtyPage.pageOpeningBalance,
+    openingValueBalance: valuePage.pageOpeningBalance,
+    rows: paginatedRows,
+    totalQtyIn,
+    totalQtyOut,
+    totalValueIn,
+    totalValueOut,
+    closingQtyBalance,
+    closingValueBalance,
+    total: qtyPage.total,
+    totalPages: qtyPage.totalPages,
+    page,
+    limit,
+    rawOpeningQtyBalance: openingQtyBalance,
   };
 }
