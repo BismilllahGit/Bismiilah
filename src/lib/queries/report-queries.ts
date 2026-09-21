@@ -63,16 +63,16 @@ export interface DailyLabourQueryParams {
 }
 
 export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
-  const { 
-    projectId, 
-    startDate, 
-    endDate, 
-    workerType, 
+  const {
+    projectId,
+    startDate,
+    endDate,
+    workerType,
     groupBy: rawGroupBy,
     sortBy = "date",
     sortOrder = "desc",
     page = 1,
-    limit = 1000 
+    limit = 1000,
   } = params;
 
   const groupBy = rawGroupBy?.toLowerCase();
@@ -83,7 +83,9 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
     conditions.push(Prisma.sql`dle.project_id = ${projectId}`);
   }
   if (workerType && workerType !== "ALL") {
-    conditions.push(Prisma.sql`(wt.name = ${workerType.toUpperCase()} OR wt.id = ${workerType})`);
+    conditions.push(
+      Prisma.sql`(wt.name = ${workerType.toUpperCase()} OR wt.id = ${workerType})`,
+    );
   }
   if (startDate) {
     conditions.push(Prisma.sql`dle.date >= CAST(${startDate} as date)`);
@@ -92,9 +94,10 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
     conditions.push(Prisma.sql`dle.date <= CAST(${endDate} as date)`);
   }
 
-  const whereClause = conditions.length > 0 
-    ? Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}` 
-    : Prisma.empty;
+  const whereClause =
+    conditions.length > 0
+      ? Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+      : Prisma.empty;
 
   // Overall Summary Query
   const summaryQuery = await prisma.$queryRaw<DailyLabourSummaryRow[]>`
@@ -106,7 +109,11 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
     LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
     ${whereClause}
   `;
-  const summary = summaryQuery[0] || { entryCount: 0, totalHeadcount: 0, totalSpend: 0 };
+  const summary = summaryQuery[0] || {
+    entryCount: 0,
+    totalHeadcount: 0,
+    totalSpend: 0,
+  };
 
   if (groupBy && groupBy !== "none") {
     let groupedResult: DailyLabourGroupedRow[] = [];
@@ -165,7 +172,9 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
   };
   const orderByCol = (sortBy && sortMap[sortBy]) || "dle.date";
   const orderDir = sortOrder === "asc" ? "ASC" : "DESC";
-  const orderBySql = Prisma.raw(`ORDER BY ${orderByCol} ${orderDir}, dle.created_at DESC, dle.id DESC`);
+  const orderBySql = Prisma.raw(
+    `ORDER BY ${orderByCol} ${orderDir}, dle.created_at DESC, dle.id DESC`,
+  );
 
   const flatResult = await prisma.$queryRaw<DailyLabourFlatRow[]>`
     SELECT
@@ -199,8 +208,8 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
     pagination: {
       page,
       limit,
-      totalPages: Math.ceil(summary.entryCount / limit) || 1
-    }
+      totalPages: Math.ceil(summary.entryCount / limit) || 1,
+    },
   };
 }
 
@@ -223,7 +232,7 @@ export async function getSaturdayViewReportData() {
   const pendingInvoices = await prisma.invoice.findMany({
     where: {
       status: { notIn: ["PAID", "VOID"] },
-      dueDate: { lte: comingSaturday }
+      dueDate: { lte: comingSaturday },
     },
     select: {
       id: true,
@@ -235,27 +244,33 @@ export async function getSaturdayViewReportData() {
       client: { select: { name: true, phone: true } },
       project: { select: { name: true } },
       clientPayments: { select: { amount: true } },
-      paymentAllocations: { select: { allocatedAmount: true } }
+      paymentAllocations: { select: { allocatedAmount: true } },
     },
-    orderBy: { dueDate: "asc" }
+    orderBy: { dueDate: "asc" },
   });
 
-  const dueClients = pendingInvoices.map(inv => {
-    const totalPaid = inv.clientPayments.reduce((acc, p) => acc + Number(p.amount), 0) + 
-                      inv.paymentAllocations.reduce((acc, p) => acc + Number(p.allocatedAmount), 0);
-    const balance = Number(inv.amount) - totalPaid;
-    return {
-      id: inv.id,
-      clientId: inv.clientId,
-      invoiceNumber: inv.invoiceNumber,
-      clientName: inv.client.name,
-      clientPhone: inv.client.phone || null,
-      projectName: inv.project.name,
-      dueDate: inv.dueDate.toISOString(),
-      balance: balance,
-      status: inv.status
-    };
-  }).filter(c => c.balance > 0);
+  const dueClients = pendingInvoices
+    .map((inv) => {
+      const totalPaid =
+        inv.clientPayments.reduce((acc, p) => acc + Number(p.amount), 0) +
+        inv.paymentAllocations.reduce(
+          (acc, p) => acc + Number(p.allocatedAmount),
+          0,
+        );
+      const balance = Number(inv.amount) - totalPaid;
+      return {
+        id: inv.id,
+        clientId: inv.clientId,
+        invoiceNumber: inv.invoiceNumber,
+        clientName: inv.client.name,
+        clientPhone: inv.client.phone || null,
+        projectName: inv.project.name,
+        dueDate: inv.dueDate.toISOString(),
+        balance: balance,
+        status: inv.status,
+      };
+    })
+    .filter((c) => c.balance > 0);
 
   // 2. Fetch labour contractors with positive payable balance using aggregate query
   const rawLabourDues = await prisma.$queryRaw<LabourDueRow[]>`
@@ -283,14 +298,20 @@ export async function getSaturdayViewReportData() {
   `;
 
   const totalClientDues = dueClients.reduce((acc, c) => acc + c.balance, 0);
-  const totalLabourDues = rawLabourDues.reduce((acc, c) => acc + Number(c.payableBalance), 0);
+  const totalLabourDues = rawLabourDues.reduce(
+    (acc, c) => acc + Number(c.payableBalance),
+    0,
+  );
 
   return {
     dueClients,
-    labourDues: rawLabourDues.map(d => ({ ...d, payableBalance: Number(d.payableBalance) })),
+    labourDues: rawLabourDues.map((d) => ({
+      ...d,
+      payableBalance: Number(d.payableBalance),
+    })),
     totalClientDues,
     totalLabourDues,
-    comingSaturday: comingSaturday.toISOString()
+    comingSaturday: comingSaturday.toISOString(),
   };
 }
 
@@ -307,18 +328,18 @@ interface ClosureReportSummary {
 
 export async function getClosureReportData(projectId: string) {
   const project = await prisma.project.findUnique({
-    where: { id: projectId }
+    where: { id: projectId },
   });
 
   if (!project) throw new Error("Project not found");
 
   const client = await prisma.client.findFirst({
-    where: { invoices: { some: { projectId } } }
+    where: { invoices: { some: { projectId } } },
   });
   const enrichedProject = { ...project, client };
 
   const existingReport = await prisma.closureReport.findUnique({
-    where: { projectId }
+    where: { projectId },
   });
 
   if (existingReport && existingReport.summaryJson) {
@@ -329,7 +350,7 @@ export async function getClosureReportData(projectId: string) {
       // /api/projects/[id]/closure's POST route), so this cast is a
       // behavior-preserving type assertion, not a real `any`.
       summary: existingReport.summaryJson as unknown as ClosureReportSummary,
-      isClosed: project.status === "CLOSED"
+      isClosed: project.status === "CLOSED",
     };
   }
 
@@ -340,32 +361,50 @@ export async function getClosureReportData(projectId: string) {
       amount: true,
       clientPayments: { select: { amount: true } },
       paymentAllocations: { select: { allocatedAmount: true } },
-    }
+    },
   });
 
-  const totalBilled = invoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
-  const totalCollected = invoices.reduce((sum, inv) => 
-    sum + inv.clientPayments.reduce((pSum, p) => pSum + Number(p.amount), 0) + inv.paymentAllocations.reduce((pSum, p) => pSum + Number(p.allocatedAmount), 0)
-  , 0);
+  const totalBilled = invoices.reduce(
+    (sum, inv) => sum + Number(inv.amount),
+    0,
+  );
+  const totalCollected = invoices.reduce(
+    (sum, inv) =>
+      sum +
+      inv.clientPayments.reduce((pSum, p) => pSum + Number(p.amount), 0) +
+      inv.paymentAllocations.reduce(
+        (pSum, p) => pSum + Number(p.allocatedAmount),
+        0,
+      ),
+    0,
+  );
 
   const extraWork = await prisma.extraWork.findMany({
     where: { projectId },
-    select: { amount: true, status: true }
+    select: { amount: true, status: true },
   });
-  const totalExtraWork = extraWork.reduce((sum, ew) => sum + Number(ew.amount), 0);
-  const unbilledExtraWork = extraWork.filter(ew => ew.status === "UNBILLED").reduce((sum, ew) => sum + Number(ew.amount), 0);
+  const totalExtraWork = extraWork.reduce(
+    (sum, ew) => sum + Number(ew.amount),
+    0,
+  );
+  const unbilledExtraWork = extraWork
+    .filter((ew) => ew.status === "UNBILLED")
+    .reduce((sum, ew) => sum + Number(ew.amount), 0);
 
   const siteExpenses = await prisma.siteExpense.aggregate({
     where: { projectId },
-    _sum: { amount: true }
+    _sum: { amount: true },
   });
   const totalSiteExpenses = Number(siteExpenses._sum.amount || 0);
 
   const inventory = await prisma.projectInventory.findMany({
     where: { projectId },
-    select: { qtyIssued: true, item: { select: { unitCost: true } } }
+    select: { qtyIssued: true, item: { select: { unitCost: true } } },
   });
-  const totalMaterialCost = inventory.reduce((sum, inv) => sum + (Number(inv.qtyIssued) * Number(inv.item.unitCost)), 0);
+  const totalMaterialCost = inventory.reduce(
+    (sum, inv) => sum + Number(inv.qtyIssued) * Number(inv.item.unitCost),
+    0,
+  );
 
   const summary = {
     totalBilled,
@@ -375,13 +414,13 @@ export async function getClosureReportData(projectId: string) {
     unbilledExtraWork,
     totalSiteExpenses,
     estimatedMaterialCost: totalMaterialCost,
-    closureDate: new Date().toISOString()
+    closureDate: new Date().toISOString(),
   };
 
   return {
     project: enrichedProject,
     summary,
-    isClosed: project.status === "CLOSED"
+    isClosed: project.status === "CLOSED",
   };
 }
 
@@ -394,7 +433,17 @@ interface TopUsageRawRow {
   totalValueIssued: unknown;
 }
 
-export async function getTopUsageReportData({ projectId, startDate, endDate, limit = 20 }: { projectId?: string | null, startDate?: string | null, endDate?: string | null, limit?: number }) {
+export async function getTopUsageReportData({
+  projectId,
+  startDate,
+  endDate,
+  limit = 20,
+}: {
+  projectId?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  limit?: number;
+}) {
   let dateFilter = Prisma.empty;
   if (startDate && endDate) {
     dateFilter = Prisma.sql`AND date >= CAST(${startDate} as date) AND date <= CAST(${endDate} as date)`;
@@ -430,7 +479,7 @@ export async function getTopUsageReportData({ projectId, startDate, endDate, lim
 
   let totalValue = 0;
   let totalItems = 0;
-  const formattedRows = rows.map(r => {
+  const formattedRows = rows.map((r) => {
     const value = Number(r.totalValueIssued) || 0;
     const qty = Number(r.totalQtyIssued) || 0;
     totalValue += value;
@@ -441,7 +490,7 @@ export async function getTopUsageReportData({ projectId, startDate, endDate, lim
       unit: r.unit,
       unitCost: Number(r.unitCost) || 0,
       totalQtyIssued: qty,
-      totalValueIssued: value
+      totalValueIssued: value,
     };
   });
 
@@ -450,6 +499,6 @@ export async function getTopUsageReportData({ projectId, startDate, endDate, lim
     totalValue,
     totalItems,
     startDate,
-    endDate
+    endDate,
   };
 }

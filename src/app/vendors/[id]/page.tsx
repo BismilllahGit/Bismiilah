@@ -8,6 +8,9 @@ import { LedgerTable, LedgerRow } from "@/components/ui/ledger-table";
 import { PageShell } from "@/components/ui/page-shell";
 import { RecordLabourPaymentSheet } from "./RecordLabourPaymentSheet";
 import { RecordTransactionSheet } from "./RecordTransactionSheet";
+import { EditVendorTransactionSheet } from "./EditVendorTransactionSheet";
+import { EditLabourPaymentSheet } from "./EditLabourPaymentSheet";
+import { EditLabourEntrySheet } from "./EditLabourEntrySheet";
 
 type Contact = { id: string; name: string; type: string; phone: string | null };
 
@@ -80,6 +83,16 @@ export default function VendorLedgerPage({
   const [currentEnd, setCurrentEnd] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [currentSearch, setCurrentSearch] = useState("");
+
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    string | null
+  >(null);
+  const [editingLabourPaymentId, setEditingLabourPaymentId] = useState<
+    string | null
+  >(null);
+  const [editingLabourEntryId, setEditingLabourEntryId] = useState<
+    string | null
+  >(null);
 
   const fetchLedger = async (
     start = currentStart,
@@ -218,6 +231,50 @@ export default function VendorLedgerPage({
     fetchLedger(currentStart, currentEnd, undefined, 1, search);
   };
 
+  const handleEditRow = (row: LedgerRow) => {
+    if (!row.id) return;
+    if (row.entryType === "vendor_transaction") {
+      setEditingTransactionId(row.id);
+    } else if (row.entryType === "labour_payment") {
+      setEditingLabourPaymentId(row.id);
+    } else if (row.entryType === "labour_entry") {
+      setEditingLabourEntryId(row.id);
+    }
+  };
+
+  const handleEditSaved = () => {
+    fetchLedger();
+  };
+
+  const handleDeleteRow = async (row: LedgerRow) => {
+    if (!row.id) return;
+
+    let confirmMessage: string | null = null;
+    let url: string | null = null;
+
+    if (row.entryType === "vendor_transaction") {
+      confirmMessage = "Delete this transaction? This cannot be undone.";
+      url = `/api/contacts/${vendorId}/transactions/${row.id}`;
+    } else if (row.entryType === "labour_payment") {
+      confirmMessage = "Delete this payment? This cannot be undone.";
+      url = `/api/contacts/${vendorId}/labour-payments/${row.id}`;
+    } else if (row.entryType === "labour_entry") {
+      confirmMessage = "Delete this labour entry? This cannot be undone.";
+      url = `/api/contacts/${vendorId}/daily-labour/${row.id}`;
+    }
+
+    if (!url || !confirmMessage) return;
+    if (!confirm(confirmMessage)) return;
+
+    const res = await fetch(url, { method: "DELETE" });
+    if (res.ok) {
+      fetchLedger();
+    } else {
+      const error = await res.json();
+      alert(error.error || "Failed to delete");
+    }
+  };
+
   const formatCurrency = (val: number) => {
     return `₹${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -331,12 +388,44 @@ export default function VendorLedgerPage({
           contactName={vendor?.name}
           contactPhone={vendor?.phone}
           shareLinkType={isLabourContractor ? "labour_ledger" : "vendor_ledger"}
+          onEditRow={handleEditRow}
+          onDeleteRow={handleDeleteRow}
         />
       ) : (
         <div className="text-center py-10 text-muted-foreground">
           Loading ledger...
         </div>
       )}
+
+      <EditVendorTransactionSheet
+        contactId={vendorId}
+        transactionId={editingTransactionId}
+        open={editingTransactionId !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingTransactionId(null);
+        }}
+        onSaved={handleEditSaved}
+      />
+
+      <EditLabourPaymentSheet
+        contactId={vendorId}
+        paymentId={editingLabourPaymentId}
+        open={editingLabourPaymentId !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingLabourPaymentId(null);
+        }}
+        onSaved={handleEditSaved}
+      />
+
+      <EditLabourEntrySheet
+        contactId={vendorId}
+        entryId={editingLabourEntryId}
+        open={editingLabourEntryId !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingLabourEntryId(null);
+        }}
+        onSaved={handleEditSaved}
+      />
     </PageShell>
   );
 }
