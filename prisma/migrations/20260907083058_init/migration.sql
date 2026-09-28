@@ -1,0 +1,8 @@
+-- Reconstructed placeholder: this migration's original file was missing from
+-- version control. A read-only introspection of the live database (via
+-- `prisma db pull`) on 2026-09-22 confirmed the DB schema already matches
+-- what's committed in schema.prisma (once 20260725000000_convert_worker_type_to_table
+-- is accounted for) -- no further structural drift, only introspection
+-- formatting differences (field order, redundant @db.Text). This file exists
+-- only to satisfy Prisma's migration history bookkeeping and intentionally
+-- applies no DDL.

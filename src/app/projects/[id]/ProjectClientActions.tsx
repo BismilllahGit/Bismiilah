@@ -27,7 +27,13 @@ type EditableProject = Omit<PrismaProject, "agreedValue"> & {
   agreedValue: string;
 };
 
-export function EditProjectDrawer({ project }: { project: EditableProject }) {
+export function EditProjectDrawer({
+  project,
+  clients,
+}: {
+  project: EditableProject;
+  clients: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -45,6 +51,7 @@ export function EditProjectDrawer({ project }: { project: EditableProject }) {
       : "",
     agreedValue: project.agreedValue ? project.agreedValue.toString() : "",
     notes: project.notes || "",
+    clientId: project.clientId || "",
   });
 
   const handleSave = async () => {
@@ -59,12 +66,14 @@ export function EditProjectDrawer({ project }: { project: EditableProject }) {
       notes: string;
       startDate?: string;
       endDate?: string;
+      clientId: string | null;
     } = {
       name: formData.name,
       location: formData.location,
       status: formData.status,
       agreedValue: formData.agreedValue, // Sent as string to satisfy backend
       notes: formData.notes,
+      clientId: formData.clientId || null,
     };
 
     // Safely parse dates to ISO strings, but omit them entirely if left empty
@@ -158,6 +167,36 @@ export function EditProjectDrawer({ project }: { project: EditableProject }) {
                   }
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Client</label>
+              <Select
+                value={formData.clientId || "__unassigned__"}
+                onValueChange={(v) => {
+                  if (v)
+                    setFormData({
+                      ...formData,
+                      clientId: v === "__unassigned__" ? "" : v,
+                    });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Unassigned">
+                    {formData.clientId
+                      ? clients.find((c) => c.id === formData.clientId)?.name ||
+                        "Unassigned"
+                      : "Unassigned"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>

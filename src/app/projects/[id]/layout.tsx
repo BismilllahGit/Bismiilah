@@ -28,10 +28,17 @@ export default async function ProjectDetailLayout({
       projectTasks: {
         where: { status: { not: "COMPLETED" } },
       },
+      client: { select: { id: true, name: true } },
     },
   });
 
   if (!project) notFound();
+
+  const clients = await prisma.client.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
 
   const unbilledExtraWorkCount = await prisma.extraWork.count({
     where: {
@@ -122,9 +129,22 @@ export default async function ProjectDetailLayout({
           <p className="text-muted-foreground flex items-center gap-1 text-sm">
             {project.location}
           </p>
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            Client:{" "}
+            {project.client ? (
+              <Link
+                href={`/clients/${project.client.id}`}
+                className="font-medium text-primary hover:underline"
+              >
+                {project.client.name}
+              </Link>
+            ) : (
+              <span className="italic">Unassigned</span>
+            )}
+          </p>
         </div>
         <div className="flex gap-2">
-          <EditProjectDrawer project={serializedProject} />
+          <EditProjectDrawer project={serializedProject} clients={clients} />
           <DeleteProjectButton projectId={project.id} />
         </div>
       </div>
