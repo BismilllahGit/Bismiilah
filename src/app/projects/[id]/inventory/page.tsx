@@ -5,9 +5,12 @@ import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { LedgerTable } from "@/components/ui/ledger-table";
+import { LedgerTable, LedgerRow } from "@/components/ui/ledger-table";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TransferStockSheet } from "./TransferStockSheet";
 import { LogTransactionSheet } from "./LogTransactionSheet";
+import { EditInventoryItemSheet } from "./EditInventoryItemSheet";
+import { EditInventoryTransactionSheet } from "./EditInventoryTransactionSheet";
 import { InventoryMobileList } from "./InventoryMobileList";
 import { InventoryDesktopTable } from "./InventoryDesktopTable";
 
@@ -96,6 +99,22 @@ export default function ProjectInventoryPage({
   );
   const [transferOpen, setTransferOpen] = useState(false);
 
+  const deleteInventoryItem = useApiMutation<undefined, unknown>("DELETE");
+  const [editingItem, setEditingItem] = useState<InventoryBalance | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<InventoryBalance | null>(
+    null,
+  );
+
+  const deleteInventoryTransaction = useApiMutation<undefined, unknown>(
+    "DELETE",
+  );
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    string | null
+  >(null);
+  const [deleteTxnTarget, setDeleteTxnTarget] = useState<LedgerRow | null>(
+    null,
+  );
+
   // Combobox state for Transaction
   const [itemName, setItemName] = useState("");
   const [itemCost, setItemCost] = useState("");
@@ -173,9 +192,7 @@ export default function ProjectInventoryPage({
         fetchLedger(selectedItem.id);
       }
     } catch (err) {
-      alert(
-        err instanceof Error ? err.message : "Failed to log transaction",
-      );
+      alert(err instanceof Error ? err.message : "Failed to log transaction");
     }
   };
 
@@ -203,6 +220,44 @@ export default function ProjectInventoryPage({
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to transfer");
+    }
+  };
+
+  const handleDeleteItem = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteInventoryItem.mutate(
+        `/api/projects/${projectId}/inventory/${deleteTarget.itemId}`,
+      );
+      setDeleteTarget(null);
+      refetchInventory();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete item");
+    }
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!deleteTxnTarget?.id) return;
+    try {
+      await deleteInventoryTransaction.mutate(
+        `/api/projects/${projectId}/inventory/transactions/${deleteTxnTarget.id}`,
+      );
+      setDeleteTxnTarget(null);
+      refetchInventory();
+      if (selectedItem) {
+        fetchLedger(selectedItem.id);
+      }
+    } catch (err) {
+      alert(
+        err instanceof Error ? err.message : "Failed to delete transaction",
+      );
+    }
+  };
+
+  const handleTransactionEditSaved = () => {
+    refetchInventory();
+    if (selectedItem) {
+      fetchLedger(selectedItem.id);
     }
   };
 
@@ -240,6 +295,13 @@ export default function ProjectInventoryPage({
     if (!ledgerData) return [];
     return ledgerData.rows.map((row: InventoryLedgerRow) => ({
       ...row,
+      // Transfers touch two projects' balances at once — edit/delete only
+      // make sense for this project's own BUY/ISSUE/RETURN/ADJUST entries,
+      // so omit `id` here to hide those controls for transfer rows.
+      id:
+        row.type === "TRANSFER_IN" || row.type === "TRANSFER_OUT"
+          ? undefined
+          : row.id,
       debit: row.qtyIn,
       credit: row.qtyOut,
       runningBalance: row.runningQtyBalance,
@@ -387,6 +449,8 @@ export default function ProjectInventoryPage({
             onPageChange={handlePageChange}
             pdfReportType="inventory_ledger"
             pdfParams={{ projectId, itemId: selectedItem.id }}
+            onEditRow={(row) => setEditingTransactionId(row.id || null)}
+            onDeleteRow={(row) => setDeleteTxnTarget(row)}
           />
         </div>
       ) : (
@@ -395,15 +459,55 @@ export default function ProjectInventoryPage({
             inventory={inventory}
             loading={loading}
             onSelectItem={handleSelectItem}
+            onEditItem={setEditingItem}
+            onDeleteItem={setDeleteTarget}
           />
 
           <InventoryDesktopTable
             inventory={inventory}
             loading={loading}
             onSelectItem={handleSelectItem}
+            onEditItem={setEditingItem}
+            onDeleteItem={setDeleteTarget}
           />
         </>
       )}
+
+      <EditInventoryItemSheet
+        item={editingItem?.item || null}
+        open={editingItem !== null}
+        onOpenChange={(open) => !open && setEditingItem(null)}
+        onSaved={() => {
+          refetchInventory();
+          refetchItems({ silent: true });
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={`Remove ${deleteTarget?.item.name || "this item"} from inventory?`}
+        description="This deletes this item's balance and all logged transactions for this project. This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDeleteItem}
+      />
+
+      <EditInventoryTransactionSheet
+        projectId={projectId}
+        transactionId={editingTransactionId}
+        open={editingTransactionId !== null}
+        onOpenChange={(open) => !open && setEditingTransactionId(null)}
+        onSaved={handleTransactionEditSaved}
+      />
+
+      <ConfirmDialog
+        open={deleteTxnTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTxnTarget(null)}
+        title="Delete this transaction?"
+        description="This removes the entry and updates the item's balance accordingly. This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDeleteTransaction}
+      />
     </div>
   );
 }
