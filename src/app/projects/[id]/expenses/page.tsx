@@ -126,7 +126,7 @@ export default function SiteExpensesPage({
     0,
   );
   const totalMaterials = materials
-    .filter((m) => m.type === "ISSUE")
+    .filter((m) => m.type === "BUY")
     .reduce(
       (acc, curr) => acc + Number(curr.quantity) * Number(curr.unitCost),
       0,

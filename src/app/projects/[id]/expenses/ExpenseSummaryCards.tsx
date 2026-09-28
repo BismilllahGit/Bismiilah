@@ -84,7 +84,7 @@ export default function ExpenseSummaryCards({
               minimumFractionDigits: 2,
             })}
           </div>
-          <p className="text-xs text-blue-600 mt-1">Assigned stock value</p>
+          <p className="text-xs text-blue-600 mt-1">Purchased stock value</p>
         </CardContent>
       </Card>
 
