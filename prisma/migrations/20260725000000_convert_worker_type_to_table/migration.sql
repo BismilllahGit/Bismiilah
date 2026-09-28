@@ -47,5 +47,14 @@ CREATE INDEX "daily_labour_entries_worker_type_id_date_idx" ON "daily_labour_ent
 
 ALTER TABLE "daily_labour_entries" ADD CONSTRAINT "daily_labour_entries_worker_type_id_fkey" FOREIGN KEY ("worker_type_id") REFERENCES "worker_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+-- DropTable: legacy tables from the original schema, superseded by
+-- daily_labour_entries/worker_types and no longer present in schema.prisma.
+-- Dropped against the real database outside of migration history (no
+-- migration file recorded it); included here so a from-scratch replay
+-- reaches the same end state before the enum they depend on is dropped.
+DROP TABLE IF EXISTS "attendance";
+DROP TABLE IF EXISTS "project_assignments";
+DROP TABLE IF EXISTS "workers";
+
 -- DropEnum: no longer referenced by any column
 DROP TYPE "WorkerType";
