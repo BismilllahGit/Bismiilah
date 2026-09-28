@@ -10,63 +10,92 @@ const updateClientSchema = z.object({
   address: z.string().optional(),
 });
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const client = await prisma.client.findUnique({
       where: { id: (await params).id },
       include: {
         invoices: {
-          orderBy: { issuedDate: 'desc' }
-        }
-      }
+          orderBy: { issuedDate: "desc" },
+        },
+        projects: {
+          orderBy: { createdAt: "desc" },
+          select: { id: true, name: true, location: true, status: true },
+        },
+      },
     });
 
-    if (!client) return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    if (!client)
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
 
     return NextResponse.json(client);
   } catch {
-    return NextResponse.json({ error: "Failed to fetch client" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch client" },
+      { status: 500 },
+    );
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
     const parsed = updateClientSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.format() },
+        { status: 400 },
+      );
     }
 
     const client = await prisma.client.update({
       where: { id: (await params).id },
-      data: parsed.data
+      data: parsed.data,
     });
 
     return NextResponse.json(client);
   } catch {
-    return NextResponse.json({ error: "Failed to update client" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update client" },
+      { status: 500 },
+    );
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const client = await prisma.client.update({
       where: { id: (await params).id },
-      data: { isActive: false }
+      data: { isActive: false },
     });
 
     return NextResponse.json(client);
   } catch {
-    return NextResponse.json({ error: "Failed to deactivate client" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to deactivate client" },
+      { status: 500 },
+    );
   }
 }

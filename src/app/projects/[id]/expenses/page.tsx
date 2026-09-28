@@ -33,7 +33,10 @@ export type LabourEntry = {
 
 export type MaterialEntry = {
   id: string;
-  qtyIssued: number;
+  type: "BUY" | "ISSUE" | "RETURN";
+  quantity: number;
+  unitCost: number;
+  date: string;
   item: { name: string; unit: string; unitCost: number };
 };
 
@@ -122,10 +125,12 @@ export default function SiteExpensesPage({
     (acc, curr) => acc + Number(curr.headcount) * Number(curr.wageRate),
     0,
   );
-  const totalMaterials = materials.reduce(
-    (acc, curr) => acc + Number(curr.qtyIssued) * Number(curr.item.unitCost),
-    0,
-  );
+  const totalMaterials = materials
+    .filter((m) => m.type === "BUY")
+    .reduce(
+      (acc, curr) => acc + Number(curr.quantity) * Number(curr.unitCost),
+      0,
+    );
   const totalVendor = vendorTxns.reduce(
     (acc, curr) => acc + Number(curr.amount),
     0,

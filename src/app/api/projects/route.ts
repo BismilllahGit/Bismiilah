@@ -14,37 +14,47 @@ const createProjectSchema = z.object({
     .max(9999999999.99, "Budget cannot exceed ₹9,999,999,999.99")
     .optional(),
   startDate: z.string().optional(),
-  endDate: z.string().optional()
+  endDate: z.string().optional(),
 });
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const projects = await prisma.project.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
+      include: { client: { select: { id: true, name: true } } },
     });
 
     return NextResponse.json(projects);
   } catch {
-    return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch projects" },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
     const parsed = createProjectSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.format() },
+        { status: 400 },
+      );
     }
 
-    const { name, location, description, budget, startDate, endDate } = parsed.data;
+    const { name, location, description, budget, startDate, endDate } =
+      parsed.data;
 
     const project = await prisma.project.create({
       data: {
@@ -56,7 +66,7 @@ export async function POST(request: Request) {
         endDate: endDate ? new Date(endDate) : undefined,
         status: "ACTIVE",
         agreedValue: budget ? parseFloat(budget.toString()) : 0,
-      }
+      },
     });
 
     // Staff assignment logic has been removed as part of Daily Labour migration
@@ -64,6 +74,9 @@ export async function POST(request: Request) {
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to create project" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create project" },
+      { status: 500 },
+    );
   }
 }

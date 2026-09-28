@@ -16,7 +16,6 @@ import {
   MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { cn } from "@/lib/utils";
 import {
   SaturdayViewClient,
@@ -25,6 +24,11 @@ import {
 } from "./saturday-view/SaturdayViewClient";
 import { CashFlowDesktopTable } from "./CashFlowDesktopTable";
 import { CashFlowMobileList } from "./CashFlowMobileList";
+import {
+  MaterialUsageReportView,
+  ProjectOption,
+  MaterialUsageData,
+} from "./MaterialUsageReportView";
 
 export interface OverviewData {
   totalCollected: number;
@@ -65,6 +69,8 @@ export interface ReportsClientProps {
   overviewData: OverviewData;
   cashFlowData: CashFlowData;
   saturdayData: SaturdayData;
+  projects: ProjectOption[];
+  initialUsageData: MaterialUsageData;
 }
 
 export function ReportsClient({
@@ -72,6 +78,8 @@ export function ReportsClient({
   overviewData,
   cashFlowData,
   saturdayData,
+  projects,
+  initialUsageData,
 }: ReportsClientProps) {
   const [currentTab, setCurrentTab] = useState(initialTab || "overview");
 
@@ -413,38 +421,10 @@ export function ReportsClient({
 
         {/* TAB 4: USAGE REPORTS */}
         <TabsContent value="usage-reports" className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-800">
-              Material Consumption & Inventory Usage
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Summarizes actual material consumption across all active projects,
-              excluding historical inter-project stock transfers.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <Package className="h-5 w-5 text-blue-500 shrink-0" />
-                  Top Material Usage Report
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Download a complete breakdown of quantities issued, average
-                  unit costs, and total material expenditure per item across
-                  active sites.
-                </p>
-                <DownloadPdfButton
-                  reportType="top_usage"
-                  buttonText="Download Usage PDF"
-                  variant="outline"
-                  className="w-full font-semibold"
-                />
-              </CardContent>
-            </Card>
-          </div>
+          <MaterialUsageReportView
+            projects={projects}
+            initialData={initialUsageData}
+          />
         </TabsContent>
       </Tabs>
     </div>

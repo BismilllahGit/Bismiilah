@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { PackageOpen } from "lucide-react";
+import { PackageOpen, Pencil, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 
 type Item = { id: string; name: string; unit: string; unitCost: number };
@@ -20,10 +20,14 @@ export function InventoryMobileList({
   inventory,
   loading,
   onSelectItem,
+  onEditItem,
+  onDeleteItem,
 }: {
   inventory: InventoryBalance[];
   loading: boolean;
   onSelectItem: (inv: InventoryBalance) => void;
+  onEditItem?: (inv: InventoryBalance) => void;
+  onDeleteItem?: (inv: InventoryBalance) => void;
 }) {
   return (
     <div className="lg:hidden space-y-3.5">
@@ -61,16 +65,48 @@ export function InventoryMobileList({
                     Unit: {inv.item.unit}
                   </span>
                 </div>
-                <Badge
-                  variant={stock <= 0 ? "destructive" : "outline"}
-                  className="text-xs font-mono font-bold shrink-0 px-2.5 py-1"
-                >
-                  Stock:{" "}
-                  {stock.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  {inv.item.unit}
-                </Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge
+                    variant={stock <= 0 ? "destructive" : "outline"}
+                    className="text-xs font-mono font-bold px-2.5 py-1"
+                  >
+                    Stock:{" "}
+                    {stock.toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    {inv.item.unit}
+                  </Badge>
+                  {(onEditItem || onDeleteItem) && (
+                    <div className="flex items-center gap-1">
+                      {onEditItem && (
+                        <button
+                          type="button"
+                          aria-label="Edit item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditItem(inv);
+                          }}
+                          className="p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {onDeleteItem && (
+                        <button
+                          type="button"
+                          aria-label="Delete item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteItem(inv);
+                          }}
+                          className="p-1 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-2 text-xs pt-1">
                 <div className="bg-green-50/80 rounded-lg p-2 text-center border border-green-100/80 flex flex-col justify-center">

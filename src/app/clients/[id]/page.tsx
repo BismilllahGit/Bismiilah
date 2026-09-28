@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { ArrowLeft, User, Phone, MapPin } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Building2, X } from "lucide-react";
 import Link from "next/link";
 import { LedgerTable, LedgerRow } from "@/components/ui/ledger-table";
 import { PageShell } from "@/components/ui/page-shell";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { CreateInvoiceSheet } from "./CreateInvoiceSheet";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
 import { EditInvoiceSheet } from "./EditInvoiceSheet";
 import { EditPaymentSheet } from "./EditPaymentSheet";
+import { LinkProjectSheet } from "./LinkProjectSheet";
 
 type Invoice = {
   id: string;
@@ -21,12 +24,20 @@ type Invoice = {
   paymentAllocations?: { allocatedAmount: number }[];
 };
 
+type LinkedProject = {
+  id: string;
+  name: string;
+  location: string;
+  status: string;
+};
+
 type Client = {
   id: string;
   name: string;
   phone: string | null;
   address: string | null;
   invoices: Invoice[];
+  projects: LinkedProject[];
 };
 
 type LedgerData = {
@@ -77,6 +88,7 @@ export default function ClientDetailPage({
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [linkProjectOpen, setLinkProjectOpen] = useState(false);
 
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
@@ -327,6 +339,23 @@ export default function ClientDetailPage({
     }
   };
 
+  const handleUnlinkProject = async (projectId: string) => {
+    if (!confirm("Unlink this project from the client?")) return;
+
+    const res = await fetch(`/api/projects/${projectId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: null }),
+    });
+
+    if (res.ok) {
+      fetchClientAndProjects();
+    } else {
+      const error = await res.json();
+      alert(error.error || "Failed to unlink project");
+    }
+  };
+
   const formatCurrency = (val: number) => {
     return `₹${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -370,6 +399,16 @@ export default function ClientDetailPage({
         </div>
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {/* Link Project Sheet */}
+          <LinkProjectSheet
+            open={linkProjectOpen}
+            setOpen={setLinkProjectOpen}
+            clientId={clientId}
+            clientName={client?.name}
+            linkedProjectIds={client?.projects.map((p) => p.id) || []}
+            onLinked={fetchClientAndProjects}
+          />
+
           {/* Create Invoice Sheet */}
           <CreateInvoiceSheet
             invoiceOpen={invoiceOpen}
@@ -404,6 +443,42 @@ export default function ClientDetailPage({
           />
         </div>
       </div>
+
+      {client && client.projects.length > 0 && (
+        <div className="bg-white border border-slate-200/80 rounded-xl p-4 sm:p-5 shadow-sm space-y-3">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Projects
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {client.projects.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between gap-2 border rounded-lg p-3"
+              >
+                <Link
+                  href={`/projects/${p.id}`}
+                  className="flex items-center gap-2 min-w-0 hover:text-primary"
+                >
+                  <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="font-medium truncate">{p.name}</span>
+                  <Badge variant="outline" className="shrink-0">
+                    {p.status}
+                  </Badge>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-red-600 shrink-0"
+                  onClick={() => handleUnlinkProject(p.id)}
+                  title="Unlink project"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {ledgerData && (
         <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">

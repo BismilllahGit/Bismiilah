@@ -12,58 +12,83 @@ const updateItemSchema = z.object({
   unitCost: z.coerce.number().min(0).optional(),
 });
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const item = await prisma.item.findUnique({
-      where: { id: (await params).id }
+      where: { id: (await params).id },
     });
 
-    if (!item) return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    if (!item)
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
 
     return NextResponse.json(item);
   } catch {
-    return NextResponse.json({ error: "Failed to fetch item" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch item" },
+      { status: 500 },
+    );
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
     const parsed = updateItemSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.format() },
+        { status: 400 },
+      );
     }
 
     const item = await prisma.item.update({
       where: { id: (await params).id },
-      data: parsed.data
+      data: parsed.data,
     });
 
     return NextResponse.json(item);
   } catch {
-    return NextResponse.json({ error: "Failed to update item" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update item" },
+      { status: 500 },
+    );
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const item = await prisma.item.update({
       where: { id: (await params).id },
-      data: { isActive: false }
+      data: { isActive: false },
     });
 
     return NextResponse.json(item);
   } catch {
-    return NextResponse.json({ error: "Failed to deactivate item" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to deactivate item" },
+      { status: 500 },
+    );
   }
 }

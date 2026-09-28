@@ -27,6 +27,7 @@ enum UserRole {
 
 model Project {
   id          String        @id @default(uuid())
+  clientId    String?       @map("client_id")
   name        String        @db.VarChar(255)
   location    String        @db.VarChar(255)
   status      ProjectStatus @default(ACTIVE)
@@ -37,6 +38,7 @@ model Project {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
+  client                Client?                @relation(fields: [clientId], references: [id])
   projectInventories    ProjectInventory[]
   inventoryTransactions InventoryTransaction[]
   siteExpenses          SiteExpense[]
@@ -49,6 +51,7 @@ model Project {
   boqs                  BOQ[]
   projectTasks          ProjectTask[]
 
+  @@index([clientId])
   @@map("projects")
 }
 
@@ -221,6 +224,7 @@ model Client {
 
   invoices       Invoice[]
   clientPayments ClientPayment[]
+  projects       Project[]
 
   @@index([name])
   @@map("clients")
