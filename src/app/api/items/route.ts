@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const createItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  type: z.string().trim().min(1, "Type is required").max(50),
+  type: z.enum(["MATERIAL", "TOOL", "PAINT", "CEMENT"]),
   grade: z.enum(["GRADE_A", "GRADE_B", "GRADE_C"]).optional().nullable(),
   unit: z.string().min(1, "Unit is required"),
   unitCost: z.coerce.number().min(0),
