@@ -50,9 +50,7 @@ export default function ExpenseSummaryCards({
               minimumFractionDigits: 2,
             })}
           </div>
-          <p className="text-xs text-orange-600 mt-1">
-            Dedicated labour spend
-          </p>
+          <p className="text-xs text-orange-600 mt-1">Dedicated labour spend</p>
         </CardContent>
       </Card>
 
@@ -76,7 +74,7 @@ export default function ExpenseSummaryCards({
       <Card className="bg-blue-50/70 border-blue-200 shadow-sm hover:shadow transition-shadow">
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-semibold uppercase tracking-wider text-blue-800 flex items-center justify-between">
-            Materials Issued <Package className="h-4 w-4 text-blue-600" />
+            Materials <Package className="h-4 w-4 text-blue-600" />
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -13,6 +13,29 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { MaterialEntry } from "./page";
 
+const STATUS_LABEL: Record<MaterialEntry["type"], string> = {
+  BUY: "Bought",
+  ISSUE: "Issued",
+  RETURN: "Returned",
+};
+
+const STATUS_CLASS: Record<MaterialEntry["type"], string> = {
+  BUY: "bg-green-50 text-green-700 border-green-200",
+  ISSUE: "bg-orange-50 text-orange-700 border-orange-200",
+  RETURN: "bg-blue-50 text-blue-700 border-blue-200",
+};
+
+function StatusBadge({ type }: { type: MaterialEntry["type"] }) {
+  return (
+    <Badge
+      variant="outline"
+      className={`text-xs font-semibold ${STATUS_CLASS[type]}`}
+    >
+      {STATUS_LABEL[type]}
+    </Badge>
+  );
+}
+
 export default function MaterialsView({
   materials,
   loading,
@@ -32,12 +55,12 @@ export default function MaterialsView({
           <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
             <EmptyState
               icon={Package}
-              message="No materials issued to this site yet."
+              message="No material transactions logged for this site yet."
             />
           </div>
         ) : (
           materials.map((m) => {
-            const value = Number(m.qtyIssued) * Number(m.item.unitCost);
+            const value = Number(m.quantity) * Number(m.unitCost);
             return (
               <div
                 key={m.id}
@@ -47,12 +70,15 @@ export default function MaterialsView({
                   <span className="font-bold text-slate-900 text-base block wrap-break-word">
                     {m.item.name}
                   </span>
-                  <Badge
-                    variant="outline"
-                    className="text-xs font-semibold bg-slate-50 shrink-0"
-                  >
-                    {m.item.unit}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-semibold bg-slate-50"
+                    >
+                      {m.item.unit}
+                    </Badge>
+                    <StatusBadge type={m.type} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
                   <div className="bg-slate-50/80 rounded-lg p-2.5 flex flex-col justify-center border border-slate-100/80">
@@ -60,8 +86,8 @@ export default function MaterialsView({
                       Qty & Unit Cost
                     </span>
                     <span className="font-mono font-bold text-slate-800 text-sm mt-0.5">
-                      {Number(m.qtyIssued).toLocaleString()} @ ₹
-                      {Number(m.item.unitCost).toLocaleString(undefined, {
+                      {Number(m.quantity).toLocaleString()} @ ₹
+                      {Number(m.unitCost).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                       })}
                     </span>
@@ -92,8 +118,9 @@ export default function MaterialsView({
               <TableHead className="w-55 font-semibold">Item Name</TableHead>
               <TableHead className="font-semibold">Unit</TableHead>
               <TableHead className="text-right font-semibold">
-                Quantity Issued
+                Quantity
               </TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="text-right font-semibold">
                 Unit Cost
               </TableHead>
@@ -106,7 +133,7 @@ export default function MaterialsView({
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center py-10 text-muted-foreground"
                 >
                   Loading inventory...
@@ -114,11 +141,11 @@ export default function MaterialsView({
               </TableRow>
             ) : materials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10">
+                <TableCell colSpan={6} className="text-center py-10">
                   <EmptyState
                     icon={Package}
-                    message="No materials issued to this site yet."
-                    description="Issue stock under Project Inventory to populate this view."
+                    message="No material transactions logged for this site yet."
+                    description="Log a transaction under Project Inventory to populate this view."
                     variant="cell"
                     compact
                   />
@@ -126,7 +153,7 @@ export default function MaterialsView({
               </TableRow>
             ) : (
               materials.map((m) => {
-                const value = Number(m.qtyIssued) * Number(m.item.unitCost);
+                const value = Number(m.quantity) * Number(m.unitCost);
                 return (
                   <TableRow key={m.id} className="hover:bg-slate-50/50">
                     <TableCell className="font-semibold text-slate-900 whitespace-nowrap">
@@ -136,11 +163,14 @@ export default function MaterialsView({
                       {m.item.unit}
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium">
-                      {Number(m.qtyIssued).toLocaleString()} {m.item.unit}
+                      {Number(m.quantity).toLocaleString()} {m.item.unit}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge type={m.type} />
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
                       ₹
-                      {Number(m.item.unitCost).toLocaleString(undefined, {
+                      {Number(m.unitCost).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                       })}
                     </TableCell>
