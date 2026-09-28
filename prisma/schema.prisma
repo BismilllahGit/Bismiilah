@@ -27,6 +27,7 @@ enum UserRole {
 
 model Project {
   id          String        @id @default(uuid())
+  clientId    String?       @map("client_id")
   name        String        @db.VarChar(255)
   location    String        @db.VarChar(255)
   status      ProjectStatus @default(ACTIVE)
@@ -37,6 +38,7 @@ model Project {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
+  client                Client?                @relation(fields: [clientId], references: [id])
   projectInventories    ProjectInventory[]
   inventoryTransactions InventoryTransaction[]
   siteExpenses          SiteExpense[]
@@ -49,6 +51,7 @@ model Project {
   boqs                  BOQ[]
   projectTasks          ProjectTask[]
 
+  @@index([clientId])
   @@map("projects")
 }
 
@@ -133,7 +136,7 @@ model DailyLabourEntry {
 model Item {
   id        String     @id @default(uuid())
   name      String     @db.VarChar(255)
-  type      ItemType
+  type      String     @db.VarChar(50)
   grade     ItemGrade?
   unit      String     @db.VarChar(50) // kg, bag, piece, litre
   unitCost  Decimal    @map("unit_cost") @db.Decimal(10, 2)
@@ -146,13 +149,6 @@ model Item {
   boqLineItems          BOQLineItem[]
 
   @@map("items")
-}
-
-enum ItemType {
-  MATERIAL
-  TOOL
-  PAINT
-  CEMENT
 }
 
 enum ItemGrade {
@@ -221,6 +217,7 @@ model Client {
 
   invoices       Invoice[]
   clientPayments ClientPayment[]
+  projects       Project[]
 
   @@index([name])
   @@map("clients")
