@@ -10,6 +10,7 @@ const transactionPatchSchema = z.object({
   date: z.string(),
   description: z.string().optional(),
   projectId: z.string().optional(),
+  paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
 });
 
 export async function GET(
@@ -63,7 +64,8 @@ export async function PATCH(
       );
     }
 
-    const { type, amount, date, description, projectId } = parsed.data;
+    const { type, amount, date, description, projectId, paymentStatus } =
+      parsed.data;
 
     const existing = await prisma.vendorTransaction.findUnique({
       where: { id: transactionId },
@@ -83,6 +85,8 @@ export async function PATCH(
         date: new Date(date),
         description,
         projectId: projectId || null,
+        paymentStatus:
+          paymentStatus ?? existing.paymentStatus ?? (type === "PURCHASE" ? "PENDING" : "PAID"),
       },
     });
 

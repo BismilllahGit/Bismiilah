@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { Input } from "@/components/ui/input";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { DailyLabourFormSheet } from "./DailyLabourFormSheet";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 import { DailyLabourMobileList } from "./DailyLabourMobileList";
 import { DailyLabourDesktopTable } from "./DailyLabourDesktopTable";
 import type { Contact, PaymentCycle } from "@prisma/client";
@@ -118,6 +119,7 @@ export default function DailyLabourPage({
       : null,
   );
   const entries = entriesResult?.data || [];
+  const pg = usePagination(entries, undefined, date);
   const summary = entriesResult?.summary || {
     totalHeadcount: 0,
     totalSpend: 0,
@@ -366,10 +368,17 @@ export default function DailyLabourPage({
       </div>
 
       {/* Mobile & Tablet Stacked Card View (below lg breakpoint) */}
-      <DailyLabourMobileList entries={entries} loading={loading} summary={summary} />
+      <DailyLabourMobileList entries={pg.pageItems} loading={loading} summary={summary} />
 
       {/* Desktop/Tablet Table View (lg breakpoint and above) */}
-      <DailyLabourDesktopTable entries={entries} loading={loading} summary={summary} />
+      <DailyLabourDesktopTable entries={pg.pageItems} loading={loading} summary={summary} />
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </div>
   );
 }

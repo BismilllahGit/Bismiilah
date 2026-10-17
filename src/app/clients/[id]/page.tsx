@@ -15,6 +15,7 @@ import { LinkProjectSheet } from "./LinkProjectSheet";
 
 type Invoice = {
   id: string;
+  projectId: string;
   invoiceNumber: string;
   amount: number;
   issuedDate: string;
@@ -57,6 +58,7 @@ type PaymentPayload = {
   date: string | null;
   method: string | null;
   note: string | undefined;
+  projectId: string;
   invoiceId?: string;
   allocations?: { invoiceId: string; amount: number }[];
 };
@@ -107,6 +109,7 @@ export default function ClientDetailPage({
   const [currentSearch, setCurrentSearch] = useState("");
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentProjectId, setPaymentProjectId] = useState("");
   const [allocations, setAllocations] = useState<Record<string, string>>({});
 
   const fetchClientAndProjects = async () => {
@@ -195,8 +198,15 @@ export default function ClientDetailPage({
     const formData = new FormData(e.currentTarget);
     const amount = Number(formData.get("amount"));
 
+    if (!paymentProjectId) {
+      alert("Please select a project.");
+      setSaving(false);
+      return;
+    }
+
     const payload: PaymentPayload = {
       amount,
+      projectId: paymentProjectId,
       // These fields come from text/date/select inputs (never file inputs),
       // so FormDataEntryValue is always a string here.
       date: formData.get("date") as string | null,
@@ -243,14 +253,12 @@ export default function ClientDetailPage({
           id: createdTxn.id,
           clientName: client?.name,
           clientPhone: client?.phone,
-          projectName:
-            paymentMode === "SINGLE" && selectedInvoiceId
-              ? client?.invoices.find((i) => i.id === selectedInvoiceId)
-                  ?.project?.name
-              : "Multiple Projects/Advance",
+          projectName: client?.projects.find((p) => p.id === paymentProjectId)
+            ?.name,
           balance: ledgerData ? ledgerData.closingBalance - payload.amount : 0,
         });
         setSelectedInvoiceId("");
+        setPaymentProjectId("");
         setPaymentAmount("");
         setAllocations({});
         fetchClientAndProjects();
@@ -439,6 +447,9 @@ export default function ClientDetailPage({
             allocations={allocations}
             setAllocations={setAllocations}
             unpaidInvoices={unpaidInvoices}
+            projects={client?.projects ?? []}
+            projectId={paymentProjectId}
+            setProjectId={setPaymentProjectId}
             saving={saving}
           />
         </div>
@@ -542,6 +553,7 @@ export default function ClientDetailPage({
 
       <EditPaymentSheet
         clientId={clientId}
+        projects={client?.projects ?? []}
         paymentId={editingPaymentId}
         open={editingPaymentId !== null}
         onOpenChange={(open) => {

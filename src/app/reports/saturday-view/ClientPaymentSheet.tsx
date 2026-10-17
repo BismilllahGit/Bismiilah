@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -136,16 +137,15 @@ export function ClientPaymentSheet({
                 <label className="text-xs font-semibold text-slate-700">
                   Payment Method *
                 </label>
-                <select
+                <NativeSelect
                   name="method"
                   defaultValue="BANK_TRANSFER"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 >
                   <option value="BANK_TRANSFER">Bank Transfer</option>
                   <option value="CASH">Cash</option>
                   <option value="UPI">UPI</option>
                   <option value="CHEQUE">Cheque</option>
-                </select>
+                </NativeSelect>
               </div>
 
               <div className="space-y-2">

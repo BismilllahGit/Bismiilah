@@ -18,6 +18,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, ExternalLink, Calendar, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  FilterSelect,
+  FilterBar,
+  matchesSearch,
+} from "@/components/ui/pagination";
 import { useApiResource } from "@/hooks/useApiResource";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeader } from "@/components/ui/page-header";
@@ -35,6 +44,9 @@ export default function ShareLogsPage() {
   const { data: logs, loading } = useApiResource<ShareLog[]>(
     "/api/share-logs?limit=200",
   );
+
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -58,6 +70,16 @@ export default function ShareLogsPage() {
         return type.replace(/_/g, " ");
     }
   };
+
+  const typeOptions = Array.from(
+    new Set((logs || []).map((l) => l.type)),
+  ).map((t) => ({ value: t, label: getTypeLabel(t) }));
+  const filteredLogs = (logs || []).filter(
+    (l) =>
+      (!typeFilter || l.type === typeFilter) &&
+      matchesSearch(search, l.recipientPhone, getTypeLabel(l.type)),
+  );
+  const pg = usePagination(filteredLogs, undefined, `${search}|${typeFilter}`);
 
   const getReferenceLink = (log: ShareLog) => {
     if (
@@ -118,6 +140,21 @@ export default function ShareLogsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-0">
+          <div className="p-0 md:p-4 pb-4 md:pb-2">
+            <FilterBar>
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search by phone or type..."
+              />
+              <FilterSelect
+                value={typeFilter}
+                onChange={setTypeFilter}
+                allLabel="All types"
+                options={typeOptions}
+              />
+            </FilterBar>
+          </div>
           <Table className="block md:table w-full">
             <TableHeader className="hidden md:table-header-group bg-slate-50">
               <TableRow>
@@ -139,17 +176,19 @@ export default function ShareLogsPage() {
                     Loading logs...
                   </TableCell>
                 </TableRow>
-              ) : (logs || []).length === 0 ? (
+              ) : filteredLogs.length === 0 ? (
                 <TableRow className="flex md:table-row border border-slate-200 md:border-0 rounded-lg md:rounded-none">
                   <TableCell
                     colSpan={4}
                     className="h-32 flex items-center justify-center md:table-cell text-center text-muted-foreground w-full border-none"
                   >
-                    No share logs recorded yet.
+                    {search || typeFilter
+                      ? "No share logs match your filters."
+                      : "No share logs recorded yet."}
                   </TableCell>
                 </TableRow>
               ) : (
-                (logs || []).map((log) => (
+                pg.pageItems.map((log) => (
                   <TableRow
                     key={log.id}
                     className="hover:bg-slate-50/50 transition-colors flex flex-col md:table-row border border-slate-200 shadow-sm md:shadow-none md:border-0 md:border-b md:last:border-b-0 rounded-lg md:rounded-none bg-white overflow-hidden"
@@ -207,6 +246,14 @@ export default function ShareLogsPage() {
               )}
             </TableBody>
           </Table>
+          <div className="md:p-4">
+            <PaginationControls
+              page={pg.page}
+              totalPages={pg.totalPages}
+              total={pg.total}
+              onPageChange={pg.setPage}
+            />
+          </div>
         </CardContent>
       </Card>
     </PageShell>

@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -100,9 +101,9 @@ export function DailyLabourFormSheet({
                     <label className="text-xs font-medium text-slate-500">
                       Worker Type *
                     </label>
-                    <select
+                    <NativeSelect
                       required
-                      className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      className="h-8"
                       value={row.workerType}
                       onChange={(e) =>
                         onUpdateRow(row.id, "workerType", e.target.value)
@@ -115,7 +116,7 @@ export function DailyLabourFormSheet({
                         </option>
                       ))}
                       <option value="__OTHERS__">Others…</option>
-                    </select>
+                    </NativeSelect>
                     {row.workerType === "__OTHERS__" && (
                       <div className="flex items-center gap-1 pt-1">
                         <Input
@@ -221,12 +222,13 @@ export function DailyLabourFormSheet({
                         }
                         className="flex-1 w-full"
                       />
-                      <select
+                      <NativeSelect
+                        wrapperClassName="flex-1 lg:w-1/3"
+                        className="h-8"
                         value={row.contractorId}
                         onChange={(e) =>
                           onUpdateRow(row.id, "contractorId", e.target.value)
                         }
-                        className="flex h-8 w-full flex-1 lg:w-1/3 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                       >
                         <option value="">No Contractor</option>
                         {contractors.map((c) => (
@@ -234,7 +236,7 @@ export function DailyLabourFormSheet({
                             {c.name}
                           </option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </div>
 
                     <div className="flex items-start space-x-2 pt-1">

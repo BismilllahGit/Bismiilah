@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
+import { PAYMENT_STATUS_OPTIONS } from "@/components/ui/payment-status-badge";
 import {
   Sheet,
   SheetContent,
@@ -15,11 +17,15 @@ import {
 type Item = { id: string; name: string; unit: string; unitCost: number };
 
 export function EditInventoryItemSheet({
+  projectId,
+  vendors,
   item,
   open,
   onOpenChange,
   onSaved,
 }: {
+  projectId: string;
+  vendors: { id: string; name: string }[];
   item: Item | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,6 +35,10 @@ export function EditInventoryItemSheet({
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
   const [unitCost, setUnitCost] = useState("");
+  // "" = leave this item's Buys unchanged (also used when they differ).
+  const [vendorId, setVendorId] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [hasBuys, setHasBuys] = useState(false);
 
   useEffect(() => {
     if (!open || !item) return;
@@ -36,7 +46,20 @@ export function EditInventoryItemSheet({
     setName(item.name);
     setUnit(item.unit);
     setUnitCost(String(item.unitCost));
-  }, [open, item]);
+    setVendorId("");
+    setPaymentStatus("");
+    setHasBuys(false);
+    fetch(`/api/projects/${projectId}/inventory/${item.id}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        setHasBuys(d.buyCount > 0);
+        setVendorId(d.vendorId && d.vendorId !== "MIXED" ? d.vendorId : "");
+        setPaymentStatus(
+          d.paymentStatus && d.paymentStatus !== "MIXED" ? d.paymentStatus : "",
+        );
+      })
+      .catch(() => {});
+  }, [open, item, projectId]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,7 +77,27 @@ export function EditInventoryItemSheet({
         }),
       });
 
-      if (res.ok) {
+      let ok = res.ok;
+      if (ok && hasBuys && (vendorId || paymentStatus)) {
+        const buyRes = await fetch(
+          `/api/projects/${projectId}/inventory/${item.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              vendorId: vendorId || undefined,
+              paymentStatus: paymentStatus || undefined,
+            }),
+          },
+        );
+        if (!buyRes.ok) {
+          const error = await buyRes.json();
+          alert(error.error || "Failed to update vendor / payment status");
+          ok = false;
+        }
+      }
+
+      if (ok) {
         onOpenChange(false);
         onSaved();
       } else {
@@ -113,6 +156,44 @@ export function EditInventoryItemSheet({
               />
             </div>
           </div>
+          {hasBuys && (
+            <>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Vendor</label>
+                <NativeSelect
+                  value={vendorId}
+                  onChange={(e) => setVendorId(e.target.value)}
+                >
+                  <option value="">No change</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+                <p className="text-[10px] text-muted-foreground">
+                  Applies to all Buys of this item in this project and their vendor ledger entries.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Payment Status</label>
+                <NativeSelect
+                  value={paymentStatus}
+                  onChange={(e) => setPaymentStatus(e.target.value)}
+                >
+                  <option value="">No change</option>
+                  {PAYMENT_STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+                <p className="text-[10px] text-muted-foreground">
+                  Applies to Buys from a vendor; shown on the vendor&apos;s ledger.
+                </p>
+              </div>
+            </>
+          )}
           <SheetFooter className="mt-6">
             <SheetClose render={<Button variant="outline" type="button" />}>
               Cancel

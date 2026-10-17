@@ -11,6 +11,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import { PAYMENT_STATUS_OPTIONS } from "@/components/ui/payment-status-badge";
 
 type Project = { id: string; name: string };
 
@@ -35,6 +36,7 @@ export function EditVendorTransactionSheet({
   const [date, setDate] = useState("");
   const [projectId, setProjectId] = useState("");
   const [description, setDescription] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("PENDING");
 
   useEffect(() => {
     if (!open || !transactionId) return;
@@ -53,6 +55,9 @@ export function EditVendorTransactionSheet({
         setDate(new Date(txn.date).toISOString().split("T")[0]);
         setProjectId(txn.projectId || "");
         setDescription(txn.description || "");
+        setPaymentStatus(
+          txn.paymentStatus || (txn.type === "PURCHASE" ? "PENDING" : "PAID"),
+        );
       })
       .catch(() => alert("Failed to load transaction"))
       .finally(() => setLoading(false));
@@ -76,6 +81,7 @@ export function EditVendorTransactionSheet({
             date,
             description: description || undefined,
             projectId: projectId || undefined,
+            paymentStatus,
           }),
         },
       );
@@ -155,6 +161,20 @@ export function EditVendorTransactionSheet({
                   onChange={(e) => setDate(e.target.value)}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Payment Status</label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+              >
+                {PAYMENT_STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Project (Optional)</label>

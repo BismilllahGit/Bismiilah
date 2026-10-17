@@ -28,6 +28,12 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  matchesSearch,
+} from "@/components/ui/pagination";
 
 type Client = {
   id: string;
@@ -44,6 +50,11 @@ export default function ClientsPage() {
     loading,
     refetch: refetchClients,
   } = useApiResource<Client[]>("/api/clients");
+  const [search, setSearch] = useState("");
+  const filteredClients = (clients || []).filter((c) =>
+    matchesSearch(search, c.name, c.phone, c.address),
+  );
+  const pg = usePagination(filteredClients, undefined, search);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<string | null>(null);
@@ -149,18 +160,29 @@ export default function ClientsPage() {
         }
       />
 
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name, phone or address..."
+      />
+
       {/* Mobile & Tablet Stacked Cards View (below lg breakpoint) */}
       <div className="lg:hidden space-y-3.5">
         {loading ? (
           <div className="text-center py-12 text-muted-foreground text-sm border rounded-xl bg-white shadow-sm">
             Loading clients...
           </div>
-        ) : (clients || []).length === 0 ? (
+        ) : filteredClients.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
-            <EmptyState icon={Building2} message="No clients registered yet." />
+            <EmptyState
+              icon={Building2}
+              message={
+                search ? "No clients match your search." : "No clients registered yet."
+              }
+            />
           </div>
         ) : (
-          (clients || []).map((client) => {
+          pg.pageItems.map((client) => {
             const projectCount = new Set(
               client.invoices.map((i) => i.projectId),
             ).size;
@@ -249,18 +271,22 @@ export default function ClientsPage() {
                   Loading clients...
                 </TableCell>
               </TableRow>
-            ) : (clients || []).length === 0 ? (
+            ) : filteredClients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-14">
                   <EmptyState
                     icon={Building2}
-                    message="No clients registered yet."
+                    message={
+                      search
+                        ? "No clients match your search."
+                        : "No clients registered yet."
+                    }
                     variant="cell"
                   />
                 </TableCell>
               </TableRow>
             ) : (
-              (clients || []).map((client) => (
+              pg.pageItems.map((client) => (
                 <TableRow
                   key={client.id}
                   className="hover:bg-slate-50/60 transition-colors"
@@ -316,6 +342,13 @@ export default function ClientsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
 
       <ConfirmDialog
         open={deactivateTarget !== null}

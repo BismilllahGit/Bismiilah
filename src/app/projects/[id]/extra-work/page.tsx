@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState, use } from "react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
@@ -25,6 +26,14 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  FilterSelect,
+  FilterBar,
+  matchesSearch,
+} from "@/components/ui/pagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type ExtraWork = {
@@ -34,6 +43,8 @@ type ExtraWork = {
   date: string;
   status: string;
 };
+
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 
 export default function ExtraWorkPage({
   params,
@@ -48,6 +59,19 @@ export default function ExtraWorkPage({
     loading,
     refetch,
   } = useApiResource<ExtraWork[]>(`/api/projects/${projectId}/extra-work`);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const filteredWorks = (works || []).filter(
+    (w) =>
+      (!statusFilter || w.status === statusFilter) &&
+      matchesSearch(search, w.description),
+  );
+  const { sorted, dir, toggle } = useDateSort(filteredWorks, (w) => w.date);
+  const pg = usePagination(
+    sorted,
+    undefined,
+    `${search}|${statusFilter}|${dir}`,
+  );
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const createExtraWork = useApiMutation<Record<string, unknown>, ExtraWork>(
@@ -158,15 +182,14 @@ export default function ExtraWorkPage({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status *</label>
-                <select
+                <NativeSelect
                   name="status"
                   required
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 >
                   <option value="UNBILLED">Unbilled</option>
                   <option value="BILLED">Billed</option>
                   <option value="COLLECTED">Collected</option>
-                </select>
+                </NativeSelect>
               </div>
               <SheetFooter className="mt-6">
                 <SheetClose render={<Button variant="outline" type="button" />}>
@@ -229,13 +252,31 @@ export default function ExtraWorkPage({
         </Card>
       </div>
 
+      <FilterBar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search description..."
+        />
+        <FilterSelect
+          value={statusFilter}
+          onChange={setStatusFilter}
+          allLabel="All statuses"
+          options={[
+            { value: "UNBILLED", label: "Unbilled" },
+            { value: "BILLED", label: "Billed" },
+            { value: "COLLECTED", label: "Collected" },
+          ]}
+        />
+      </FilterBar>
+
       {/* Mobile Stacked Card View (below md breakpoint) */}
       <div className="md:hidden space-y-3">
         {loading ? (
           <div className="text-center py-10 text-muted-foreground text-sm border rounded-lg bg-white">
             Loading extra work...
           </div>
-        ) : (works || []).length === 0 ? (
+        ) : filteredWorks.length === 0 ? (
           <div className="text-center py-10 border rounded-lg bg-white p-4">
             <EmptyState
               icon={Hammer}
@@ -245,7 +286,7 @@ export default function ExtraWorkPage({
             />
           </div>
         ) : (
-          (works || []).map((w) => (
+          pg.pageItems.map((w) => (
             <div
               key={w.id}
               className="bg-white border rounded-lg p-3.5 shadow-sm space-y-2"
@@ -294,7 +335,9 @@ export default function ExtraWorkPage({
         <Table className="min-w-150">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-30">Date</TableHead>
+              <TableHead className="w-30">
+                <DateSortButton dir={dir} onToggle={toggle} />
+              </TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>
@@ -310,7 +353,7 @@ export default function ExtraWorkPage({
                   Loading extra work...
                 </TableCell>
               </TableRow>
-            ) : (works || []).length === 0 ? (
+            ) : filteredWorks.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-10">
                   <EmptyState
@@ -323,7 +366,7 @@ export default function ExtraWorkPage({
                 </TableCell>
               </TableRow>
             ) : (
-              (works || []).map((w) => (
+              pg.pageItems.map((w) => (
                 <TableRow key={w.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium whitespace-nowrap">
                     {new Date(w.date).toLocaleDateString()}
@@ -361,6 +404,13 @@ export default function ExtraWorkPage({
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </div>
   );
 }

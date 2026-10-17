@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Plus, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
+import { PAYMENT_STATUS_OPTIONS } from "@/components/ui/payment-status-badge";
 import type { SuccessTxnData } from "./page";
 
 type Project = { id: string; name: string };
@@ -38,6 +40,8 @@ export function RecordTransactionSheet({
   handleSaveTransaction: (e: React.FormEvent<HTMLFormElement>) => void;
   saving: boolean;
 }) {
+  const [txnType, setTxnType] = useState<"PURCHASE" | "PAYMENT">("PURCHASE");
+
   return (
     <Sheet
       open={open}
@@ -120,7 +124,8 @@ export function RecordTransactionSheet({
                       name="type"
                       value="PURCHASE"
                       required
-                      defaultChecked
+                      checked={txnType === "PURCHASE"}
+                      onChange={() => setTxnType("PURCHASE")}
                     />
                     Purchase (Bill)
                   </label>
@@ -130,6 +135,8 @@ export function RecordTransactionSheet({
                       name="type"
                       value="PAYMENT"
                       required
+                      checked={txnType === "PAYMENT"}
+                      onChange={() => setTxnType("PAYMENT")}
                     />
                     Payment Out
                   </label>
@@ -158,6 +165,21 @@ export function RecordTransactionSheet({
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Payment Status</label>
+                <select
+                  key={txnType}
+                  name="paymentStatus"
+                  defaultValue={txnType === "PURCHASE" ? "PENDING" : "PAID"}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                >
+                  {PAYMENT_STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ensureProjectActive } from "@/lib/project-utils";
+import { nextVoucherNumber } from "@/lib/voucher";
 import { TransactionType } from "@prisma/client";
 import { z } from "zod";
 
@@ -12,6 +13,8 @@ const transactionPatchSchema = z.object({
   unitCost: z.coerce.number().min(0),
   date: z.string(),
   note: z.string().optional(),
+  vendorId: z.string().min(1).nullish(),
+  paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
 });
 
 function balanceDelta(type: TransactionType, quantity: number) {
@@ -73,7 +76,8 @@ export async function PATCH(
         { status: 400 },
       );
     }
-    const { type, quantity, unitCost, date, note } = parsed.data;
+    const { type, quantity, unitCost, date, note, paymentStatus } = parsed.data;
+    const vendorId = parsed.data.vendorId ?? null;
 
     const existing = await prisma.inventoryTransaction.findUnique({
       where: { id: transactionId },
@@ -91,7 +95,52 @@ export async function PATCH(
       );
     }
 
+    if (vendorId) {
+      const vendor = await prisma.contact.findUnique({
+        where: { id: vendorId },
+        select: { id: true },
+      });
+      if (!vendor)
+        return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
+      // Keep the vendor ledger entry in step: only a BUY with a vendor has one.
+      let vendorTransactionId = existing.vendorTransactionId;
+      const wantsLedger = type === "BUY" && !!vendorId;
+      const item = await tx.item.findUnique({
+        where: { id: existing.itemId },
+        select: { name: true },
+      });
+      const description = `Inventory buy ${existing.voucherNumber}${item ? ` - ${item.name}` : ""}`;
+
+      if (wantsLedger && vendorTransactionId) {
+        await tx.vendorTransaction.update({
+          where: { id: vendorTransactionId },
+          data: {
+            contactId: vendorId!,
+            amount: quantity * unitCost,
+            date: new Date(date),
+            description,
+            ...(paymentStatus && { paymentStatus }),
+          },
+        });
+      } else if (wantsLedger) {
+        const vtx = await tx.vendorTransaction.create({
+          data: {
+            contactId: vendorId!,
+            projectId,
+            type: "PURCHASE",
+            paymentStatus: paymentStatus ?? "PENDING",
+            amount: quantity * unitCost,
+            date: new Date(date),
+            description,
+            voucherNumber: await nextVoucherNumber(tx, "PUR", "VENDOR_PUR"),
+          },
+        });
+        vendorTransactionId = vtx.id;
+      }
+
       const oldDelta = balanceDelta(existing.type, Number(existing.quantity));
       const newDelta = balanceDelta(type, quantity);
 
@@ -108,7 +157,7 @@ export async function PATCH(
         },
       });
 
-      return tx.inventoryTransaction.update({
+      const txn = await tx.inventoryTransaction.update({
         where: { id: transactionId },
         data: {
           type,
@@ -116,8 +165,18 @@ export async function PATCH(
           unitCost,
           date: new Date(date),
           note,
+          vendorId,
+          vendorTransactionId: wantsLedger ? vendorTransactionId : null,
         },
       });
+
+      if (!wantsLedger && vendorTransactionId) {
+        await tx.vendorTransaction.delete({
+          where: { id: vendorTransactionId },
+        });
+      }
+
+      return txn;
     });
 
     return NextResponse.json(updated);
@@ -176,6 +235,11 @@ export async function DELETE(
       });
 
       await tx.inventoryTransaction.delete({ where: { id: transactionId } });
+      if (existing.vendorTransactionId) {
+        await tx.vendorTransaction.delete({
+          where: { id: existing.vendorTransactionId },
+        });
+      }
     });
 
     return NextResponse.json({ id: transactionId });

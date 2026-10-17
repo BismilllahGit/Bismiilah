@@ -10,8 +10,10 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { PAYMENT_STATUS_OPTIONS } from "@/components/ui/payment-status-badge";
 
 import { ItemSelectCombobox } from "./ItemSelectCombobox";
 
@@ -25,6 +27,7 @@ export function LogTransactionSheet({
   itemCost,
   setItemCost,
   items,
+  vendors,
   handleLogTransaction,
   mutating,
   disabled = false,
@@ -37,6 +40,7 @@ export function LogTransactionSheet({
   setItemCost: (val: string) => void;
   handleItemNameChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   items: Item[];
+  vendors: { id: string; name: string }[];
   handleLogTransaction: (e: React.FormEvent<HTMLFormElement>) => void;
   mutating: boolean;
   disabled?: boolean;
@@ -74,15 +78,11 @@ export function LogTransactionSheet({
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Transaction Type *</label>
-            <select
-              name="type"
-              required
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-            >
+            <NativeSelect name="type" required>
               <option value="BUY">Buy (Inward to Site)</option>
               <option value="ISSUE">Issue (Used on Site)</option>
               <option value="RETURN">Return (Outward from Site)</option>
-            </select>
+            </NativeSelect>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -111,6 +111,39 @@ export function LogTransactionSheet({
                 placeholder="0.00"
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Vendor</label>
+            <NativeSelect
+              name="vendorId"
+              defaultValue=""
+            >
+              <option value="">No vendor</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </NativeSelect>
+            <p className="text-[10px] text-muted-foreground">
+              A Buy with a vendor is also added to that vendor&apos;s ledger as a purchase.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Payment Status</label>
+            <NativeSelect
+              name="paymentStatus"
+              defaultValue="PENDING"
+            >
+              {PAYMENT_STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </NativeSelect>
+            <p className="text-[10px] text-muted-foreground">
+              Applies to a Buy from a vendor; shown on the vendor&apos;s ledger.
+            </p>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Date *</label>

@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
@@ -28,6 +29,12 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  matchesSearch,
+} from "@/components/ui/pagination";
 
 type Contact = {
   id: string;
@@ -44,6 +51,11 @@ export default function VendorsPage() {
     loading,
     refetch: refetchContacts,
   } = useApiResource<Contact[]>("/api/contacts");
+  const [search, setSearch] = useState("");
+  const filteredContacts = (contacts || []).filter((c) =>
+    matchesSearch(search, c.name, c.phone, c.specialty, c.type, c.address),
+  );
+  const pg = usePagination(filteredContacts, undefined, search);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<string | null>(null);
@@ -119,10 +131,9 @@ export default function VendorsPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Type *</label>
-                    <select
+                    <NativeSelect
                       name="type"
                       required
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                     >
                       <option value="VENDOR">Vendor</option>
                       <option value="SHOP">Shop</option>
@@ -132,7 +143,7 @@ export default function VendorsPage() {
                       <option value="LABOUR_CONTRACTOR">
                         Labour Contractor
                       </option>
-                    </select>
+                    </NativeSelect>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Phone</label>
@@ -177,18 +188,29 @@ export default function VendorsPage() {
         }
       />
 
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name, phone or specialty..."
+      />
+
       {/* Mobile Stacked Cards View (below lg breakpoint) */}
       <div className="lg:hidden space-y-3.5">
         {loading ? (
           <div className="text-center py-12 text-muted-foreground text-sm border rounded-xl bg-white shadow-sm">
             Loading vendors...
           </div>
-        ) : (contacts || []).length === 0 ? (
+        ) : filteredContacts.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
-            <EmptyState icon={Users} message="No vendors registered yet." />
+            <EmptyState
+              icon={Users}
+              message={
+                search ? "No vendors match your search." : "No vendors registered yet."
+              }
+            />
           </div>
         ) : (
-          (contacts || []).map((contact) => (
+          pg.pageItems.map((contact) => (
             <div
               key={contact.id}
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -280,18 +302,22 @@ export default function VendorsPage() {
                   Loading vendors...
                 </TableCell>
               </TableRow>
-            ) : (contacts || []).length === 0 ? (
+            ) : filteredContacts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-14">
                   <EmptyState
                     icon={Users}
-                    message="No vendors registered yet."
+                    message={
+                      search
+                        ? "No vendors match your search."
+                        : "No vendors registered yet."
+                    }
                     variant="cell"
                   />
                 </TableCell>
               </TableRow>
             ) : (
-              (contacts || []).map((contact) => (
+              pg.pageItems.map((contact) => (
                 <TableRow
                   key={contact.id}
                   className="hover:bg-slate-50/60 transition-colors"
@@ -347,6 +373,13 @@ export default function VendorsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
 
       <ConfirmDialog
         open={deactivateTarget !== null}

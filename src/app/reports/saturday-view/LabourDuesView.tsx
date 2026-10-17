@@ -12,6 +12,7 @@ import { HardHat, Phone, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import type { DueContractor } from "./SaturdayViewClient";
 import { formatCurrency } from "./utils";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 interface LabourDuesViewProps {
   labourDues: DueContractor[];
@@ -24,6 +25,7 @@ export function LabourDuesView({
   totalLabourDues,
   onOpenLabourPayment,
 }: LabourDuesViewProps) {
+  const pg = usePagination(labourDues);
   return (
     <section className="space-y-3 pt-6 border-t border-border">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -54,7 +56,7 @@ export function LabourDuesView({
             </p>
           </div>
         ) : (
-          labourDues.map((contractor) => (
+          pg.pageItems.map((contractor) => (
             <div
               key={contractor.contractorId}
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -143,7 +145,7 @@ export function LabourDuesView({
                 </TableCell>
               </TableRow>
             ) : (
-              labourDues.map((contractor) => (
+              pg.pageItems.map((contractor) => (
                 <TableRow
                   key={contractor.contractorId}
                   className="hover:bg-slate-50/60 transition-colors"
@@ -190,6 +192,13 @@ export function LabourDuesView({
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </section>
   );
 }

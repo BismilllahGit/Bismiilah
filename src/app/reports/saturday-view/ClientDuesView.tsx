@@ -13,6 +13,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { DueClient } from "./SaturdayViewClient";
 import { formatCurrency } from "./utils";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 interface ClientDuesViewProps {
   clientDues: DueClient[];
@@ -27,6 +28,7 @@ export function ClientDuesView({
   today,
   onOpenClientPayment,
 }: ClientDuesViewProps) {
+  const pg = usePagination(clientDues);
   return (
     <section className="space-y-4 pt-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-1">
@@ -55,7 +57,7 @@ export function ClientDuesView({
             </p>
           </div>
         ) : (
-          clientDues.map((due) => {
+          pg.pageItems.map((due) => {
             const isPastDue = new Date(due.dueDate).getTime() < today.getTime();
             return (
               <div
@@ -178,7 +180,7 @@ export function ClientDuesView({
                 </TableCell>
               </TableRow>
             ) : (
-              clientDues.map((due) => {
+              pg.pageItems.map((due) => {
                 const isPastDue =
                   new Date(due.dueDate).getTime() < today.getTime();
                 return (
@@ -255,6 +257,13 @@ export function ClientDuesView({
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </section>
   );
 }

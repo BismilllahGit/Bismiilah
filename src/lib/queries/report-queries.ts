@@ -424,41 +424,54 @@ export async function getClosureReportData(projectId: string) {
   };
 }
 
-interface TopUsageRawRow {
-  itemId: string;
+interface PurchaseRawRow {
+  id: string;
+  date: Date;
+  voucherNumber: string;
+  projectId: string;
+  projectName: string;
+  projectLocation: string | null;
   itemName: string;
   unit: string;
+  vendorName: string | null;
+  quantity: unknown;
   unitCost: unknown;
-  totalQtyIssued: unknown;
-  totalValueIssued: unknown;
+  totalAmount: unknown;
+  grandTotalValue: unknown;
+  grandTotalCount: unknown;
 }
 
-export async function getTopUsageReportData({
+interface TopVendorRawRow {
+  vendorName: string;
+  totalValue: unknown;
+}
+
+export const PURCHASES_PAGE_SIZE = 10;
+
+export async function getPurchasesReportData({
   projectId,
   startDate,
   endDate,
   search,
-  limit = 200,
+  page = 1,
+  pageSize = PURCHASES_PAGE_SIZE,
 }: {
   projectId?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   search?: string | null;
-  limit?: number;
+  page?: number;
+  pageSize?: number;
 }) {
-  let dateFilter = Prisma.empty;
-  if (startDate && endDate) {
-    dateFilter = Prisma.sql`AND date >= CAST(${startDate} as date) AND date <= CAST(${endDate} as date)`;
-  } else if (startDate) {
-    dateFilter = Prisma.sql`AND date >= CAST(${startDate} as date)`;
-  } else if (endDate) {
-    dateFilter = Prisma.sql`AND date <= CAST(${endDate} as date)`;
-  }
+  const safePageSize = Math.max(1, pageSize);
+  const safePage = Math.max(1, page);
 
-  let projectFilter = Prisma.empty;
+  const conditions: Prisma.Sql[] = [Prisma.sql`it.type = 'BUY'`];
   let projectName: string | null = null;
-  if (projectId && projectId !== "ALL") {
-    projectFilter = Prisma.sql`AND project_id = ${projectId}`;
+  const hasProject = !!projectId && projectId !== "ALL";
+
+  if (hasProject) {
+    conditions.push(Prisma.sql`it.project_id = ${projectId}`);
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       select: { name: true, location: true },
@@ -470,54 +483,111 @@ export async function getTopUsageReportData({
     }
   }
 
-  let searchFilter = Prisma.empty;
-  if (search && search.trim() !== "") {
-    const searchPattern = `%${search.trim()}%`;
-    searchFilter = Prisma.sql`AND i.name ILIKE ${searchPattern}`;
+  if (startDate) {
+    conditions.push(Prisma.sql`it.date >= CAST(${startDate} as date)`);
   }
+  if (endDate) {
+    conditions.push(Prisma.sql`it.date <= CAST(${endDate} as date)`);
+  }
+  if (search && search.trim() !== "") {
+    const pattern = `%${search.trim()}%`;
+    // The project name is only searchable when the Project column is shown.
+    conditions.push(
+      hasProject
+        ? Prisma.sql`(i.name ILIKE ${pattern} OR c.name ILIKE ${pattern})`
+        : Prisma.sql`(i.name ILIKE ${pattern} OR c.name ILIKE ${pattern} OR p.name ILIKE ${pattern})`,
+    );
+  }
+  const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`;
 
-  // Only consider authentic ISSUE transactions, explicitly excluding historical transfers
-  const rows = await prisma.$queryRaw<TopUsageRawRow[]>`
-    SELECT
-      i.id as "itemId",
-      i.name as "itemName",
-      i.unit as unit,
-      i.unit_cost as "unitCost",
-      COALESCE(SUM(it.quantity), 0)::float as "totalQtyIssued",
-      COALESCE(SUM(it.quantity * it.unit_cost), 0)::float as "totalValueIssued"
+  const fromClause = Prisma.sql`
     FROM inventory_transactions it
     JOIN items i ON i.id = it.item_id
-    WHERE it.type = 'ISSUE'
-    ${projectFilter}
-    ${dateFilter}
-    ${searchFilter}
-    GROUP BY i.id, i.name, i.unit, i.unit_cost
-    ORDER BY "totalValueIssued" DESC
-    LIMIT ${limit}
+    JOIN projects p ON p.id = it.project_id
+    LEFT JOIN contacts c ON c.id = it.vendor_id
   `;
 
-  let totalValue = 0;
-  let totalItems = 0;
-  const formattedRows = rows.map((r) => {
-    const value = Number(r.totalValueIssued) || 0;
-    const qty = Number(r.totalQtyIssued) || 0;
-    totalValue += value;
-    totalItems += 1;
-    return {
-      itemId: r.itemId,
-      itemName: r.itemName,
-      unit: r.unit,
-      unitCost: Number(r.unitCost) || 0,
-      totalQtyIssued: qty,
-      totalValueIssued: value,
-    };
-  });
+  // The grand totals are window aggregates over every matching purchase, so
+  // they stay correct when LIMIT/OFFSET trims the returned page.
+  const [rows, topVendorRows] = await Promise.all([
+    prisma.$queryRaw<PurchaseRawRow[]>`
+      SELECT
+        it.id,
+        it.date,
+        it.voucher_number as "voucherNumber",
+        p.id as "projectId",
+        p.name as "projectName",
+        p.location as "projectLocation",
+        i.name as "itemName",
+        i.unit as unit,
+        c.name as "vendorName",
+        it.quantity::float as quantity,
+        it.unit_cost::float as "unitCost",
+        (it.quantity * it.unit_cost)::float as "totalAmount",
+        COALESCE(SUM(it.quantity * it.unit_cost) OVER (), 0)::float as "grandTotalValue",
+        COUNT(*) OVER ()::int as "grandTotalCount"
+      ${fromClause}
+      ${whereClause}
+      ORDER BY it.date DESC, it.created_at DESC, it.id DESC
+      LIMIT ${safePageSize} OFFSET ${(safePage - 1) * safePageSize}
+    `,
+    prisma.$queryRaw<TopVendorRawRow[]>`
+      SELECT
+        c.name as "vendorName",
+        SUM(it.quantity * it.unit_cost)::float as "totalValue"
+      ${fromClause}
+      ${whereClause}
+      AND c.id IS NOT NULL
+      GROUP BY c.id, c.name
+      ORDER BY "totalValue" DESC
+      LIMIT 1
+    `,
+  ]);
+
+  // A page past the end (e.g. the list shrank) comes back empty: fall back to
+  // the first page rather than showing an empty table with no totals.
+  if (rows.length === 0 && safePage > 1) {
+    return getPurchasesReportData({
+      projectId,
+      startDate,
+      endDate,
+      search,
+      page: 1,
+      pageSize: safePageSize,
+    });
+  }
+
+  const totalCount = rows.length > 0 ? Number(rows[0].grandTotalCount) || 0 : 0;
+  const topVendor = topVendorRows[0]
+    ? {
+        name: topVendorRows[0].vendorName,
+        totalValue: Number(topVendorRows[0].totalValue) || 0,
+      }
+    : null;
 
   return {
     projectName,
-    rows: formattedRows,
-    totalValue,
-    totalItems,
+    rows: rows.map((r) => ({
+      id: r.id,
+      date: r.date.toISOString(),
+      voucherNumber: r.voucherNumber,
+      projectId: r.projectId,
+      projectName: r.projectLocation
+        ? `${r.projectName} (${r.projectLocation})`
+        : r.projectName,
+      itemName: r.itemName,
+      unit: r.unit,
+      vendorName: r.vendorName,
+      quantity: Number(r.quantity) || 0,
+      unitCost: Number(r.unitCost) || 0,
+      totalAmount: Number(r.totalAmount) || 0,
+    })),
+    totalValue: rows.length > 0 ? Number(rows[0].grandTotalValue) || 0 : 0,
+    totalCount,
+    topVendor,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.max(1, Math.ceil(totalCount / safePageSize)),
     startDate,
     endDate,
     search,

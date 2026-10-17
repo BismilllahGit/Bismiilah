@@ -12,6 +12,8 @@ import { Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { VendorTxn } from "./page";
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 export default function VendorTransactionsView({
   transactions,
@@ -20,6 +22,8 @@ export default function VendorTransactionsView({
   transactions: VendorTxn[];
   loading: boolean;
 }) {
+  const { sorted, dir, toggle } = useDateSort(transactions, (r) => r.date);
+  const pg = usePagination(sorted);
   return (
     <>
       {/* Mobile & Tablet Stacked Cards (below lg breakpoint) */}
@@ -36,7 +40,7 @@ export default function VendorTransactionsView({
             />
           </div>
         ) : (
-          transactions.map((v) => (
+          pg.pageItems.map((v) => (
             <div
               key={v.id}
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -51,6 +55,11 @@ export default function VendorTransactionsView({
               </div>
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-slate-700 text-sm font-medium wrap-break-word">
+                  {v.inventoryTransaction && (
+                    <Badge variant="outline" className="mr-1.5 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                      {v.inventoryTransaction.voucherNumber}
+                    </Badge>
+                  )}
                   {v.description || (
                     <span className="text-slate-400 italic font-normal">
                       No description provided
@@ -89,7 +98,9 @@ export default function VendorTransactionsView({
         <Table className="min-w-162.5">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-32.5 font-semibold">Date</TableHead>
+              <TableHead className="w-32.5 font-semibold">
+                <DateSortButton dir={dir} onToggle={toggle} />
+              </TableHead>
               <TableHead className="font-semibold">Vendor Name</TableHead>
               <TableHead className="font-semibold">Type</TableHead>
               <TableHead className="font-semibold">Description</TableHead>
@@ -119,7 +130,7 @@ export default function VendorTransactionsView({
                 </TableCell>
               </TableRow>
             ) : (
-              transactions.map((v) => (
+              pg.pageItems.map((v) => (
                 <TableRow key={v.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium whitespace-nowrap">
                     {new Date(v.date).toLocaleDateString()}
@@ -140,6 +151,11 @@ export default function VendorTransactionsView({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-slate-600">
+                    {v.inventoryTransaction && (
+                      <Badge variant="outline" className="mr-1.5 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                        {v.inventoryTransaction.voucherNumber}
+                      </Badge>
+                    )}
                     {v.description || (
                       <span className="text-muted-foreground italic">
                         No description
@@ -158,6 +174,12 @@ export default function VendorTransactionsView({
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </>
   );
 }

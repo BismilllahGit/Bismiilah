@@ -14,12 +14,14 @@ import {
 
 export function EditPaymentSheet({
   clientId,
+  projects,
   paymentId,
   open,
   onOpenChange,
   onSaved,
 }: {
   clientId: string;
+  projects: { id: string; name: string }[];
   paymentId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,6 +33,7 @@ export function EditPaymentSheet({
   const [date, setDate] = useState("");
   const [method, setMethod] = useState("BANK_TRANSFER");
   const [note, setNote] = useState("");
+  const [projectId, setProjectId] = useState("");
 
   useEffect(() => {
     if (!open || !paymentId) return;
@@ -43,6 +46,7 @@ export function EditPaymentSheet({
         setDate(new Date(payment.paymentDate).toISOString().split("T")[0]);
         setMethod(payment.method);
         setNote(payment.note || "");
+        setProjectId(payment.projectId || "");
       })
       .catch(() => alert("Failed to load payment"))
       .finally(() => setLoading(false));
@@ -64,6 +68,7 @@ export function EditPaymentSheet({
             date,
             method,
             note: note || undefined,
+            projectId: projectId || undefined,
           }),
         },
       );
@@ -108,6 +113,23 @@ export function EditPaymentSheet({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Project *</label>
+              <select
+                required
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              >
+                <option value="">-- Choose a project --</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">

@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,17 +44,16 @@ export default function ExpenseFormSheet({
         <form onSubmit={onSubmit} className="space-y-4 mt-6">
           <div className="space-y-2">
             <label className="text-sm font-medium">Category *</label>
-            <select
+            <NativeSelect
               name="category"
               required
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             >
               <option value="Food & Tea">Food & Tea</option>
               <option value="Travel/Transport">Travel/Transport</option>
               <option value="Stationery/Print">Stationery/Print</option>
               <option value="Misc Materials">Misc Materials</option>
               <option value="Other">Other</option>
-            </select>
+            </NativeSelect>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

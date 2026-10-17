@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Link2, Trash2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -244,6 +244,95 @@ export function EditProjectDrawer({
               disabled={isSaving}
             >
               {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
+
+export function LinkClientButton({
+  projectId,
+  clients,
+}: {
+  projectId: string;
+  clients: { id: string; name: string }[];
+}) {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [clientId, setClientId] = useState("");
+
+  const handleLink = async () => {
+    if (!clientId) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId }),
+      });
+      if (res.ok) {
+        setIsOpen(false);
+        router.refresh();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Server error details:", errorData);
+        alert("Failed to link client. Check console for details.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error saving.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        className="flex items-center gap-2"
+        onClick={() => setIsOpen(true)}
+      >
+        <Link2 className="h-4 w-4" /> Link Client
+      </Button>
+
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetContent className="sm:max-w-md overflow-y-auto p-4">
+          <SheetHeader className="p-0">
+            <SheetTitle>Link Client</SheetTitle>
+          </SheetHeader>
+          <div className="py-6 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Client</label>
+              <Select
+                value={clientId}
+                onValueChange={(v) => {
+                  if (v) setClientId(v);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client">
+                    {clients.find((c) => c.id === clientId)?.name}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleLink}
+              disabled={isSaving || !clientId}
+            >
+              {isSaving ? "Linking..." : "Link Client"}
             </Button>
           </div>
         </SheetContent>

@@ -12,17 +12,21 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { Transaction } from "./ReportsClient";
 
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 export function CashFlowDesktopTable({
   transactions,
 }: {
   transactions: Transaction[];
 }) {
+  const { sorted, dir, toggle } = useDateSort(transactions, (t) => t.date);
   return (
     <div className="hidden md:block border rounded-md bg-white shadow-sm overflow-hidden">
       <Table>
         <TableHeader className="bg-slate-50">
           <TableRow>
-            <TableHead>Date</TableHead>
+            <TableHead>
+              <DateSortButton dir={dir} onToggle={toggle} />
+            </TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Description</TableHead>
@@ -40,7 +44,7 @@ export function CashFlowDesktopTable({
               </TableCell>
             </TableRow>
           ) : (
-            transactions.map((txn) => (
+            sorted.map((txn) => (
               <TableRow key={txn.id} className="hover:bg-slate-50/50">
                 <TableCell className="font-medium">
                   {new Date(txn.date).toLocaleDateString()}

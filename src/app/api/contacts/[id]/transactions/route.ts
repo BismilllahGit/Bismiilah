@@ -11,6 +11,7 @@ const transactionSchema = z.object({
   date: z.string(),
   description: z.string().optional(),
   projectId: z.string().optional(),
+  paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
 });
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -45,7 +46,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
     }
 
-    const { type, amount, date, description, projectId } = parsed.data;
+    const { type, amount, date, description, projectId, paymentStatus } = parsed.data;
 
     const contact = await prisma.contact.findUnique({
       where: { id: contactId },
@@ -87,6 +88,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           date: new Date(date),
           description,
           projectId: projectId || null,
+          paymentStatus: paymentStatus ?? (isPurchase ? "PENDING" : "PAID"),
           voucherNumber,
         }
       });

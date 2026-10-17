@@ -11,6 +11,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { LabourRow } from "./page";
 
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+
 export function LabourDesktopTable({
   loading,
   data,
@@ -24,6 +26,9 @@ export function LabourDesktopTable({
   summary: { totalHeadcount: number; totalSpend: number; entryCount: number };
   formatCurrency: (val: number | undefined) => string;
 }) {
+  const { sorted, dir, toggle } = useDateSort(data, (r) => r.date);
+  // Only date-ordered views are re-sorted; other groupings keep server order
+  const rows = groupBy === "NONE" || groupBy === "date" ? sorted : data;
   return (
     <div className="hidden lg:block rounded-xl border bg-white shadow-sm overflow-hidden">
       <Table className="min-w-[800px]">
@@ -31,7 +36,9 @@ export function LabourDesktopTable({
           <TableRow>
             {groupBy === "NONE" && (
               <>
-                <TableHead className="w-[120px]">Date</TableHead>
+                <TableHead className="w-[120px]">
+                  <DateSortButton dir={dir} onToggle={toggle} />
+                </TableHead>
                 <TableHead>Project</TableHead>
                 <TableHead>Worker Type</TableHead>
                 <TableHead>Details</TableHead>
@@ -42,7 +49,9 @@ export function LabourDesktopTable({
             )}
             {groupBy === "date" && (
               <>
-                <TableHead className="w-[140px]">Date</TableHead>
+                <TableHead className="w-[140px]">
+                  <DateSortButton dir={dir} onToggle={toggle} />
+                </TableHead>
                 <TableHead className="text-right">Total Headcount</TableHead>
                 <TableHead className="text-right">Total Spend</TableHead>
               </>
@@ -83,7 +92,7 @@ export function LabourDesktopTable({
               </TableCell>
             </TableRow>
           ) : (
-            data.map((row, i) => (
+            rows.map((row, i) => (
               <TableRow key={row.id || i} className="hover:bg-slate-50/50">
                 {groupBy === "NONE" && (
                   <>

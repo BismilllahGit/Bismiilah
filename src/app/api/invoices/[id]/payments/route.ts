@@ -40,6 +40,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         data: {
           invoiceId,
           clientId: existingInvoice.clientId,
+          projectId: existingInvoice.projectId,
           amount,
           paymentDate: new Date(date),
           method: method || "CASH",

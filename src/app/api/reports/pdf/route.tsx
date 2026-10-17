@@ -11,7 +11,7 @@ import {
 import {
   getDailyLabourReportData,
   getSaturdayViewReportData,
-  getTopUsageReportData,
+  getPurchasesReportData,
 } from "@/lib/queries/report-queries";
 import prisma from "@/lib/prisma";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
@@ -398,43 +398,84 @@ export async function POST(request: Request) {
         </View>
       );
     }
-    // 7. Top Usage Report
+    // 7. Material Purchases Report (reportType key kept as "top_usage" so
+    // existing callers keep working)
     else if (reportType === "top_usage") {
-      const data = await getTopUsageReportData({ ...params });
-      title = "Top Material Usage Report";
-      subtitle =
-        "Consumption Summary (Excluding Historical Inter-Project Transfers)";
+      const data = await getPurchasesReportData({
+        projectId: params.projectId,
+        startDate: params.startDate,
+        endDate: params.endDate,
+        search: params.search,
+        page: 1,
+        pageSize: 5000,
+      });
+      title = data.projectName
+        ? `Material Purchases Report: ${data.projectName}`
+        : "Material Purchases Report";
+      subtitle = data.projectName
+        ? `Project / Site: ${data.projectName}`
+        : "Consolidated across all projects";
+
       summaryItems = [
-        { label: "Items Reported", value: formatNum(data.totalItems) },
-        { label: "Total Consumed Value", value: formatRs(data.totalValue) },
+        {
+          label: "Project Site",
+          value: data.projectName || "All Projects",
+        },
+        {
+          label: "Date Range",
+          value: `${params.startDate ? formatDate(params.startDate) : "Start"} - ${params.endDate ? formatDate(params.endDate) : "Today"}`,
+        },
+        ...(params.search
+          ? [{ label: "Search Filter", value: `"${params.search}"` }]
+          : []),
+        { label: "Purchases Reported", value: formatNum(data.totalCount) },
+        { label: "Total Purchased Value", value: formatRs(data.totalValue) },
       ];
 
+      // The Project column only makes sense when rows span several projects.
+      const showProject = !data.projectName;
+
       const columns: PdfColumn[] = [
-        { header: "Item Name", flex: 1 },
-        { header: "Unit", width: "15%" },
-        { header: "Avg Unit Cost", width: "20%", align: "right" },
-        { header: "Total Qty Issued", width: "22%", align: "right" },
-        { header: "Total Value Issued", width: "22%", align: "right" },
+        { header: "Date", width: "10%" },
+        { header: "Voucher", width: "11%" },
+        ...(showProject
+          ? [{ header: "Project", width: "15%" } as PdfColumn]
+          : []),
+        { header: "Item", flex: 1 },
+        { header: "Vendor", width: "15%" },
+        { header: "Qty", width: "11%", align: "right" },
+        { header: "Unit Price", width: "13%", align: "right" },
+        { header: "Total", width: "13%", align: "right" },
       ];
 
       const rows = data.rows.map((r) => [
+        formatDate(r.date),
+        r.voucherNumber,
+        ...(showProject ? [r.projectName] : []),
         r.itemName,
-        r.unit,
-        formatRs(r.unitCost),
-        `${formatNum(r.totalQtyIssued)} ${r.unit}`,
-        formatRs(r.totalValueIssued),
+        r.vendorName || "-",
+        `${formatNum(r.quantity)} ${r.unit}`,
+        `${formatRs(r.unitCost)} / ${r.unit}`,
+        formatRs(r.totalAmount),
       ]);
 
       const footerRow = [
-        "TOTAL VALUE ISSUED",
-        "",
-        "",
-        "",
+        "TOTAL PURCHASED",
+        ...Array(columns.length - 2).fill(""),
         formatRs(data.totalValue),
       ];
 
+      const emptyMsg = data.projectName
+        ? `No material purchases found for ${data.projectName}${params.search ? ` matching "${params.search}"` : ""}.`
+        : `No material purchases found${params.search ? ` matching "${params.search}"` : ""} for the selected period.`;
+
       children = (
-        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+        <PdfTable
+          columns={columns}
+          rows={rows}
+          footerRow={footerRow}
+          emptyText={emptyMsg}
+        />
       );
     }
     // 8. Project Closure Report

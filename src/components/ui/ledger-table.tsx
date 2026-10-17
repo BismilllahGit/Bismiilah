@@ -1,5 +1,6 @@
+import { PaymentStatusBadge } from "@/components/ui/payment-status-badge";
 import React, { useState, useEffect, useRef } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -30,6 +31,7 @@ export type LedgerRow = {
   credit: number;
   runningBalance: number;
   runningValueBalance?: number;
+  paymentStatus?: string | null;
   entryType?:
     | "invoice"
     | "payment"
@@ -89,6 +91,20 @@ export function LedgerTable({
   onEditRow,
   onDeleteRow,
 }: LedgerTableProps) {
+  const showStatus = rows.some((r) => r.paymentStatus);
+  const [dateSort, setDateSort] = useState<"asc" | "desc">("asc");
+  // Stable sort by date; ties keep their original (ledger) order
+  const sortedRows = React.useMemo(() => {
+    const dir = dateSort === "asc" ? 1 : -1;
+    return rows
+      .map((r, i) => ({ r, i }))
+      .sort(
+        (a, b) =>
+          dir * (new Date(a.r.date).getTime() - new Date(b.r.date).getTime()) ||
+          dir * (a.i - b.i),
+      )
+      .map(({ r }) => r);
+  }, [rows, dateSort]);
   const [datePreset, setDatePreset] = useState("all-time");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -316,7 +332,7 @@ export function LedgerTable({
               No transactions found for this period.
             </div>
           ) : (
-            rows.map((row, idx) => (
+            sortedRows.map((row, idx) => (
               <div
                 key={row.id || idx}
                 className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -358,6 +374,11 @@ export function LedgerTable({
                   {row.description || (
                     <span className="italic text-muted-foreground">
                       No description
+                    </span>
+                  )}
+                  {row.paymentStatus && (
+                    <span className={row.description ? "ml-2 align-middle" : "align-middle"}>
+                      <PaymentStatusBadge status={row.paymentStatus} />
                     </span>
                   )}
                 </div>
@@ -459,9 +480,26 @@ export function LedgerTable({
         <Table className="min-w-200">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-30">Date</TableHead>
+              <TableHead className="w-30">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDateSort((d) => (d === "asc" ? "desc" : "asc"))
+                  }
+                  aria-label={`Sort by date ${dateSort === "asc" ? "newest first" : "oldest first"}`}
+                  className="inline-flex items-center gap-1 cursor-pointer hover:text-slate-900"
+                >
+                  Date
+                  {dateSort === "asc" ? (
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead className="w-37.5">Voucher No.</TableHead>
               <TableHead>Particulars</TableHead>
+              {showStatus && <TableHead className="w-28">Status</TableHead>}
               <TableHead className="text-right w-35">{debitLabel}</TableHead>
               <TableHead className="text-right w-35">{creditLabel}</TableHead>
               <TableHead className="text-right w-40">Balance</TableHead>
@@ -479,7 +517,7 @@ export function LedgerTable({
             <TableRow className="bg-slate-50 font-medium">
               <TableCell></TableCell>
               <TableCell
-                colSpan={2}
+                colSpan={2 + (showStatus ? 1 : 0)}
                 className="text-right italic text-slate-600"
               >
                 Opening Balance
@@ -501,6 +539,7 @@ export function LedgerTable({
                 <TableCell
                   colSpan={
                     6 +
+                    (showStatus ? 1 : 0) +
                     (showValueBalance ? 1 : 0) +
                     (onEditRow || onDeleteRow ? 1 : 0)
                   }
@@ -514,6 +553,7 @@ export function LedgerTable({
                 <TableCell
                   colSpan={
                     6 +
+                    (showStatus ? 1 : 0) +
                     (showValueBalance ? 1 : 0) +
                     (onEditRow || onDeleteRow ? 1 : 0)
                   }
@@ -523,7 +563,7 @@ export function LedgerTable({
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((row, idx) => (
+              sortedRows.map((row, idx) => (
                 <TableRow key={row.id || idx} className="hover:bg-slate-50/50">
                   <TableCell className="whitespace-nowrap font-medium">
                     {new Date(row.date).toLocaleDateString("en-GB")}
@@ -532,6 +572,11 @@ export function LedgerTable({
                     {row.voucherNumber}
                   </TableCell>
                   <TableCell className="text-sm">{row.description}</TableCell>
+                  {showStatus && (
+                    <TableCell>
+                      <PaymentStatusBadge status={row.paymentStatus} />
+                    </TableCell>
+                  )}
                   <TableCell className="text-right font-mono text-sm">
                     {row.debit > 0 ? formatVal(row.debit) : ""}
                   </TableCell>
@@ -587,7 +632,7 @@ export function LedgerTable({
             <TableRow className="bg-slate-50 font-medium">
               <TableCell></TableCell>
               <TableCell
-                colSpan={2}
+                colSpan={2 + (showStatus ? 1 : 0)}
                 className="text-right italic text-slate-700"
               >
                 Closing Balance
@@ -608,7 +653,7 @@ export function LedgerTable({
           <TableFooter className="bg-slate-100 font-bold border-t-2 border-slate-300">
             <TableRow>
               <TableCell></TableCell>
-              <TableCell colSpan={2} className="text-right">
+              <TableCell colSpan={2 + (showStatus ? 1 : 0)} className="text-right">
                 Totals
               </TableCell>
               <TableCell className="text-right font-mono">
