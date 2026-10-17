@@ -30,7 +30,7 @@ export function InvoicesMobileList({
         <div className="text-center py-12 border rounded-xl bg-white p-4 shadow-sm">
           <EmptyState
             icon={ReceiptIndianRupee}
-            message="No invoices generated yet."
+            message="No invoices found."
           />
         </div>
       ) : (

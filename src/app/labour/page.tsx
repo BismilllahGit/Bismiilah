@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { useApiResource } from "@/hooks/useApiResource";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeader } from "@/components/ui/page-header";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 import { LabourMobileList } from "./LabourMobileList";
 import { LabourDesktopTable } from "./LabourDesktopTable";
 import type {
@@ -108,6 +110,7 @@ export default function LabourLedgerPage() {
   }>(labourUrl);
 
   const data = labourResult?.data || [];
+  const pg = usePagination(data, undefined, labourUrl);
   const summary = labourResult?.summary || {
     totalHeadcount: 0,
     totalSpend: 0,
@@ -175,8 +178,8 @@ export default function LabourLedgerPage() {
             <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
               Date Range
             </label>
-            <select
-              className="flex h-9 w-full md:w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            <NativeSelect
+              wrapperClassName="w-full md:w-40 max-sm:w-full"
               value={datePreset}
               onChange={(e) => handleDatePresetChange(e.target.value)}
             >
@@ -184,7 +187,7 @@ export default function LabourLedgerPage() {
               <option value="LAST_MONTH">Last Month</option>
               <option value="ALL_TIME">All Time</option>
               <option value="CUSTOM">Custom Range</option>
-            </select>
+            </NativeSelect>
           </div>
 
           {datePreset === "CUSTOM" && (
@@ -218,8 +221,8 @@ export default function LabourLedgerPage() {
             <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
               Worker Type
             </label>
-            <select
-              className="flex h-9 w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            <NativeSelect
+              wrapperClassName="w-40 max-sm:w-full"
               value={workerType}
               onChange={(e) => setWorkerType(e.target.value)}
             >
@@ -229,15 +232,15 @@ export default function LabourLedgerPage() {
                   {t.name || t.workerType}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <div className="space-y-1">
             <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
               Project
             </label>
-            <select
-              className="flex h-9 w-full md:w-56 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            <NativeSelect
+              wrapperClassName="w-full md:w-56 max-sm:w-full"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
             >
@@ -247,15 +250,15 @@ export default function LabourLedgerPage() {
                   {p.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <div className="space-y-1">
             <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
               Group By
             </label>
-            <select
-              className="flex h-9 w-full md:w-40 max-sm:w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            <NativeSelect
+              wrapperClassName="w-full md:w-40 max-sm:w-full"
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value)}
             >
@@ -263,14 +266,14 @@ export default function LabourLedgerPage() {
               <option value="date">Date</option>
               <option value="workerType">Worker Type</option>
               <option value="project">Project</option>
-            </select>
+            </NativeSelect>
           </div>
         </div>
 
         {/* Mobile & Tablet Stacked Cards (below lg breakpoint) */}
         <LabourMobileList
           loading={loading}
-          data={data}
+          data={pg.pageItems}
           groupBy={groupBy}
           summary={summary}
           formatCurrency={formatCurrency}
@@ -279,10 +282,17 @@ export default function LabourLedgerPage() {
         {/* Desktop/Tablet Table View (lg breakpoint and above) */}
         <LabourDesktopTable
           loading={loading}
-          data={data}
+          data={pg.pageItems}
           groupBy={groupBy}
           summary={summary}
           formatCurrency={formatCurrency}
+        />
+
+        <PaginationControls
+          page={pg.page}
+          totalPages={pg.totalPages}
+          total={pg.total}
+          onPageChange={pg.setPage}
         />
       </div>
     </PageShell>

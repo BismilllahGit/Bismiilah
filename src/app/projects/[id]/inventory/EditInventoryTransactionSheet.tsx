@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,12 +15,14 @@ import {
 
 export function EditInventoryTransactionSheet({
   projectId,
+  vendors,
   transactionId,
   open,
   onOpenChange,
   onSaved,
 }: {
   projectId: string;
+  vendors: { id: string; name: string }[];
   transactionId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,6 +37,7 @@ export function EditInventoryTransactionSheet({
   const [unitCost, setUnitCost] = useState("");
   const [date, setDate] = useState("");
   const [note, setNote] = useState("");
+  const [vendorId, setVendorId] = useState("");
 
   useEffect(() => {
     if (!open || !transactionId) return;
@@ -51,6 +55,7 @@ export function EditInventoryTransactionSheet({
         setUnitCost(String(txn.unitCost));
         setDate(new Date(txn.date).toISOString().split("T")[0]);
         setNote(txn.note || "");
+        setVendorId(txn.vendorId || "");
       })
       .catch(() => alert("Failed to load transaction"))
       .finally(() => setLoading(false));
@@ -73,6 +78,7 @@ export function EditInventoryTransactionSheet({
             unitCost: Number(unitCost),
             date,
             note: note || undefined,
+            vendorId: vendorId || null,
           }),
         },
       );
@@ -108,10 +114,9 @@ export function EditInventoryTransactionSheet({
           <form onSubmit={handleSubmit} className="space-y-4 mt-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Transaction Type *</label>
-              <select
+              <NativeSelect
                 value={type}
                 onChange={(e) => setType(e.target.value as typeof type)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
                 <option value="BUY">Buy (Inward to Site)</option>
                 <option value="ISSUE">Issue (Used on Site)</option>
@@ -119,7 +124,7 @@ export function EditInventoryTransactionSheet({
                 {type === "ADJUST" && (
                   <option value="ADJUST">Adjust (Opening Balance)</option>
                 )}
-              </select>
+              </NativeSelect>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -146,6 +151,23 @@ export function EditInventoryTransactionSheet({
                   onChange={(e) => setUnitCost(e.target.value)}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Vendor</label>
+              <NativeSelect
+                value={vendorId}
+                onChange={(e) => setVendorId(e.target.value)}
+              >
+                <option value="">No vendor</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </NativeSelect>
+              <p className="text-[10px] text-muted-foreground">
+                A Buy with a vendor is also added to that vendor&apos;s ledger as a purchase.
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Date *</label>

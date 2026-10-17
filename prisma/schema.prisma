@@ -45,6 +45,7 @@ model Project {
   extraWork             ExtraWork[]
   siteActivities        SiteActivity[]
   invoices              Invoice[]
+  clientPayments        ClientPayment[]
   vendorTransactions    VendorTransaction[]
   dailyLabourEntries    DailyLabourEntry[]
   closureReport         ClosureReport?
@@ -182,22 +183,27 @@ model ProjectInventory {
 }
 
 model InventoryTransaction {
-  id              String          @id @default(uuid())
-  projectId       String          @map("project_id")
-  itemId          String          @map("item_id")
-  voucherNumber   String          @unique @map("voucher_number") @db.VarChar(20)
-  transferGroupId String?         @map("transfer_group_id") @db.VarChar(40)
-  type            TransactionType
-  quantity        Decimal         @db.Decimal(10, 2)
-  unitCost        Decimal         @map("unit_cost") @db.Decimal(10, 2)
-  date            DateTime        @db.Date
-  note            String?         @db.Text
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  id                  String          @id @default(uuid())
+  projectId           String          @map("project_id")
+  itemId              String          @map("item_id")
+  voucherNumber       String          @unique @map("voucher_number") @db.VarChar(20)
+  transferGroupId     String?         @map("transfer_group_id") @db.VarChar(40)
+  vendorId            String?         @map("vendor_id")
+  vendorTransactionId String?         @unique @map("vendor_transaction_id")
+  type                TransactionType
+  quantity            Decimal         @db.Decimal(10, 2)
+  unitCost            Decimal         @map("unit_cost") @db.Decimal(10, 2)
+  date                DateTime        @db.Date
+  note                String?         @db.Text
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id])
-  item    Item    @relation(fields: [itemId], references: [id])
+  project           Project            @relation(fields: [projectId], references: [id])
+  item              Item               @relation(fields: [itemId], references: [id])
+  vendor            Contact?           @relation(fields: [vendorId], references: [id])
+  vendorTransaction VendorTransaction? @relation(fields: [vendorTransactionId], references: [id], onDelete: SetNull)
 
+  @@index([vendorId])
   @@index([projectId, date])
   @@index([projectId, itemId, date, createdAt])
   @@index([transferGroupId])
@@ -280,6 +286,7 @@ model ClientPayment {
   id            String   @id @default(uuid())
   invoiceId     String?  @map("invoice_id")
   clientId      String   @map("client_id")
+  projectId     String?  @map("project_id")
   voucherNumber String   @unique @map("voucher_number") @db.VarChar(20)
   amount        Decimal  @db.Decimal(12, 2)
   paymentDate   DateTime @map("payment_date") @db.Date
@@ -290,9 +297,11 @@ model ClientPayment {
 
   invoice     Invoice?            @relation(fields: [invoiceId], references: [id])
   client      Client              @relation(fields: [clientId], references: [id])
+  project     Project?            @relation(fields: [projectId], references: [id])
   allocations PaymentAllocation[]
 
   @@index([clientId, paymentDate, createdAt])
+  @@index([projectId])
   @@map("client_payments")
 }
 
@@ -320,9 +329,10 @@ model Contact {
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
 
-  vendorTransactions VendorTransaction[]
-  labourPayments     LabourPayment[]
-  dailyLabourEntries DailyLabourEntry[]
+  vendorTransactions    VendorTransaction[]
+  inventoryTransactions InventoryTransaction[]
+  labourPayments        LabourPayment[]
+  dailyLabourEntries    DailyLabourEntry[]
 
   @@index([name])
   @@map("contacts")
@@ -345,11 +355,13 @@ model VendorTransaction {
   date          DateTime              @db.Date
   description   String?               @db.Text
   notified      Boolean               @default(false)
+  paymentStatus PaymentStatus?        @map("payment_status")
   createdAt     DateTime              @default(now()) @map("created_at")
   updatedAt     DateTime              @updatedAt @map("updated_at")
 
-  contact Contact  @relation(fields: [contactId], references: [id])
-  project Project? @relation(fields: [projectId], references: [id])
+  contact              Contact               @relation(fields: [contactId], references: [id])
+  project              Project?              @relation(fields: [projectId], references: [id])
+  inventoryTransaction InventoryTransaction?
 
   @@index([contactId, date, createdAt])
   @@map("vendor_transactions")
@@ -358,6 +370,12 @@ model VendorTransaction {
 enum VendorTransactionType {
   PURCHASE
   PAYMENT
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  OVERDUE
 }
 
 model LabourPayment {

@@ -23,6 +23,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ExtraWork, Project } from "@prisma/client";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 // Matches the shape src/app/extra-work/page.tsx serializes server-side
 // (Decimal fields converted to strings before crossing to this client
@@ -50,6 +51,12 @@ export default function ExtraWorkClient({
       String(w.status).toUpperCase() === String(statusFilter).toUpperCase();
     return pMatch && sMatch;
   });
+
+  const pg = usePagination(
+    filteredWork,
+    undefined,
+    `${projectFilter}|${statusFilter}`,
+  );
 
   const totalUnbilled = extraWork
     .filter((w) => w.status === "UNBILLED")
@@ -185,7 +192,7 @@ export default function ExtraWorkClient({
             />
           </div>
         ) : (
-          filteredWork.map((w) => (
+          pg.pageItems.map((w) => (
             <div
               key={w.id}
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -276,7 +283,7 @@ export default function ExtraWorkClient({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredWork.map((w) => (
+              pg.pageItems.map((w) => (
                 <TableRow
                   key={w.id}
                   className="hover:bg-slate-50/60 transition-colors"
@@ -329,6 +336,13 @@ export default function ExtraWorkClient({
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </div>
   );
 }

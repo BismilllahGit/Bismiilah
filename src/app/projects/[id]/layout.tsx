@@ -6,7 +6,11 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TaskUrgencyBadge } from "@/components/ui/task-urgency-badge";
-import { EditProjectDrawer, DeleteProjectButton } from "./ProjectClientActions";
+import {
+  EditProjectDrawer,
+  DeleteProjectButton,
+  LinkClientButton,
+} from "./ProjectClientActions";
 import ProjectTabNavigation from "./ProjectTabNavigation";
 import { getProjectBOQActuals } from "@/lib/queries/boq-queries";
 
@@ -144,6 +148,9 @@ export default async function ProjectDetailLayout({
           </p>
         </div>
         <div className="flex gap-2">
+          {!project.client && (
+            <LinkClientButton projectId={project.id} clients={clients} />
+          )}
           <EditProjectDrawer project={serializedProject} clients={clients} />
           <DeleteProjectButton projectId={project.id} />
         </div>

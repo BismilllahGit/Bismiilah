@@ -10,6 +10,7 @@ const paymentPatchSchema = z.object({
   date: z.string(),
   method: z.string().optional(),
   note: z.string().optional(),
+  projectId: z.string().min(1).optional(),
 });
 
 export async function GET(
@@ -60,7 +61,7 @@ export async function PATCH(
       );
     }
 
-    const { amount, date, method, note } = parsed.data;
+    const { amount, date, method, note, projectId } = parsed.data;
 
     const updated = await prisma.$transaction(async (tx) => {
       const existing = await tx.clientPayment.findUnique({
@@ -70,6 +71,13 @@ export async function PATCH(
         throw new Error("Payment not found");
       }
 
+      if (projectId && projectId !== existing.projectId) {
+        const project = await tx.project.findUnique({ where: { id: projectId } });
+        if (!project || project.clientId !== clientId) {
+          throw new Error("Project does not belong to this client");
+        }
+      }
+
       const payment = await tx.clientPayment.update({
         where: { id: paymentId },
         data: {
@@ -77,6 +85,7 @@ export async function PATCH(
           paymentDate: new Date(date),
           method: method || "CASH",
           note,
+          ...(projectId ? { projectId } : {}),
         },
       });
 
@@ -108,7 +117,12 @@ export async function PATCH(
     console.error(error);
     const message =
       error instanceof Error ? error.message : "Failed to update payment";
-    const status = message === "Payment not found" ? 404 : 500;
+    const status =
+      message === "Payment not found"
+        ? 404
+        : message === "Project does not belong to this client"
+          ? 400
+          : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

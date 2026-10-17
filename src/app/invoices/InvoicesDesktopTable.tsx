@@ -22,12 +22,14 @@ interface InvoicesDesktopTableProps {
   onOpenDetail: (inv: Invoice) => void;
 }
 
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 export function InvoicesDesktopTable({
   invoices,
   loading,
   onOpenPayment,
   onOpenDetail,
 }: InvoicesDesktopTableProps) {
+  const { sorted, dir, toggle } = useDateSort(invoices, (i) => i.issuedDate);
   return (
     <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
       <Table className="min-w-212.5">
@@ -36,7 +38,9 @@ export function InvoicesDesktopTable({
             <TableHead className="w-35 font-semibold text-slate-700">
               Invoice #
             </TableHead>
-            <TableHead className="font-semibold text-slate-700">Date</TableHead>
+            <TableHead className="font-semibold text-slate-700">
+              <DateSortButton dir={dir} onToggle={toggle} />
+            </TableHead>
             <TableHead className="font-semibold text-slate-700">
               Client & Project
             </TableHead>
@@ -72,13 +76,13 @@ export function InvoicesDesktopTable({
               <TableCell colSpan={8} className="text-center py-12">
                 <EmptyState
                   icon={ReceiptIndianRupee}
-                  message="No invoices generated yet."
+                  message="No invoices found."
                   variant="cell"
                 />
               </TableCell>
             </TableRow>
           ) : (
-            invoices.map((inv) => {
+            sorted.map((inv) => {
               const totalPaid =
                 inv.clientPayments.reduce(
                   (acc, p) => acc + Number(p.amount),

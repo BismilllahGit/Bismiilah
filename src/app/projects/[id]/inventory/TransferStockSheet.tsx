@@ -10,6 +10,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft } from "lucide-react";
 
@@ -64,10 +65,9 @@ export function TransferStockSheet({
             <label className="text-sm font-medium">
               Destination Project *
             </label>
-            <select
+            <NativeSelect
               name="destinationProjectId"
               required
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             >
               <option value="">Select a project...</option>
               {projects.map((p) => (
@@ -75,17 +75,16 @@ export function TransferStockSheet({
                   {p.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">
               Item to Transfer *
             </label>
-            <select
+            <NativeSelect
               name="itemId"
               required
               defaultValue={selectedItem?.id || ""}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             >
               <option value="">Select from current stock...</option>
               {inventory.map((inv) => {
@@ -102,7 +101,7 @@ export function TransferStockSheet({
                   </option>
                 );
               })}
-            </select>
+            </NativeSelect>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Quantity *</label>

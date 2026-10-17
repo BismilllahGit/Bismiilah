@@ -12,6 +12,7 @@ import { Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { MaterialEntry } from "./page";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 const STATUS_LABEL: Record<MaterialEntry["type"], string> = {
   BUY: "Bought",
@@ -43,6 +44,7 @@ export default function MaterialsView({
   materials: MaterialEntry[];
   loading: boolean;
 }) {
+  const pg = usePagination(materials);
   return (
     <>
       {/* Mobile & Tablet Stacked Cards (below lg breakpoint) */}
@@ -59,7 +61,7 @@ export default function MaterialsView({
             />
           </div>
         ) : (
-          materials.map((m) => {
+          pg.pageItems.map((m) => {
             const value = Number(m.quantity) * Number(m.unitCost);
             return (
               <div
@@ -69,6 +71,11 @@ export default function MaterialsView({
                 <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
                   <span className="font-bold text-slate-900 text-base block wrap-break-word">
                     {m.item.name}
+                    {m.vendor && (
+                      <span className="block text-xs font-normal text-slate-500">
+                        from {m.vendor.name}
+                      </span>
+                    )}
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Badge
@@ -112,10 +119,11 @@ export default function MaterialsView({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-162.5">
+        <Table className="min-w-175">
           <TableHeader className="bg-slate-50">
             <TableRow>
               <TableHead className="w-55 font-semibold">Item Name</TableHead>
+              <TableHead className="font-semibold">Vendor</TableHead>
               <TableHead className="font-semibold">Unit</TableHead>
               <TableHead className="text-right font-semibold">
                 Quantity
@@ -133,7 +141,7 @@ export default function MaterialsView({
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="text-center py-10 text-muted-foreground"
                 >
                   Loading inventory...
@@ -141,7 +149,7 @@ export default function MaterialsView({
               </TableRow>
             ) : materials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10">
+                <TableCell colSpan={7} className="text-center py-10">
                   <EmptyState
                     icon={Package}
                     message="No material transactions logged for this site yet."
@@ -152,12 +160,15 @@ export default function MaterialsView({
                 </TableCell>
               </TableRow>
             ) : (
-              materials.map((m) => {
+              pg.pageItems.map((m) => {
                 const value = Number(m.quantity) * Number(m.unitCost);
                 return (
                   <TableRow key={m.id} className="hover:bg-slate-50/50">
                     <TableCell className="font-semibold text-slate-900 whitespace-nowrap">
                       {m.item.name}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-700">
+                      {m.vendor?.name ?? "—"}
                     </TableCell>
                     <TableCell className="text-sm text-slate-600">
                       {m.item.unit}
@@ -187,6 +198,12 @@ export default function MaterialsView({
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </>
   );
 }

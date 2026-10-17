@@ -33,6 +33,10 @@ export default function NewProjectPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [clientMode, setClientMode] = useState<"EXISTING" | "NEW">("NEW");
+  const { data: rawClients } =
+    useApiResource<{ id: string; name: string }[]>("/api/clients");
+  const clients = Array.isArray(rawClients) ? rawClients : [];
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
   const { data: rawWorkers } =
     useApiResource<WorkerTypeOption[]>("/api/worker-types");
@@ -59,6 +63,15 @@ export default function NewProjectPage() {
       startDate: formData.get("startDate") || undefined,
       endDate: formData.get("endDate") || undefined,
       assignedStaff: selectedWorkers,
+      ...(clientMode === "EXISTING"
+        ? { clientId: formData.get("clientId") }
+        : {
+            newClient: {
+              name: formData.get("newClientName"),
+              phone: formData.get("newClientPhone") || undefined,
+              address: formData.get("newClientAddress") || undefined,
+            },
+          }),
     };
 
     try {
@@ -123,6 +136,62 @@ export default function NewProjectPage() {
                   placeholder="e.g. Chennai, TN"
                 />
               </div>
+            </div>
+
+            <div className="space-y-3 rounded-md border p-3">
+              <label className="text-sm font-medium">Client *</label>
+              <div className="flex gap-4 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={clientMode === "NEW"}
+                    onChange={() => setClientMode("NEW")}
+                  />
+                  New client
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={clientMode === "EXISTING"}
+                    onChange={() => setClientMode("EXISTING")}
+                  />
+                  Existing client
+                </label>
+              </div>
+              {clientMode === "EXISTING" ? (
+                <select
+                  name="clientId"
+                  required
+                  defaultValue=""
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">-- Choose a client --</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    name="newClientName"
+                    required
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    placeholder="Client name *"
+                  />
+                  <input
+                    name="newClientPhone"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    placeholder="Phone"
+                  />
+                  <input
+                    name="newClientAddress"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    placeholder="Address"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

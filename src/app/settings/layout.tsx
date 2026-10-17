@@ -9,6 +9,7 @@ const settingsNav = [
   { name: "Business Profile", href: "/settings/business-profile" },
   { name: "Wage Rates", href: "/settings/wage-rates" },
   { name: "BOQ Templates", href: "/settings/templates" },
+  { name: "Master Items", href: "/settings/items" },
   { name: "Account Settings", href: "/settings/account" },
 ];
 

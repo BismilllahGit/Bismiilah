@@ -13,6 +13,8 @@ const transactionSchema = z.object({
   unitCost: z.coerce.number().min(0),
   date: z.string(),
   note: z.string().optional(),
+  vendorId: z.string().min(1).optional(),
+  paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
 });
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -31,7 +33,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       orderBy: { item: { name: 'asc' } }
     });
 
-    return NextResponse.json(inventory);
+    // Distinct vendors this project bought each item from.
+    const buys = await prisma.inventoryTransaction.findMany({
+      where: { projectId, type: "BUY", vendorId: { not: null } },
+      select: { itemId: true, vendor: { select: { name: true } } },
+    });
+    const vendorsByItem = new Map<string, Set<string>>();
+    for (const b of buys) {
+      if (!b.vendor) continue;
+      if (!vendorsByItem.has(b.itemId)) vendorsByItem.set(b.itemId, new Set());
+      vendorsByItem.get(b.itemId)!.add(b.vendor.name);
+    }
+
+    return NextResponse.json(
+      inventory.map((inv) => ({
+        ...inv,
+        vendorNames: [...(vendorsByItem.get(inv.itemId) ?? [])],
+      })),
+    );
   } catch {
     return NextResponse.json({ error: "Failed to fetch inventory" }, { status: 500 });
   }
@@ -52,7 +71,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
     }
 
-    const { itemName, type, quantity, unitCost, date, note } = parsed.data;
+    const { itemName, type, quantity, unitCost, date, note, vendorId, paymentStatus } = parsed.data;
 
     // First find or create the item
     let item = await prisma.item.findFirst({
@@ -72,9 +91,32 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const itemId = item.id;
 
+    if (vendorId) {
+      const vendor = await prisma.contact.findUnique({ where: { id: vendorId }, select: { id: true } });
+      if (!vendor) return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    }
+
     // Run atomically: Create transaction log + update aggregate balances
     const result = await prisma.$transaction(async (tx) => {
       const voucherNumber = await nextVoucherNumber(tx, 'INV', 'INV_TXN');
+
+      // A BUY from a vendor also books a PURCHASE in that vendor's ledger.
+      let vendorTransactionId: string | null = null;
+      if (vendorId && type === "BUY") {
+        const vtx = await tx.vendorTransaction.create({
+          data: {
+            contactId: vendorId,
+            projectId,
+            type: "PURCHASE",
+            paymentStatus: paymentStatus ?? "PENDING",
+            amount: quantity * unitCost,
+            date: new Date(date),
+            description: `Inventory buy ${voucherNumber}${itemName ? ` - ${itemName}` : ""}`,
+            voucherNumber: await nextVoucherNumber(tx, 'PUR', 'VENDOR_PUR'),
+          }
+        });
+        vendorTransactionId = vtx.id;
+      }
 
       // 1. Create transaction
       const txn = await tx.inventoryTransaction.create({
@@ -87,6 +129,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           date: new Date(date),
           note,
           voucherNumber,
+          vendorId: vendorId ?? null,
+          vendorTransactionId,
         }
       });
 

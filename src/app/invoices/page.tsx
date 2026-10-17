@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import {
@@ -26,6 +27,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeader } from "@/components/ui/page-header";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  FilterSelect,
+  FilterBar,
+  matchesSearch,
+} from "@/components/ui/pagination";
 import { InvoiceFormSheet } from "./InvoiceFormSheet";
 import { InvoicesMobileList } from "./InvoicesMobileList";
 import { InvoicesDesktopTable } from "./InvoicesDesktopTable";
@@ -104,6 +113,24 @@ export default function InvoicesPage() {
   const [open, setOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const filteredInvoices = invoices.filter(
+    (inv) =>
+      (!statusFilter || inv.status === statusFilter) &&
+      matchesSearch(
+        search,
+        inv.invoiceNumber,
+        inv.client.name,
+        inv.project.name,
+      ),
+  );
+  const pg = usePagination(
+    filteredInvoices,
+    undefined,
+    `${search}|${statusFilter}`,
+  );
 
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
@@ -267,18 +294,44 @@ export default function InvoicesPage() {
         </CardContent>
       </Card>
 
+      <FilterBar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by invoice no., client or project..."
+        />
+        <FilterSelect
+          value={statusFilter}
+          onChange={setStatusFilter}
+          allLabel="All statuses"
+          options={[
+            { value: "DRAFT", label: "Draft" },
+            { value: "SENT", label: "Sent" },
+            { value: "PAID", label: "Paid" },
+            { value: "VOID", label: "Void" },
+          ]}
+        />
+      </FilterBar>
+
       <InvoicesMobileList
-        invoices={invoices}
+        invoices={pg.pageItems}
         loading={loading}
         onOpenPayment={handleOpenPayment}
         onOpenDetail={handleOpenDetail}
       />
 
       <InvoicesDesktopTable
-        invoices={invoices}
+        invoices={pg.pageItems}
         loading={loading}
         onOpenPayment={handleOpenPayment}
         onOpenDetail={handleOpenDetail}
+      />
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
       />
 
       {/* Invoice Detail Sheet */}
@@ -536,9 +589,8 @@ export default function InvoicesPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Payment Method</label>
-                  <select
+                  <NativeSelect
                     name="method"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                   >
                     <option value="BANK_TRANSFER">
                       Bank Transfer (NEFT/RTGS/IMPS)
@@ -546,7 +598,7 @@ export default function InvoicesPage() {
                     <option value="UPI">UPI</option>
                     <option value="CASH">Cash</option>
                     <option value="CHEQUE">Cheque</option>
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Note / Ref No</label>

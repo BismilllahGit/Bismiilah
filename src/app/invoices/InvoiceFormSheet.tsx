@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import {
@@ -56,10 +57,9 @@ export function InvoiceFormSheet({
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Client *</label>
-              <select
+              <NativeSelect
                 name="clientId"
                 required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
                 <option value="">Select Client...</option>
                 {clients.map((c) => (
@@ -67,14 +67,13 @@ export function InvoiceFormSheet({
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Project *</label>
-              <select
+              <NativeSelect
                 name="projectId"
                 required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
                 <option value="">Select Project...</option>
                 {projects.map((p) => (
@@ -82,7 +81,7 @@ export function InvoiceFormSheet({
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           </div>
 

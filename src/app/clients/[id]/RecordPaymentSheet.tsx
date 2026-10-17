@@ -17,6 +17,7 @@ import type { SuccessPaymentData } from "./page";
 
 type UnpaidInvoice = {
   id: string;
+  projectId: string;
   invoiceNumber: string;
   amount: number;
   status: string;
@@ -41,6 +42,9 @@ export function RecordPaymentSheet({
   allocations,
   setAllocations,
   unpaidInvoices,
+  projects,
+  projectId,
+  setProjectId,
   saving,
 }: {
   paymentOpen: boolean;
@@ -60,8 +64,14 @@ export function RecordPaymentSheet({
   allocations: Record<string, string>;
   setAllocations: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   unpaidInvoices: UnpaidInvoice[];
+  projects: { id: string; name: string }[];
+  projectId: string;
+  setProjectId: React.Dispatch<React.SetStateAction<string>>;
   saving: boolean;
 }) {
+  const projectInvoices = projectId
+    ? unpaidInvoices.filter((inv) => inv.projectId === projectId)
+    : [];
   return (
     <Sheet
       open={paymentOpen}
@@ -117,6 +127,32 @@ export function RecordPaymentSheet({
               </SheetDescription>
             </SheetHeader>
             <form onSubmit={handleSavePayment} className="space-y-4 mt-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Project *</label>
+                <select
+                  required
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={projectId}
+                  onChange={(e) => {
+                    setProjectId(e.target.value);
+                    setSelectedInvoiceId("");
+                    setAllocations({});
+                  }}
+                >
+                  <option value="">-- Choose a project --</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                {projects.length === 0 && (
+                  <p className="text-xs text-orange-600">
+                    Link or create a project for this client first.
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-3 bg-slate-50 p-3 rounded-md border">
                 <label className="text-sm font-bold block mb-2">
                   Payment Allocation Mode
@@ -191,7 +227,7 @@ export function RecordPaymentSheet({
                     onChange={(e) => setSelectedInvoiceId(e.target.value)}
                   >
                     <option value="">-- Choose an unpaid invoice --</option>
-                    {unpaidInvoices.map((inv) => (
+                    {projectInvoices.map((inv) => (
                       <option key={inv.id} value={inv.id}>
                         {inv.invoiceNumber} - ₹
                         {Number(inv.amount).toLocaleString()} (
@@ -202,7 +238,7 @@ export function RecordPaymentSheet({
                 </div>
               )}
 
-              {paymentMode === "MULTI" && unpaidInvoices.length > 0 && (
+              {paymentMode === "MULTI" && projectInvoices.length > 0 && (
                 <div className="space-y-2 border-l-2 border-blue-500 pl-3 py-2">
                   <label className="text-sm font-medium block">
                     Allocate to Invoices (Optional)
@@ -212,7 +248,7 @@ export function RecordPaymentSheet({
                     the ledger.
                   </div>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                    {unpaidInvoices.map((inv) => {
+                    {projectInvoices.map((inv) => {
                       const directPaid =
                         inv.clientPayments?.reduce(
                           (acc, p) => acc + Number(p.amount),

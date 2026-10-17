@@ -12,6 +12,7 @@ const allocationSchema = z.object({
 
 const paymentSchema = z.object({
   amount: z.coerce.number().min(0.01),
+  projectId: z.string().min(1).optional(),
   date: z.string(),
   method: z.string().optional(),
   note: z.string().optional(),
@@ -32,12 +33,41 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
     }
 
-    const { amount, date, method, note, invoiceId, allocations } = parsed.data;
+    const { amount, projectId: requestedProjectId, date, method, note, invoiceId, allocations } = parsed.data;
 
     // Validate client exists
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    // Project is required; a single-invoice payment may derive it from the invoice
+    let projectId = requestedProjectId;
+    if (!projectId && invoiceId) {
+      const inv = await prisma.invoice.findUnique({ where: { id: invoiceId }, select: { projectId: true } });
+      projectId = inv?.projectId;
+    }
+    if (!projectId) {
+      return NextResponse.json({ error: "Project is required" }, { status: 400 });
+    }
+
+    // Project must belong to this client
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project || project.clientId !== clientId) {
+      return NextResponse.json({ error: "Project does not belong to this client" }, { status: 400 });
+    }
+
+    // Every invoice this payment touches must belong to the chosen project
+    const touchedInvoiceIds = [invoiceId, ...(allocations ?? []).map((a) => a.invoiceId)].filter(
+      (v): v is string => !!v,
+    );
+    if (touchedInvoiceIds.length > 0) {
+      const mismatched = await prisma.invoice.count({
+        where: { id: { in: touchedInvoiceIds }, NOT: { projectId } },
+      });
+      if (mismatched > 0) {
+        return NextResponse.json({ error: "Invoice does not belong to the selected project" }, { status: 400 });
+      }
     }
 
     // Validate allocations sum does not exceed total amount
@@ -55,6 +85,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const payment = await tx.clientPayment.create({
         data: {
           clientId,
+          projectId,
           invoiceId: invoiceId || null,
           amount,
           paymentDate: new Date(date),

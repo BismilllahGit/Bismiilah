@@ -77,6 +77,7 @@ export interface RawLedgerRow {
   credit: unknown;
   runningBalance: unknown;
   entryType?: string;
+  paymentStatus?: string | null;
 }
 
 export interface FormattedLedgerRow {
@@ -88,6 +89,7 @@ export interface FormattedLedgerRow {
   credit: number;
   runningBalance: number;
   entryType?: string;
+  paymentStatus?: string | null;
 }
 
 /**
@@ -122,6 +124,7 @@ export function finalizeDebitCreditLedger(
       credit,
       runningBalance: Number(row.runningBalance),
       entryType: row.entryType,
+      paymentStatus: row.paymentStatus,
     };
   });
 

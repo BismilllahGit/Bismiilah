@@ -11,7 +11,7 @@ import {
 } from "./ReportsClient";
 import { DueClient, DueContractor } from "./saturday-view/SaturdayViewClient";
 
-import { getTopUsageReportData } from "@/lib/queries/report-queries";
+import { getPurchasesReportData } from "@/lib/queries/report-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,6 @@ export default async function ReportsPage({
 
   // Execute all database queries concurrently
   const [
-    invoices,
     vendorTxns,
     siteExpenses,
     labourEntries,
@@ -56,12 +55,8 @@ export default async function ReportsPage({
     pendingInvoices,
     rawLabourDues,
     projects,
-    initialUsageData,
+    initialPurchasesData,
   ] = await Promise.all([
-    // 1. Invoices for overview
-    prisma.invoice.findMany({
-      include: { clientPayments: true, paymentAllocations: true },
-    }),
     // 2. Vendor Transactions for overview & cash flow
     prisma.vendorTransaction.findMany({
       include: { contact: { select: { name: true } } },
@@ -140,24 +135,19 @@ export default async function ReportsPage({
         AND (COALESCE(labour.total_supplied, 0) - COALESCE(payments.total_paid, 0)) > 0
       ORDER BY (COALESCE(labour.total_supplied, 0) - COALESCE(payments.total_paid, 0)) DESC
     `,
-    // 10. Projects list for material usage filter
+    // 10. Projects list for material purchases filter
     prisma.project.findMany({
       select: { id: true, name: true, location: true },
       orderBy: { name: "asc" },
     }),
-    // 11. Initial material usage data
-    getTopUsageReportData({ limit: 100 }),
+    // 11. Initial material purchases data
+    getPurchasesReportData({}),
   ]);
 
   // Overview calculations
-  const totalCollected = invoices.reduce(
-    (sum, inv) =>
-      sum +
-      inv.clientPayments.reduce((pSum, p) => pSum + Number(p.amount), 0) +
-      inv.paymentAllocations.reduce(
-        (pSum, p) => pSum + Number(p.allocatedAmount),
-        0,
-      ),
+  // Sum every recorded client payment (incl. unallocated advances), matching the client ledger's "Received" total
+  const totalCollected = clientPayments.reduce(
+    (sum, p) => sum + Number(p.amount),
     0,
   );
 
@@ -180,7 +170,7 @@ export default async function ReportsPage({
 
   const overviewData: OverviewData = {
     totalCollected,
-    invoicesCount: invoices.length,
+    paymentsCount: clientPayments.length,
     vendorPayments,
     vendorPurchases,
     totalExpenses,
@@ -248,9 +238,7 @@ export default async function ReportsPage({
         amount: spend,
       };
     }),
-  ]
-    .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime())
-    .slice(0, 100);
+  ].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
 
   const transactions: Transaction[] = rawTransactions.map((t) => ({
     id: t.id,
@@ -312,7 +300,7 @@ export default async function ReportsPage({
       cashFlowData={cashFlowData}
       saturdayData={saturdayData}
       projects={projects}
-      initialUsageData={initialUsageData}
+      initialPurchasesData={initialPurchasesData}
     />
   );
 }

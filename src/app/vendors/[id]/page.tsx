@@ -32,6 +32,7 @@ type TransactionPayload = {
   date: string | null;
   description: string | undefined;
   projectId: string | undefined;
+  paymentStatus?: string;
 };
 
 export type SuccessTxnData = TransactionPayload & {
@@ -112,7 +113,7 @@ export default function VendorLedgerPage({
     if (end) query.append("endDate", end);
     if (search) query.append("search", search);
     query.append("page", p.toString());
-    query.append("limit", "50");
+    query.append("limit", "20");
     url += `?${query.toString()}`;
 
     const res = await fetch(url);
@@ -143,6 +144,8 @@ export default function VendorLedgerPage({
       date: formData.get("date") as string | null,
       description: (formData.get("description") as string | null) || undefined,
       projectId: (formData.get("projectId") as string | null) || undefined,
+      paymentStatus:
+        (formData.get("paymentStatus") as string | null) || undefined,
     };
 
     try {

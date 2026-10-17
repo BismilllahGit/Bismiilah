@@ -42,6 +42,7 @@ export async function GET(
           where: { projectId: id, type: { in: ["BUY", "ISSUE", "RETURN"] } },
           include: {
             item: { select: { name: true, unit: true, unitCost: true } },
+            vendor: { select: { name: true } },
           },
           orderBy: { date: "desc" },
         }),
@@ -49,6 +50,7 @@ export async function GET(
           where: { projectId: id },
           include: {
             contact: { select: { name: true } },
+            inventoryTransaction: { select: { voucherNumber: true } },
           },
           orderBy: { date: "desc" },
         }),
