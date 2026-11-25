@@ -16,6 +16,8 @@ import { Plus } from "lucide-react";
 import { PAYMENT_STATUS_OPTIONS } from "@/components/ui/payment-status-badge";
 
 import { ItemSelectCombobox } from "./ItemSelectCombobox";
+import { DatePicker } from "@/components/ui/date-picker";
+import { todayISO } from "@/lib/utils";
 
 type Item = { id: string; name: string; unit: string; unitCost: number };
 
@@ -147,12 +149,11 @@ export function LogTransactionSheet({
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Date *</label>
-            <input
+            <DatePicker
               name="date"
-              type="date"
               required
-              defaultValue={new Date().toISOString().split("T")[0]}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              defaultValue={todayISO()}
+              className="h-9 w-full"
             />
           </div>
           <div className="space-y-2">

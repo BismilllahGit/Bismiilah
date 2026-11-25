@@ -11,6 +11,7 @@ import {
 import { Building2, HardHat, Hammer, IndianRupee } from "lucide-react";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -162,7 +163,7 @@ export default async function Home() {
                         {act.project.name}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(act.date).toLocaleDateString()}
+                        {formatDate(act.date)}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-2">

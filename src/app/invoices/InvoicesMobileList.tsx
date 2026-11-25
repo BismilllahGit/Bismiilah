@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ReceiptIndianRupee, IndianRupee, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type { Invoice } from "./page";
 
 interface InvoicesMobileListProps {
@@ -54,7 +54,7 @@ export function InvoicesMobileList({
                     {inv.invoiceNumber}
                   </span>
                   <span className="text-xs font-medium text-slate-500">
-                    {new Date(inv.issuedDate).toLocaleDateString()}
+                    {formatDate(inv.issuedDate)}
                   </span>
                 </div>
                 <Badge

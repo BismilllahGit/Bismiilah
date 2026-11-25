@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import type { LabourRow } from "./page";
+import { formatDate } from "@/lib/utils";
 
 export function LabourMobileList({
   loading,
@@ -42,7 +43,7 @@ export function LabourMobileList({
                           {row.projectName}
                         </span>
                         <span className="text-xs font-medium text-slate-500 block">
-                          {new Date(row.date ?? "").toLocaleDateString()}
+                          {formatDate(row.date ?? "")}
                         </span>
                       </div>
                       <span className="text-[11px] font-mono font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded uppercase shrink-0">
@@ -112,7 +113,7 @@ export function LabourMobileList({
                     <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
                       <span className="font-bold text-slate-900 text-base break-words">
                         {groupBy === "date"
-                          ? new Date(row.date ?? "").toLocaleDateString()
+                          ? formatDate(row.date ?? "")
                           : groupBy === "workerType"
                             ? row.workerType
                             : row.projectName}

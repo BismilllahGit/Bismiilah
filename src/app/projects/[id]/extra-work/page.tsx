@@ -45,6 +45,8 @@ type ExtraWork = {
 };
 
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+import { formatDate, todayISO } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function ExtraWorkPage({
   params,
@@ -171,12 +173,11 @@ export default function ExtraWorkPage({
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Date *</label>
-                  <input
+                  <DatePicker
                     name="date"
-                    type="date"
                     required
-                    defaultValue={new Date().toISOString().split("T")[0]}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    defaultValue={todayISO()}
+                    className="h-9 w-full"
                   />
                 </div>
               </div>
@@ -293,7 +294,7 @@ export default function ExtraWorkPage({
             >
               <div className="flex items-center justify-between border-b pb-1.5 text-xs text-slate-500">
                 <span className="font-medium text-slate-700">
-                  {new Date(w.date).toLocaleDateString()}
+                  {formatDate(w.date)}
                 </span>
                 <Badge
                   variant={
@@ -369,7 +370,7 @@ export default function ExtraWorkPage({
               pg.pageItems.map((w) => (
                 <TableRow key={w.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium whitespace-nowrap">
-                    {new Date(w.date).toLocaleDateString()}
+                    {formatDate(w.date)}
                   </TableCell>
                   <TableCell className="text-sm">{w.description}</TableCell>
                   <TableCell>

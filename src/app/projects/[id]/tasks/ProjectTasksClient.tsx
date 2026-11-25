@@ -16,6 +16,8 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
+import { formatDate } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface Task {
   id: string;
@@ -204,7 +206,7 @@ export default function ProjectTasksClient({
                         {getDaysRemainingBadge(task)}
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(task.targetDate).toLocaleDateString()}
+                          {formatDate(task.targetDate)}
                         </span>
                       </div>
                     </div>
@@ -304,12 +306,11 @@ export default function ProjectTasksClient({
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Target Date *</label>
-              <input
-                type="date"
+              <DatePicker
                 value={targetDate}
-                onChange={(e) => setTargetDate(e.target.value)}
+                onValueChange={(value) => setTargetDate(value)}
                 required
-                className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                className="h-10 w-full"
               />
             </div>
             <div className="space-y-2">

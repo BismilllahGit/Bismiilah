@@ -34,6 +34,7 @@ import {
   Layers,
   Store,
 } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export interface ProjectOption {
   id: string;
@@ -177,14 +178,14 @@ export function MaterialPurchasesReportView({
     setPage(1);
   };
 
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setStartDate(e.target.value);
+  const handleStartDateChange = (value: string) => {
+    setStartDate(value);
     setActivePreset("custom");
     setPage(1);
   };
 
-  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEndDate(e.target.value);
+  const handleEndDateChange = (value: string) => {
+    setEndDate(value);
     setActivePreset("custom");
     setPage(1);
   };
@@ -377,12 +378,11 @@ export function MaterialPurchasesReportView({
                 <Calendar className="h-3.5 w-3.5 shrink-0" />
                 <span>Start Date</span>
               </label>
-              <Input
-                type="date"
+              <DatePicker
                 value={startDate}
                 max={endDate || undefined}
-                onChange={handleStartDateChange}
-                className="h-9 w-full bg-background text-sm rounded-md px-3 border border-input shadow-none"
+                onValueChange={handleStartDateChange}
+                className="h-9 w-full"
               />
             </div>
 
@@ -392,12 +392,11 @@ export function MaterialPurchasesReportView({
                 <Calendar className="h-3.5 w-3.5 shrink-0" />
                 <span>End Date</span>
               </label>
-              <Input
-                type="date"
+              <DatePicker
                 value={endDate}
                 min={startDate || undefined}
-                onChange={handleEndDateChange}
-                className="h-9 w-full bg-background text-sm rounded-md px-3 border border-input shadow-none"
+                onValueChange={handleEndDateChange}
+                className="h-9 w-full"
               />
             </div>
 

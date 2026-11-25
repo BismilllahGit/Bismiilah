@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeader } from "@/components/ui/page-header";
 import { TaskUrgencyBadge } from "@/components/ui/task-urgency-badge";
+import { formatDate } from "@/lib/utils";
 
 export default async function ProjectsPage() {
   const session = await getServerSession(authOptions);
@@ -171,7 +172,7 @@ export default async function ProjectsPage() {
                   <span>
                     Started:{" "}
                     {project.startDate
-                      ? new Date(project.startDate).toLocaleDateString()
+                      ? formatDate(project.startDate)
                       : "Not set"}
                   </span>
                 </div>

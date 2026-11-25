@@ -3,7 +3,6 @@
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Users, IndianRupee } from "lucide-react";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { useApiResource } from "@/hooks/useApiResource";
@@ -16,6 +15,8 @@ import type {
   DailyLabourFlatRow,
   DailyLabourGroupedRow,
 } from "@/lib/queries/report-queries";
+import { DatePicker } from "@/components/ui/date-picker";
+import { toLocalISODate } from "@/lib/utils";
 
 type ProjectOption = { id: string; name: string };
 type WorkerTypeOption = { id: string; name?: string; workerType?: string };
@@ -59,16 +60,16 @@ export default function LabourLedgerPage() {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       return {
-        startDate: firstDay.toISOString().split("T")[0],
-        endDate: lastDay.toISOString().split("T")[0],
+        startDate: toLocalISODate(firstDay),
+        endDate: toLocalISODate(lastDay),
       };
     }
     if (datePreset === "LAST_MONTH") {
       const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
       return {
-        startDate: firstDay.toISOString().split("T")[0],
-        endDate: lastDay.toISOString().split("T")[0],
+        startDate: toLocalISODate(firstDay),
+        endDate: toLocalISODate(lastDay),
       };
     }
     return { startDate: "", endDate: "" }; // ALL_TIME (and unused for CUSTOM)
@@ -196,22 +197,20 @@ export default function LabourLedgerPage() {
                 <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
                   Start Date
                 </label>
-                <Input
-                  type="date"
-                  className="relative flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer shadow-sm"
+                <DatePicker
+                  className="h-9 w-full"
                   value={startDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  onValueChange={(value) => setCustomStartDate(value)}
                 />
               </div>
               <div className="space-y-1">
                 <label className="block text-xs max-sm:text-sm font-medium text-slate-500">
                   End Date
                 </label>
-                <Input
-                  type="date"
-                  className="relative flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer shadow-sm"
+                <DatePicker
+                  className="h-9 w-full"
                   value={endDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  onValueChange={(value) => setCustomEndDate(value)}
                 />
               </div>
             </>

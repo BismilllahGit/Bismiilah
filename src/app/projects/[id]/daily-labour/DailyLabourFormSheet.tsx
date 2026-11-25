@@ -14,6 +14,7 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { EntryRow, LabourContractor } from "./page";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface DailyLabourFormSheetProps {
   open: boolean;
@@ -86,12 +87,11 @@ export function DailyLabourFormSheet({
           <form onSubmit={onSubmit} className="mt-6 space-y-6">
             <div className="space-y-2 space-x-2">
               <label className="text-sm font-medium">Date</label>
-              <Input
-                type="date"
+              <DatePicker
                 required
                 value={formDate}
-                onChange={(e) => onFormDateChange(e.target.value)}
-                className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                onValueChange={(value) => onFormDateChange(value)}
+                className="h-10 w-full"
               />
             </div>
 

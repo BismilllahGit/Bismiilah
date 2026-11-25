@@ -9,6 +9,7 @@ import { ClientDuesView } from "./ClientDuesView";
 import { LabourDuesView } from "./LabourDuesView";
 import { ClientPaymentSheet } from "./ClientPaymentSheet";
 import { LabourPaymentSheet } from "./LabourPaymentSheet";
+import { formatDate } from "@/lib/utils";
 
 export interface DueClient {
   id: string; // invoice ID
@@ -223,7 +224,7 @@ export function SaturdayViewClient({
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Complete weekly cash picture ahead of{" "}
-            {comingSaturday.toLocaleDateString()} settlement.
+            {formatDate(comingSaturday)} settlement.
           </p>
         </div>
         <div className="flex items-center gap-2">

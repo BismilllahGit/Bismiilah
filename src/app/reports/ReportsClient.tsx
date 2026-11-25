@@ -38,6 +38,7 @@ import {
   ProjectOption,
   MaterialPurchasesData,
 } from "./MaterialPurchasesReportView";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const TX_PAGE_SIZE = 20;
 
@@ -546,12 +547,11 @@ export function ReportsClient({
                 <label className="text-xs font-semibold text-muted-foreground mb-1.5">
                   From
                 </label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={txFrom}
                   max={txTo || undefined}
-                  onChange={(e) => {
-                    setTxFrom(e.target.value);
+                  onValueChange={(value) => {
+                    setTxFrom(value);
                     setTxPage(1);
                   }}
                   className="h-9"
@@ -561,12 +561,11 @@ export function ReportsClient({
                 <label className="text-xs font-semibold text-muted-foreground mb-1.5">
                   To
                 </label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={txTo}
                   min={txFrom || undefined}
-                  onChange={(e) => {
-                    setTxTo(e.target.value);
+                  onValueChange={(value) => {
+                    setTxTo(value);
                     setTxPage(1);
                   }}
                   className="h-9"

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DatePicker } from "@/components/ui/date-picker";
+import { todayISO } from "@/lib/utils";
 
 type Worker = { id: string; name: string; type: string };
 type AttendanceRecord = {
@@ -23,7 +25,7 @@ export default function AttendancePage() {
   const projectId = params.id as string;
 
   const { data: workers, loading } = useApiResource<Worker[]>("/api/workers");
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(todayISO());
   const [attendance, setAttendance] = useState<Record<string, "PRESENT" | "HALF_DAY" | "ABSENT">>({});
   const [saving, setSaving] = useState(false);
   const saveAttendance = useApiMutation<AttendanceRecord[], unknown>("POST");
@@ -80,11 +82,10 @@ export default function AttendancePage() {
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Date:</label>
-            <input
-              type="date"
+            <DatePicker
               value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+              onValueChange={(value) => setDate(value)}
+              className="h-9"
             />
           </div>
         </CardHeader>

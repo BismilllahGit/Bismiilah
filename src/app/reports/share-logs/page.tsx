@@ -30,6 +30,7 @@ import {
 import { useApiResource } from "@/hooks/useApiResource";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeader } from "@/components/ui/page-header";
+import { formatDate } from "@/lib/utils";
 
 interface ShareLog {
   id: string;
@@ -201,7 +202,7 @@ export default function ShareLogsPage() {
                         <Calendar className="h-4 w-4 text-slate-400 hidden md:block" />
                         <div className="flex flex-col">
                           <span>
-                            {new Date(log.createdAt).toLocaleDateString()}
+                            {formatDate(log.createdAt)}
                           </span>
                           <span className="text-xs text-slate-500 font-normal">
                             {new Date(log.createdAt).toLocaleTimeString([], {

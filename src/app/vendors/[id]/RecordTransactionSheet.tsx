@@ -16,6 +16,8 @@ import {
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 import { PAYMENT_STATUS_OPTIONS } from "@/components/ui/payment-status-badge";
 import type { SuccessTxnData } from "./page";
+import { formatDate, todayISO } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Project = { id: string; name: string };
 
@@ -81,8 +83,8 @@ export function RecordTransactionSheet({
                 phone={successTxnData.vendorPhone}
                 message={
                   successTxnData.type === "PAYMENT"
-                    ? `Hi ${successTxnData.vendorName}, I've paid ₹${successTxnData.amount} on ${new Date(successTxnData.date ?? "").toLocaleDateString()} for ${successTxnData.description || successTxnData.note || "materials"}. Thank you — Bismillah Construction`
-                    : `Hi ${successTxnData.vendorName}, I've purchased ${successTxnData.description || successTxnData.note || "materials"} from you — amount: ₹${successTxnData.amount}, on ${new Date(successTxnData.date ?? "").toLocaleDateString()}. — Bismillah Construction`
+                    ? `Hi ${successTxnData.vendorName}, I've paid ₹${successTxnData.amount} on ${formatDate(successTxnData.date ?? "")} for ${successTxnData.description || successTxnData.note || "materials"}. Thank you — Bismillah Construction`
+                    : `Hi ${successTxnData.vendorName}, I've purchased ${successTxnData.description || successTxnData.note || "materials"} from you — amount: ₹${successTxnData.amount}, on ${formatDate(successTxnData.date ?? "")}. — Bismillah Construction`
                 }
                 onShare={() => setOpen(false)}
                 className="w-full font-bold h-11"
@@ -157,12 +159,11 @@ export function RecordTransactionSheet({
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Date *</label>
-                  <input
+                  <DatePicker
                     name="date"
-                    type="date"
                     required
-                    defaultValue={new Date().toISOString().split("T")[0]}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    defaultValue={todayISO()}
+                    className="h-9 w-full"
                   />
                 </div>
               </div>

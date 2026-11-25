@@ -13,6 +13,8 @@ import { CheckCircle2 } from "lucide-react";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 import type { DueClient, ClientPaymentSuccessData } from "./SaturdayViewClient";
 import { formatCurrency } from "./utils";
+import { formatDate, toLocalISODate } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface ClientPaymentSheetProps {
   open: boolean;
@@ -61,7 +63,7 @@ export function ClientPaymentSheet({
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
                 phone={successData.clientPhone}
-                message={`Hi ${successData.clientName}, I've received your payment of ₹${successData.amount} on ${new Date(successData.date ?? "").toLocaleDateString()} for ${successData.projectName}. Thank you! — Bismillah Construction`}
+                message={`Hi ${successData.clientName}, I've received your payment of ₹${successData.amount} on ${formatDate(successData.date ?? "")} for ${successData.projectName}. Thank you! — Bismillah Construction`}
                 onShare={() => setOpen(false)}
                 className="w-full font-bold h-11"
                 size="lg"
@@ -123,12 +125,11 @@ export function ClientPaymentSheet({
                   <label className="text-xs font-semibold text-slate-700">
                     Payment Date *
                   </label>
-                  <input
+                  <DatePicker
                     name="date"
-                    type="date"
                     required
-                    defaultValue={today.toISOString().split("T")[0]}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    defaultValue={toLocalISODate(today)}
+                    className="h-9 w-full"
                   />
                 </div>
               </div>

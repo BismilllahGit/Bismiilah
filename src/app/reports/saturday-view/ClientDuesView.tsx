@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Phone, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type { DueClient } from "./SaturdayViewClient";
 import { formatCurrency } from "./utils";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
@@ -81,7 +81,7 @@ export function ClientDuesView({
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-semibold text-slate-600 block">
-                      Due: {new Date(due.dueDate).toLocaleDateString()}
+                      Due: {formatDate(due.dueDate)}
                     </span>
                     {isPastDue && (
                       <Badge
@@ -198,7 +198,7 @@ export function ClientDuesView({
                         isPastDue && "text-orange-900",
                       )}
                     >
-                      <div>{new Date(due.dueDate).toLocaleDateString()}</div>
+                      <div>{formatDate(due.dueDate)}</div>
                       {isPastDue && (
                         <Badge
                           variant="destructive"

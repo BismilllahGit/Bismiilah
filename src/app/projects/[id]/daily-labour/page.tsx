@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Input } from "@/components/ui/input";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { DailyLabourFormSheet } from "./DailyLabourFormSheet";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
@@ -10,6 +9,8 @@ import { DailyLabourDesktopTable } from "./DailyLabourDesktopTable";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Contact, PaymentCycle } from "@prisma/client";
 import type { DailyLabourFlatRow } from "@/lib/queries/report-queries";
+import { formatDate, todayISO } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export type EntryRow = {
   id: string;
@@ -87,12 +88,12 @@ export default function DailyLabourPage({
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
 
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(todayISO());
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [formDate, setFormDate] = useState(
-    new Date().toISOString().split("T")[0],
+    todayISO(),
   );
   const [formRows, setFormRows] = useState<EntryRow[]>([]);
   const [successMessage, setSuccessMessage] = useState("");
@@ -379,7 +380,7 @@ export default function DailyLabourPage({
 
       // e.g., "Logged 10 Masons and 6 Helpers — Total: ₹18,300 for 14 June"
       setSuccessMessage(
-        `Logged ${result.totalHeadcount} workers (${types.join(", ")}) — Total: ₹${result.totalSpend.toLocaleString("en-IN")} for ${new Date(formDate).toLocaleDateString()}`,
+        `Logged ${result.totalHeadcount} workers (${types.join(", ")}) — Total: ₹${result.totalSpend.toLocaleString("en-IN")} for ${formatDate(formDate)}`,
       );
 
       // Immediately trigger re-fetch or date change so entries appear instantly without waiting for timeout
@@ -419,10 +420,9 @@ export default function DailyLabourPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Input
-            type="date"
+          <DatePicker
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onValueChange={(value) => setDate(value)}
             className="w-40"
           />
           <DailyLabourFormSheet

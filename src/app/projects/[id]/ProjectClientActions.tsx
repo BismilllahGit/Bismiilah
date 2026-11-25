@@ -20,6 +20,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useRouter } from "next/navigation";
 import type { Project as PrismaProject } from "@prisma/client";
+import { DatePicker } from "@/components/ui/date-picker";
 
 // The layout server-serializes `agreedValue` (a Prisma Decimal) to a string
 // before passing the project down to this client component.
@@ -149,21 +150,19 @@ export function EditProjectDrawer({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Start Date</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={formData.startDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, startDate: value })
                   }
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Expected End Date</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={formData.endDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endDate: e.target.value })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, endDate: value })
                   }
                 />
               </div>

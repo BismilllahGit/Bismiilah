@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import type { LabourRow } from "./page";
 
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+import { formatDate } from "@/lib/utils";
 
 export function LabourDesktopTable({
   loading,
@@ -97,7 +98,7 @@ export function LabourDesktopTable({
                 {groupBy === "NONE" && (
                   <>
                     <TableCell className="whitespace-nowrap font-medium">
-                      {new Date(row.date ?? "").toLocaleDateString()}
+                      {formatDate(row.date ?? "")}
                     </TableCell>
                     <TableCell className="font-medium">
                       {row.projectName}
@@ -141,7 +142,7 @@ export function LabourDesktopTable({
                 {groupBy === "date" && (
                   <>
                     <TableCell className="font-medium whitespace-nowrap">
-                      {new Date(row.date ?? "").toLocaleDateString()}
+                      {formatDate(row.date ?? "")}
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {row.totalHeadcount}

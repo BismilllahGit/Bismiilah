@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { Expense } from "./page";
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
+import { formatDate } from "@/lib/utils";
 
 export default function SiteExpensesView({
   expenses,
@@ -49,7 +50,7 @@ export default function SiteExpensesView({
                   {exp.category}
                 </span>
                 <span className="text-xs font-medium text-slate-500 shrink-0">
-                  {new Date(exp.date).toLocaleDateString()}
+                  {formatDate(exp.date)}
                 </span>
               </div>
               <div className="text-sm text-slate-700 wrap-break-word">
@@ -114,7 +115,7 @@ export default function SiteExpensesView({
               pg.pageItems.map((exp) => (
                 <TableRow key={exp.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium whitespace-nowrap">
-                    {new Date(exp.date).toLocaleDateString()}
+                    {formatDate(exp.date)}
                   </TableCell>
                   <TableCell className="font-medium">{exp.category}</TableCell>
                   <TableCell className="text-sm text-slate-600">

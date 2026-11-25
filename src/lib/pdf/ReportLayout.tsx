@@ -1,6 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { BusinessProfile } from "@prisma/client";
+import { formatDate } from "./format";
 
 export interface PdfColumn {
   header: string;
@@ -277,7 +278,7 @@ export const PdfTable: React.FC<PdfTableProps> = ({
 
 export const ReportLayout: React.FC<ReportLayoutProps> = ({
   title,
-  generatedAt = new Date().toLocaleDateString("en-IN"),
+  generatedAt = formatDate(new Date()),
   subtitle,
   children,
   businessProfile,

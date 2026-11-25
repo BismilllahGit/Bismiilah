@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ReceiptIndianRupee, IndianRupee, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type { Invoice } from "./page";
 
 interface InvoicesDesktopTableProps {
@@ -103,7 +103,7 @@ export function InvoicesDesktopTable({
                     {inv.invoiceNumber}
                   </TableCell>
                   <TableCell className="font-medium whitespace-nowrap text-slate-600">
-                    {new Date(inv.issuedDate).toLocaleDateString()}
+                    {formatDate(inv.issuedDate)}
                   </TableCell>
                   <TableCell>
                     <div className="font-bold text-slate-800">

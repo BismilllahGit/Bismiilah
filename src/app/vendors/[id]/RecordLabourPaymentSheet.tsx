@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/sheet";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 import type { SuccessLabourData } from "./page";
+import { formatDate, todayISO } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export function RecordLabourPaymentSheet({
   paymentOpen,
@@ -64,7 +66,7 @@ export function RecordLabourPaymentSheet({
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
                 phone={successLabourData.contractorPhone}
-                message={`Hi ${successLabourData.contractorName}, I've paid ₹${successLabourData.amount} on ${new Date(successLabourData.paymentDate ?? "").toLocaleDateString()} for labour supplied. Thank you — Bismillah Construction`}
+                message={`Hi ${successLabourData.contractorName}, I've paid ₹${successLabourData.amount} on ${formatDate(successLabourData.paymentDate ?? "")} for labour supplied. Thank you — Bismillah Construction`}
                 onShare={() => setPaymentOpen(false)}
                 className="w-full font-bold h-11"
                 size="lg"
@@ -107,12 +109,11 @@ export function RecordLabourPaymentSheet({
                   <label className="text-sm font-medium">
                     Payment Date *
                   </label>
-                  <input
+                  <DatePicker
                     name="paymentDate"
-                    type="date"
                     required
-                    defaultValue={new Date().toISOString().split("T")[0]}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    defaultValue={todayISO()}
+                    className="h-9 w-full"
                   />
                 </div>
               </div>

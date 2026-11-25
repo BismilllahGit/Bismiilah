@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Hammer, MapPin } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ExtraWork, Project } from "@prisma/client";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
@@ -209,7 +209,7 @@ export default function ExtraWorkClient({
                   </span>
                 </Link>
                 <span className="text-xs font-medium text-slate-500 shrink-0 mt-1 whitespace-nowrap">
-                  {new Date(w.date).toLocaleDateString()}
+                  {formatDate(w.date)}
                 </span>
               </div>
 
@@ -289,7 +289,7 @@ export default function ExtraWorkClient({
                   className="hover:bg-slate-50/60 transition-colors"
                 >
                   <TableCell className="font-medium whitespace-nowrap text-slate-600">
-                    {new Date(w.date).toLocaleDateString()}
+                    {formatDate(w.date)}
                   </TableCell>
                   <TableCell>
                     <Link

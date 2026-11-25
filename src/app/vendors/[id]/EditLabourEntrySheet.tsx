@@ -11,6 +11,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type WorkerType = { id: string; name: string };
 
@@ -114,12 +115,11 @@ export function EditLabourEntrySheet({
           <form onSubmit={handleSubmit} className="space-y-4 mt-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Date *</label>
-              <input
-                type="date"
+              <DatePicker
                 required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                className="h-9 w-full"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onValueChange={(value) => setDate(value)}
               />
             </div>
             <div className="space-y-2">

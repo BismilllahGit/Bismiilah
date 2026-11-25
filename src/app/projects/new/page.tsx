@@ -15,6 +15,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
 import { PageShell } from "@/components/ui/page-shell";
+import { DatePicker } from "@/components/ui/date-picker";
 
 // Shape returned by GET /api/worker-types (see route.ts's mapped `result`).
 interface WorkerTypeOption {
@@ -227,11 +228,10 @@ export default function NewProjectPage() {
                 <label className="text-sm font-medium" htmlFor="startDate">
                   Start Date
                 </label>
-                <input
+                <DatePicker
                   id="startDate"
                   name="startDate"
-                  type="date"
-                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="h-10 w-full"
                 />
               </div>
 
@@ -239,11 +239,10 @@ export default function NewProjectPage() {
                 <label className="text-sm font-medium" htmlFor="endDate">
                   Expected End Date
                 </label>
-                <input
+                <DatePicker
                   id="endDate"
                   name="endDate"
-                  type="date"
-                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="h-10 w-full"
                 />
               </div>
             </div>
