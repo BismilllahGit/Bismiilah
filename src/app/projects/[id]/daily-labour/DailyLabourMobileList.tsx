@@ -1,18 +1,24 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2 } from "lucide-react";
 import type { DailyLabourEntryRow } from "./page";
 
 interface DailyLabourMobileListProps {
   entries: DailyLabourEntryRow[];
   loading: boolean;
   summary: { totalHeadcount: number; totalSpend: number };
+  onEdit: (entry: DailyLabourEntryRow) => void;
+  onDelete: (entry: DailyLabourEntryRow) => void;
 }
 
 export function DailyLabourMobileList({
   entries,
   loading,
   summary,
+  onEdit,
+  onDelete,
 }: DailyLabourMobileListProps) {
   return (
     <div className="lg:hidden space-y-3.5">
@@ -36,9 +42,29 @@ export function DailyLabourMobileList({
                   <span className="font-bold text-slate-900 text-base break-words">
                     {entry.workerType}
                   </span>
-                  <span className="text-[11px] font-mono font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded uppercase shrink-0">
-                    {entry.voucherNumber || "VOUCHER"}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[11px] font-mono font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded uppercase">
+                      {entry.voucherNumber || "VOUCHER"}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onEdit(entry)}
+                      aria-label={`Edit ${entry.voucherNumber}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => onDelete(entry)}
+                      aria-label={`Delete ${entry.voucherNumber}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-1">

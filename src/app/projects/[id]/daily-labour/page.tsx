@@ -7,6 +7,7 @@ import { DailyLabourFormSheet } from "./DailyLabourFormSheet";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
 import { DailyLabourMobileList } from "./DailyLabourMobileList";
 import { DailyLabourDesktopTable } from "./DailyLabourDesktopTable";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Contact, PaymentCycle } from "@prisma/client";
 import type { DailyLabourFlatRow } from "@/lib/queries/report-queries";
 
@@ -95,6 +96,10 @@ export default function DailyLabourPage({
   );
   const [formRows, setFormRows] = useState<EntryRow[]>([]);
   const [successMessage, setSuccessMessage] = useState("");
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DailyLabourEntryRow | null>(
+    null,
+  );
 
   const { data: presetsData, refetch: refetchPresets } = useApiResource<
     WorkerTypePreset[]
@@ -152,8 +157,29 @@ export default function DailyLabourPage({
     Record<string, unknown>,
     DailyLabourSubmitResult
   >("POST");
+  const updateDailyLabour = useApiMutation<
+    Record<string, unknown>,
+    { voucherNumber: string }
+  >("PATCH");
+  const deleteDailyLabour = useApiMutation<undefined, { id: string }>(
+    "DELETE",
+  );
+
+  const handleDeleteEntry = async (entry: DailyLabourEntryRow) => {
+    try {
+      await deleteDailyLabour.mutate(
+        `/api/projects/${projectId}/daily-labour/${entry.id}`,
+      );
+      refetchEntries();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      alert(message || "Failed to delete labour entry.");
+      throw error;
+    }
+  };
 
   const handleOpenSheet = () => {
+    setEditingEntryId(null);
     setFormDate(date);
     setFormRows([
       {
@@ -164,6 +190,24 @@ export default function DailyLabourPage({
         contractorId: "",
         paidImmediately: false,
         title: "",
+      },
+    ]);
+    setSuccessMessage("");
+    setIsSheetOpen(true);
+  };
+
+  const handleEditEntry = (entry: DailyLabourEntryRow) => {
+    setEditingEntryId(entry.id);
+    setFormDate(entry.date.slice(0, 10));
+    setFormRows([
+      {
+        id: entry.id,
+        workerType: entry.workerType || "",
+        headcount: String(entry.headcount),
+        wageRate: String(Number(entry.wageRate)),
+        contractorId: entry.contractorId || "",
+        paidImmediately: entry.paidImmediately,
+        title: entry.title || "",
       },
     ]);
     setSuccessMessage("");
@@ -290,6 +334,40 @@ export default function DailyLabourPage({
       })),
     };
 
+    if (editingEntryId) {
+      const r = validRows[0];
+      try {
+        const updated = await updateDailyLabour.mutate(
+          `/api/projects/${projectId}/daily-labour/${editingEntryId}`,
+          {
+            date: formDate,
+            workerType: r.workerType,
+            headcount: Number(r.headcount),
+            wageRate: Number(r.wageRate),
+            contractorId: r.contractorId || null,
+            paidImmediately: r.paidImmediately,
+            title: r.title || null,
+          },
+        );
+        setSuccessMessage(`Updated labour entry ${updated.voucherNumber}.`);
+        if (formDate === date) {
+          refetchEntries();
+        } else {
+          setDate(formDate);
+        }
+        refetchPresets({ silent: true });
+        setTimeout(() => {
+          setIsSheetOpen(false);
+        }, 1500);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : undefined;
+        alert(message || "Failed to update labour entry.");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     try {
       const result = await logDailyLabour.mutate(
         `/api/projects/${projectId}/daily-labour`,
@@ -363,15 +441,41 @@ export default function DailyLabourPage({
             contractors={contractors}
             onCreateInlineWorkerType={handleCreateInlineWorkerType}
             saving={saving}
+            isEditing={editingEntryId !== null}
           />
         </div>
       </div>
 
       {/* Mobile & Tablet Stacked Card View (below lg breakpoint) */}
-      <DailyLabourMobileList entries={pg.pageItems} loading={loading} summary={summary} />
+      <DailyLabourMobileList
+        entries={pg.pageItems}
+        loading={loading}
+        summary={summary}
+        onEdit={handleEditEntry}
+        onDelete={setDeleteTarget}
+      />
 
       {/* Desktop/Tablet Table View (lg breakpoint and above) */}
-      <DailyLabourDesktopTable entries={pg.pageItems} loading={loading} summary={summary} />
+      <DailyLabourDesktopTable
+        entries={pg.pageItems}
+        loading={loading}
+        summary={summary}
+        onEdit={handleEditEntry}
+        onDelete={setDeleteTarget}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete this labour entry?"
+        description={
+          deleteTarget
+            ? `${deleteTarget.voucherNumber} — ${deleteTarget.headcount} × ${deleteTarget.workerType ?? "worker"} (₹${Number(deleteTarget.totalSpend).toLocaleString("en-IN", { maximumFractionDigits: 2 })}). This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        onConfirm={() => handleDeleteEntry(deleteTarget!)}
+      />
 
       <PaginationControls
         page={pg.page}
