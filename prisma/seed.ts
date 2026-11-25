@@ -123,6 +123,8 @@ async function main() {
     { name: "Granite / Marble Worker", rate: 1300, cycle: PaymentCycle.WEEKLY },
     { name: "Excavation Workers", rate: 900, cycle: PaymentCycle.DAILY },
     { name: "Helpers", rate: 800, cycle: PaymentCycle.WEEKLY },
+    { name: "Helpers (Male)", rate: 1000, cycle: PaymentCycle.WEEKLY },
+    { name: "Helpers (Female)", rate: 1000, cycle: PaymentCycle.WEEKLY },
     { name: "Scaffolding Workers", rate: 1000, cycle: PaymentCycle.WEEKLY },
     { name: "Roofing Workers", rate: 1100, cycle: PaymentCycle.WEEKLY },
     { name: "Paver Block Workers", rate: 1000, cycle: PaymentCycle.WEEKLY },
