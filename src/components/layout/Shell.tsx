@@ -35,9 +35,34 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
+const PROJECTS_HREF = "/projects";
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+
+  // Remember the last page visited inside the Projects section (the list or
+  // a specific project tab) so the sidebar "Projects" link can return to it
+  // after the user visits another section. Shell lives in the root layout,
+  // so this state survives client-side navigation between sections.
+  const isProjectsPath =
+    pathname === PROJECTS_HREF || pathname.startsWith(`${PROJECTS_HREF}/`);
+  const [lastProjectPath, setLastProjectPath] = React.useState(PROJECTS_HREF);
+  if (
+    isProjectsPath &&
+    pathname !== `${PROJECTS_HREF}/new` &&
+    pathname !== lastProjectPath
+  ) {
+    setLastProjectPath(pathname);
+  }
+
+  // While already inside Projects, the sidebar link goes to the list;
+  // from any other section it returns to the last used project page.
+  const getNavHref = (href: string) =>
+    href === PROJECTS_HREF && !isProjectsPath
+      ? lastProjectPath
+      : href;
+
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -119,7 +144,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     {navigation.map((item) => (
                       <Link
                         key={item.name}
-                        href={item.href}
+                        href={getNavHref(item.href)}
                         onClick={() => setOpen(false)}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all hover:text-primary ${
                           pathname.startsWith(item.href)
@@ -218,7 +243,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               {navigation.map((item) => (
                 <Link
                   key={item.name}
-                  href={item.href}
+                  href={getNavHref(item.href)}
                   title={isCollapsed ? item.name : undefined}
                   onClick={() => {
                     if (isCollapsed) {
