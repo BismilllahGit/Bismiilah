@@ -1,4 +1,9 @@
 import { getServerSession } from "next-auth/next";
+import {
+  IN_ACTIVE_PROJECT,
+  IN_ACTIVE_PROJECT_OR_NONE,
+  notInTrashedProjectSql,
+} from "@/lib/trash-filters";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
@@ -59,16 +64,19 @@ export default async function ReportsPage({
   ] = await Promise.all([
     // 2. Vendor Transactions for overview & cash flow
     prisma.vendorTransaction.findMany({
+      where: IN_ACTIVE_PROJECT_OR_NONE,
       include: { contact: { select: { name: true } } },
       orderBy: { date: "desc" },
     }),
     // 3. Site expenses for overview & cash flow
     prisma.siteExpense.findMany({
+      where: IN_ACTIVE_PROJECT,
       include: { project: { select: { name: true } } },
       orderBy: { date: "desc" },
     }),
     // 4. Labour entries for cash flow
     prisma.dailyLabourEntry.findMany({
+      where: IN_ACTIVE_PROJECT,
       include: {
         project: { select: { name: true } },
         workerType: { select: { name: true } },
@@ -78,14 +86,16 @@ export default async function ReportsPage({
     }),
     // 5. Labour Headcount aggregate
     prisma.dailyLabourEntry.aggregate({
+      where: IN_ACTIVE_PROJECT,
       _sum: { headcount: true },
     }),
     // 6. Labour Spend sum
     prisma.$queryRaw<
       [{ sum: number | null }]
-    >`SELECT SUM(headcount * wage_rate) as sum FROM daily_labour_entries`,
+    >`SELECT SUM(headcount * wage_rate) as sum FROM daily_labour_entries WHERE ${notInTrashedProjectSql("project_id")}`,
     // 7. Client payments for cash flow
     prisma.clientPayment.findMany({
+      where: IN_ACTIVE_PROJECT_OR_NONE,
       include: {
         client: { select: { name: true } },
         invoice: { select: { invoiceNumber: true } },
@@ -97,6 +107,7 @@ export default async function ReportsPage({
       where: {
         status: { notIn: ["PAID", "VOID"] },
         dueDate: { lte: comingSaturday },
+        ...IN_ACTIVE_PROJECT,
       },
       select: {
         id: true,
@@ -137,6 +148,7 @@ export default async function ReportsPage({
     `,
     // 10. Projects list for material purchases filter
     prisma.project.findMany({
+      where: { deletedAt: null },
       select: { id: true, name: true, location: true },
       orderBy: { name: "asc" },
     }),

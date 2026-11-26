@@ -35,6 +35,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const projects = await prisma.project.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       include: { client: { select: { id: true, name: true } } },
     });

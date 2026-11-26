@@ -11,6 +11,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export function EditPaymentSheet({
   clientId,
@@ -135,12 +136,11 @@ export function EditPaymentSheet({
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date *</label>
-                <input
-                  type="date"
+                <DatePicker
                   required
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  onValueChange={(value) => setDate(value)}
+                  className="h-10 w-full"
                 />
               </div>
               <div className="space-y-2">

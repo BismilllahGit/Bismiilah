@@ -16,6 +16,8 @@ import type {
   LabourPaymentSuccessData,
 } from "./SaturdayViewClient";
 import { formatCurrency } from "./utils";
+import { formatDate, toLocalISODate } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface LabourPaymentSheetProps {
   open: boolean;
@@ -64,7 +66,7 @@ export function LabourPaymentSheet({
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
                 phone={successData.contractorPhone}
-                message={`Hi ${successData.contractorName}, I've paid ₹${successData.amount} on ${new Date(successData.paymentDate ?? "").toLocaleDateString()} for labour supplied. Thank you — Bismillah Construction`}
+                message={`Hi ${successData.contractorName}, I've paid ₹${successData.amount} on ${formatDate(successData.paymentDate ?? "")} for labour supplied. Thank you — Bismillah Construction`}
                 onShare={() => setOpen(false)}
                 className="w-full font-bold h-11"
                 size="lg"
@@ -128,12 +130,11 @@ export function LabourPaymentSheet({
                   <label className="text-xs font-semibold text-slate-700">
                     Payment Date *
                   </label>
-                  <input
+                  <DatePicker
                     name="paymentDate"
-                    type="date"
                     required
-                    defaultValue={today.toISOString().split("T")[0]}
-                    className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    defaultValue={toLocalISODate(today)}
+                    className="h-10 w-full"
                   />
                 </div>
               </div>

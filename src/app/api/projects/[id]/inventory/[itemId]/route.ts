@@ -9,7 +9,12 @@ import { z } from "zod";
 const buyDetailsSchema = z.object({
   vendorId: z.string().min(1).optional(),
   paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
+  // A string links every non-transfer entry of this item to that Extra Work;
+  // null clears the link; omitted leaves the links as they are.
+  extraWorkId: z.string().min(1).nullish(),
 });
+
+const LINKABLE_TYPES = ["BUY", "ISSUE", "RETURN", "ADJUST"] as const;
 
 // Summary of the vendor / payment status across this item's Buys in the
 // project. A field is "MIXED" when the buys disagree, null when none is set.
@@ -26,6 +31,10 @@ export async function GET(
       where: { projectId, itemId, type: "BUY" },
       select: { vendorId: true, vendorTransaction: { select: { paymentStatus: true } } },
     });
+    const linkable = await prisma.inventoryTransaction.findMany({
+      where: { projectId, itemId, type: { in: [...LINKABLE_TYPES] } },
+      select: { extraWorkId: true },
+    });
 
     const summarize = (values: (string | null | undefined)[]) => {
       const set = new Set(values.map((v) => v ?? null));
@@ -36,6 +45,8 @@ export async function GET(
       buyCount: buys.length,
       vendorId: summarize(buys.map((b) => b.vendorId)),
       paymentStatus: summarize(buys.map((b) => b.vendorTransaction?.paymentStatus)),
+      transactionCount: linkable.length,
+      extraWorkId: summarize(linkable.map((t) => t.extraWorkId)),
     });
   } catch (error) {
     console.error(error);
@@ -60,14 +71,29 @@ export async function PATCH(
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
     }
-    const { vendorId, paymentStatus } = parsed.data;
+    const { vendorId, paymentStatus, extraWorkId } = parsed.data;
 
     if (vendorId) {
       const vendor = await prisma.contact.findUnique({ where: { id: vendorId }, select: { id: true } });
       if (!vendor) return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
     }
 
+    if (extraWorkId) {
+      const extra = await prisma.extraWork.findUnique({ where: { id: extraWorkId }, select: { projectId: true } });
+      if (!extra || extra.projectId !== projectId) {
+        return NextResponse.json({ error: "Extra work not found for this project" }, { status: 404 });
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
+      if (extraWorkId !== undefined) {
+        await tx.inventoryTransaction.updateMany({
+          where: { projectId, itemId, type: { in: [...LINKABLE_TYPES] } },
+          data: { extraWorkId },
+        });
+      }
+      if (!vendorId && !paymentStatus) return;
+
       const item = await tx.item.findUnique({ where: { id: itemId }, select: { name: true } });
       const buys = await tx.inventoryTransaction.findMany({
         where: { projectId, itemId, type: "BUY" },

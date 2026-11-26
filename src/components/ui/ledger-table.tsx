@@ -21,6 +21,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
+import { formatDate, toLocalISODate } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export type LedgerRow = {
   id?: string;
@@ -159,13 +161,13 @@ export function LedgerTable({
     if (datePreset === "this-month") {
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      start = firstDay.toISOString().split("T")[0];
-      end = lastDay.toISOString().split("T")[0];
+      start = toLocalISODate(firstDay);
+      end = toLocalISODate(lastDay);
     } else if (datePreset === "last-month") {
       const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
       const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
-      start = firstDay.toISOString().split("T")[0];
-      end = lastDay.toISOString().split("T")[0];
+      start = toLocalISODate(firstDay);
+      end = toLocalISODate(lastDay);
     } else if (datePreset === "custom") {
       start = customStart;
       end = customEnd;
@@ -250,10 +252,9 @@ export function LedgerTable({
                     <label className="text-xs font-medium text-slate-500 mb-1.5 block">
                       Start Date
                     </label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={customStart}
-                      onChange={(e) => setCustomStart(e.target.value)}
+                      onValueChange={(value) => setCustomStart(value)}
                       className="bg-white h-9"
                     />
                   </div>
@@ -261,10 +262,9 @@ export function LedgerTable({
                     <label className="text-xs font-medium text-slate-500 mb-1.5 block">
                       End Date
                     </label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={customEnd}
-                      onChange={(e) => setCustomEnd(e.target.value)}
+                      onValueChange={(value) => setCustomEnd(value)}
                       className="bg-white h-9"
                     />
                   </div>
@@ -340,7 +340,7 @@ export function LedgerTable({
                 {/* Top Row: Date and Voucher Number */}
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
                   <span className="font-bold text-slate-800 text-sm">
-                    {new Date(row.date).toLocaleDateString("en-GB")}
+                    {formatDate(row.date)}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="font-mono bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-md font-semibold">
@@ -566,7 +566,7 @@ export function LedgerTable({
               sortedRows.map((row, idx) => (
                 <TableRow key={row.id || idx} className="hover:bg-slate-50/50">
                   <TableCell className="whitespace-nowrap font-medium">
-                    {new Date(row.date).toLocaleDateString("en-GB")}
+                    {formatDate(row.date)}
                   </TableCell>
                   <TableCell className="font-medium text-xs text-slate-600">
                     {row.voucherNumber}

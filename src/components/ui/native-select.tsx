@@ -6,11 +6,14 @@ import { cn } from "@/lib/utils";
 type NativeSelectProps = React.ComponentProps<"select"> & {
   /** Classes for the wrapper; use these for width/margin. */
   wrapperClassName?: string;
+  /** Classes for the chevron icon (e.g. to reposition it in compact selects). */
+  iconClassName?: string;
 };
 
 function NativeSelect({
   className,
   wrapperClassName,
+  iconClassName,
   children,
   ...props
 }: NativeSelectProps) {
@@ -26,7 +29,12 @@ function NativeSelect({
       >
         {children}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+      <ChevronDown
+        className={cn(
+          "pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400",
+          iconClassName,
+        )}
+      />
     </div>
   );
 }

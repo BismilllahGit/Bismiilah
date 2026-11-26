@@ -26,6 +26,7 @@ export async function GET(
           orderBy: { issuedDate: "desc" },
         },
         projects: {
+          where: { deletedAt: null },
           orderBy: { createdAt: "desc" },
           select: { id: true, name: true, location: true, status: true },
         },

@@ -33,6 +33,7 @@ import type {
   Client,
 } from "@prisma/client";
 import type { GroupTotal } from "@/lib/queries/boq-queries";
+import { formatDate } from "@/lib/utils";
 
 // --- BOQ UI TYPES ---
 //
@@ -911,7 +912,7 @@ export default function BOQEditor({
           <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
             Version {currentBOQ.versionNumber}{" "}
             <span className="text-slate-300">•</span> Created{" "}
-            {new Date(currentBOQ.createdAt).toLocaleDateString()}
+            {formatDate(currentBOQ.createdAt)}
           </p>
         </div>
 

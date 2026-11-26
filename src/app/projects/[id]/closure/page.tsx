@@ -9,6 +9,7 @@ import Link from "next/link";
 import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { formatDateTime } from "@/lib/utils";
 
 type ClosureSummary = {
   totalBilled: number;
@@ -75,7 +76,7 @@ export default function ProjectClosurePage({ params }: { params: Promise<{ id: s
           <CheckCircle className="h-8 w-8" />
           <h1 className="text-3xl font-bold tracking-tight">Project Closed</h1>
         </div>
-        <p className="text-muted-foreground">This project was officially closed on {new Date(data.closureDate).toLocaleString()}.</p>
+        <p className="text-muted-foreground">This project was officially closed on {formatDateTime(data.closureDate)}.</p>
 
         <Card>
           <CardHeader>

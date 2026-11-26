@@ -1,6 +1,7 @@
 "use client";
 
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+import { formatDate } from "@/lib/utils";
 
 export interface ProjectPaymentRow {
   id: string;
@@ -39,7 +40,7 @@ export function ProjectPaymentsTable({
           {sorted.map((p) => (
             <tr key={p.id} className="border-t">
               <td className="py-2 pr-4">
-                {new Date(p.paymentDate).toLocaleDateString()}
+                {formatDate(p.paymentDate)}
               </td>
               <td className="py-2 pr-4">{p.voucherNumber}</td>
               <td className="py-2 pr-4">

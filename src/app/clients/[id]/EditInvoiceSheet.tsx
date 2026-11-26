@@ -12,6 +12,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type LineItem = { description: string; quantity: number; unitPrice: number };
 
@@ -116,12 +117,11 @@ export function EditInvoiceSheet({
           <form onSubmit={handleSubmit} className="space-y-4 mt-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Issued Date *</label>
-              <input
-                type="date"
+              <DatePicker
                 required
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                onValueChange={(value) => setDate(value)}
+                className="h-10 w-full"
               />
             </div>
 

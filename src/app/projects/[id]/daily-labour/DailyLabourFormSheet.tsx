@@ -14,6 +14,7 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { EntryRow, LabourContractor } from "./page";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface DailyLabourFormSheetProps {
   open: boolean;
@@ -35,6 +36,7 @@ interface DailyLabourFormSheetProps {
   contractors: LabourContractor[];
   onCreateInlineWorkerType: (rowId: string, name: string) => void;
   saving: boolean;
+  isEditing?: boolean;
 }
 
 export function DailyLabourFormSheet({
@@ -53,6 +55,7 @@ export function DailyLabourFormSheet({
   contractors,
   onCreateInlineWorkerType,
   saving,
+  isEditing = false,
 }: DailyLabourFormSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -64,9 +67,13 @@ export function DailyLabourFormSheet({
         className="w-full sm:max-w-xl overflow-y-auto p-4 lg:min-w-2xl"
       >
         <SheetHeader className="p-0">
-          <SheetTitle>Log Daily Labour</SheetTitle>
+          <SheetTitle>
+            {isEditing ? "Edit Labour Entry" : "Log Daily Labour"}
+          </SheetTitle>
           <SheetDescription>
-            Log headcounts and wage rates for multiple worker types at once.
+            {isEditing
+              ? "Update the details of this labour entry."
+              : "Log headcounts and wage rates for multiple worker types at once."}
           </SheetDescription>
         </SheetHeader>
 
@@ -80,12 +87,11 @@ export function DailyLabourFormSheet({
           <form onSubmit={onSubmit} className="mt-6 space-y-6">
             <div className="space-y-2 space-x-2">
               <label className="text-sm font-medium">Date</label>
-              <Input
-                type="date"
+              <DatePicker
                 required
                 value={formDate}
-                onChange={(e) => onFormDateChange(e.target.value)}
-                className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                onValueChange={(value) => onFormDateChange(value)}
+                className="h-10 w-full"
               />
             </div>
 
@@ -110,6 +116,13 @@ export function DailyLabourFormSheet({
                       }
                     >
                       <option value="">Select...</option>
+                      {row.workerType &&
+                        row.workerType !== "__OTHERS__" &&
+                        !workerTypeOptions.includes(row.workerType) && (
+                          <option value={row.workerType}>
+                            {row.workerType}
+                          </option>
+                        )}
                       {workerTypeOptions.map((t) => (
                         <option key={t} value={t}>
                           {t}
@@ -279,21 +292,23 @@ export function DailyLabourFormSheet({
               ))}
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onAddRow}
-              className="w-full border-dashed"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Add Another Row
-            </Button>
+            {!isEditing && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onAddRow}
+                className="w-full border-dashed"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add Another Row
+              </Button>
+            )}
 
             <SheetFooter className="pt-4 border-t mt-4">
               <SheetClose render={<Button variant="outline" type="button" />}>
                 Cancel
               </SheetClose>
               <Button type="submit" disabled={saving}>
-                {saving ? "Saving..." : "Log Labour"}
+                {saving ? "Saving..." : isEditing ? "Save Changes" : "Log Labour"}
               </Button>
             </SheetFooter>
           </form>

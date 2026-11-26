@@ -11,6 +11,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export function EditLabourPaymentSheet({
   contactId,
@@ -114,12 +115,11 @@ export function EditLabourPaymentSheet({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Payment Date *</label>
-                <input
-                  type="date"
+                <DatePicker
                   required
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  className="h-9 w-full"
                   value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
+                  onValueChange={(value) => setPaymentDate(value)}
                 />
               </div>
             </div>

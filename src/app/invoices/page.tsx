@@ -38,6 +38,8 @@ import {
 import { InvoiceFormSheet } from "./InvoiceFormSheet";
 import { InvoicesMobileList } from "./InvoicesMobileList";
 import { InvoicesDesktopTable } from "./InvoicesDesktopTable";
+import { formatDate, todayISO } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export type InvoiceLineItem = {
   id: string;
@@ -352,16 +354,14 @@ export default function InvoicesPage() {
                     <span className="text-muted-foreground">Issued Date:</span>
                     <br />
                     <span className="font-medium">
-                      {new Date(
-                        selectedInvoice.issuedDate,
-                      ).toLocaleDateString()}
+                      {formatDate(selectedInvoice.issuedDate)}
                     </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Due Date:</span>
                     <br />
                     <span className="font-medium">
-                      {new Date(selectedInvoice.dueDate).toLocaleDateString()}
+                      {formatDate(selectedInvoice.dueDate)}
                     </span>
                   </div>
                   <div className="flex flex-row w-full gap-x-1 items-center">
@@ -450,7 +450,7 @@ export default function InvoicesPage() {
                       {selectedInvoice.clientPayments.map((p, idx) => (
                         <div key={idx} className="flex justify-between pb-1">
                           <span>
-                            {new Date(p.paymentDate).toLocaleDateString()} -{" "}
+                            {formatDate(p.paymentDate)} -{" "}
                             {p.method}
                           </span>
                           <span className="text-green-600 font-medium">
@@ -512,7 +512,7 @@ export default function InvoicesPage() {
               <div className="pt-6 w-full space-y-3">
                 <ShareViaWhatsAppButton
                   phone={successPaymentData.clientPhone}
-                  message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${new Date(successPaymentData.date ?? "").toLocaleDateString()} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
+                  message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${formatDate(successPaymentData.date ?? "")} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
                   onShare={() => setPaymentOpen(false)}
                   className="w-full font-bold h-11"
                   size="lg"
@@ -579,12 +579,11 @@ export default function InvoicesPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Date *</label>
-                  <input
+                  <DatePicker
                     name="date"
-                    type="date"
                     required
-                    defaultValue={new Date().toISOString().split("T")[0]}
-                    className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    defaultValue={todayISO()}
+                    className="h-10 w-full"
                   />
                 </div>
                 <div className="space-y-2">

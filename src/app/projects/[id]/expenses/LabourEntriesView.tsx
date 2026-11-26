@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { LabourEntry } from "./page";
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
+import { formatDate } from "@/lib/utils";
 
 export default function LabourEntriesView({
   entries,
@@ -51,7 +52,7 @@ export default function LabourEntriesView({
                     {l.workerType?.name || l.title || "General Labour"}
                   </span>
                   <span className="text-xs font-medium text-slate-500 shrink-0">
-                    {new Date(l.date).toLocaleDateString()}
+                    {formatDate(l.date)}
                   </span>
                 </div>
                 <div className="text-xs text-slate-600">
@@ -146,7 +147,7 @@ export default function LabourEntriesView({
                 return (
                   <TableRow key={l.id} className="hover:bg-slate-50/50">
                     <TableCell className="font-medium whitespace-nowrap">
-                      {new Date(l.date).toLocaleDateString()}
+                      {formatDate(l.date)}
                     </TableCell>
                     <TableCell className="font-semibold text-slate-900">
                       {l.workerType?.name || l.title || "General Labour"}

@@ -2,7 +2,49 @@ import prisma from "@/lib/prisma";
 import { ApiError } from "@/app/api/_lib/errors";
 
 /**
- * Deletes a project and every record scoped to it.
+ * Moves a project to the Trash Bin (soft delete). Nothing scoped to the
+ * project is touched, so it can be fully recovered with `restoreProject`.
+ */
+export async function trashProject(projectId: string) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, deletedAt: true },
+  });
+  if (!project) {
+    throw new ApiError("Project not found", 404);
+  }
+  if (project.deletedAt) return;
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { deletedAt: new Date() },
+  });
+}
+
+/** Restores a project from the Trash Bin. */
+export async function restoreProject(projectId: string) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, deletedAt: true },
+  });
+  if (!project) {
+    throw new ApiError("Project not found", 404);
+  }
+  if (!project.deletedAt) {
+    throw new ApiError("Project is not in the Trash Bin", 400);
+  }
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { deletedAt: null },
+  });
+}
+
+/**
+ * Permanently deletes a project and every record scoped to it.
+ *
+ * Only projects already in the Trash Bin can be permanently deleted —
+ * callers must `trashProject` first.
  *
  * Project has no DB-level cascade for most of its relations, so this
  * removes children in dependency order inside one transaction. Two
@@ -15,13 +57,19 @@ import { ApiError } from "@/app/api/_lib/errors";
  * Everything else listed here belongs solely to the project and is
  * hard-deleted with it.
  */
-export async function deleteProject(projectId: string) {
+export async function permanentlyDeleteProject(projectId: string) {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true },
+    select: { id: true, deletedAt: true },
   });
   if (!project) {
     throw new ApiError("Project not found", 404);
+  }
+  if (!project.deletedAt) {
+    throw new ApiError(
+      "Move the project to the Trash Bin before deleting it permanently",
+      400,
+    );
   }
 
   const [boqs, invoices] = await Promise.all([

@@ -13,6 +13,7 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { Transaction } from "./ReportsClient";
 
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+import { formatDate } from "@/lib/utils";
 export function CashFlowDesktopTable({
   transactions,
 }: {
@@ -47,7 +48,7 @@ export function CashFlowDesktopTable({
             sorted.map((txn) => (
               <TableRow key={txn.id} className="hover:bg-slate-50/50">
                 <TableCell className="font-medium">
-                  {new Date(txn.date).toLocaleDateString()}
+                  {formatDate(txn.date)}
                 </TableCell>
                 <TableCell>
                   {txn.type === "IN" ? (

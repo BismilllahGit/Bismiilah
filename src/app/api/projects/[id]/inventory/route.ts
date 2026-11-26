@@ -15,6 +15,7 @@ const transactionSchema = z.object({
   note: z.string().optional(),
   vendorId: z.string().min(1).optional(),
   paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
+  extraWorkId: z.string().min(1).optional(),
 });
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -71,7 +72,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
     }
 
-    const { itemName, type, quantity, unitCost, date, note, vendorId, paymentStatus } = parsed.data;
+    const { itemName, type, quantity, unitCost, date, note, vendorId, paymentStatus, extraWorkId } = parsed.data;
+
+    if (extraWorkId) {
+      const extra = await prisma.extraWork.findUnique({ where: { id: extraWorkId }, select: { projectId: true } });
+      if (!extra || extra.projectId !== projectId) {
+        return NextResponse.json({ error: "Extra work not found for this project" }, { status: 404 });
+      }
+    }
 
     // First find or create the item
     let item = await prisma.item.findFirst({
@@ -131,6 +139,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           voucherNumber,
           vendorId: vendorId ?? null,
           vendorTransactionId,
+          extraWorkId: extraWorkId ?? null,
         }
       });
 

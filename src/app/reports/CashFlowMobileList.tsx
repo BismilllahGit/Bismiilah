@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { Transaction } from "./ReportsClient";
+import { formatDate } from "@/lib/utils";
 
 export function CashFlowMobileList({
   transactions,
@@ -27,7 +28,7 @@ export function CashFlowMobileList({
                   {txn.category}
                 </span>
                 <span className="text-xs font-medium text-slate-500">
-                  {new Date(txn.date).toLocaleDateString()}
+                  {formatDate(txn.date)}
                 </span>
               </div>
               <div className="flex flex-col items-end gap-1">

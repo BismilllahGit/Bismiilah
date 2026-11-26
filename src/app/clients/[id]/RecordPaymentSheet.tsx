@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/sheet";
 import { ShareViaWhatsAppButton } from "@/components/ui/share-via-whatsapp-button";
 import type { SuccessPaymentData } from "./page";
+import { formatDate, todayISO } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type UnpaidInvoice = {
   id: string;
@@ -101,7 +103,7 @@ export function RecordPaymentSheet({
             <div className="pt-6 w-full space-y-3">
               <ShareViaWhatsAppButton
                 phone={successPaymentData.clientPhone}
-                message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${new Date(successPaymentData.date ?? "").toLocaleDateString()} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
+                message={`Hi ${successPaymentData.clientName}, I've received your payment of ₹${successPaymentData.amount} on ${formatDate(successPaymentData.date ?? "")} for ${successPaymentData.projectName}. Thank you! — Bismillah Construction`}
                 onShare={() => setPaymentOpen(false)}
                 className="w-full font-bold h-11"
                 size="lg"
@@ -303,12 +305,11 @@ export function RecordPaymentSheet({
               <div className="grid md:grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Date *</label>
-                  <input
+                  <DatePicker
                     name="date"
-                    type="date"
                     required
-                    defaultValue={new Date().toISOString().split("T")[0]}
-                    className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    defaultValue={todayISO()}
+                    className="h-10 w-full"
                   />
                 </div>
                 <div className="space-y-2">

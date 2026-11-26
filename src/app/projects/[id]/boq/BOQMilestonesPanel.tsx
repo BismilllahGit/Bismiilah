@@ -14,6 +14,8 @@ import {
 import { Plus, Trash2, ArrowUp, ArrowDown, Layers, Settings } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { BOQMilestoneUI } from "./BOQEditor";
+import { formatDate } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const cardInputClass =
   "w-full bg-white border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md px-3 py-2 text-sm outline-none transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed";
@@ -151,9 +153,8 @@ export function BOQMilestonesPanel({
                     </TableCell>
                     <TableCell className="text-slate-600 p-1 border-r border-slate-200">
                       {isDraft ? (
-                        <input
-                          type="date"
-                          className="w-full h-10 px-3 bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded outline-none text-sm shadow-sm transition-colors cursor-pointer"
+                        <DatePicker
+                          className="w-full h-10 bg-white"
                           value={
                             m.targetDate
                               ? new Date(m.targetDate)
@@ -161,25 +162,15 @@ export function BOQMilestonesPanel({
                                   .split("T")[0]
                               : ""
                           }
-                          onChange={(e) =>
-                            handleMilestoneChange(
-                              m.id,
-                              "targetDate",
-                              e.target.value,
-                            )
-                          }
-                          onBlur={(e) =>
-                            handleMilestoneBlur(
-                              m.id,
-                              "targetDate",
-                              e.target.value,
-                            )
-                          }
+                          onValueChange={(value) => {
+                            handleMilestoneChange(m.id, "targetDate", value);
+                            void handleMilestoneBlur(m.id, "targetDate", value);
+                          }}
                         />
                       ) : (
                         <div className="px-3 py-2 text-sm">
                           {m.targetDate
-                            ? new Date(m.targetDate).toLocaleDateString("en-IN")
+                            ? formatDate(m.targetDate)
                             : "-"}
                         </div>
                       )}
@@ -355,9 +346,8 @@ export function BOQMilestonesPanel({
                     <div>
                       <span className={labelClass}>Target Date</span>
                       {isDraft ? (
-                        <input
-                          type="date"
-                          className={cardInputClass}
+                        <DatePicker
+                          className="h-9.5 bg-white"
                           value={
                             m.targetDate
                               ? new Date(m.targetDate)
@@ -365,25 +355,15 @@ export function BOQMilestonesPanel({
                                   .split("T")[0]
                               : ""
                           }
-                          onChange={(e) =>
-                            handleMilestoneChange(
-                              m.id,
-                              "targetDate",
-                              e.target.value,
-                            )
-                          }
-                          onBlur={(e) =>
-                            handleMilestoneBlur(
-                              m.id,
-                              "targetDate",
-                              e.target.value,
-                            )
-                          }
+                          onValueChange={(value) => {
+                            handleMilestoneChange(m.id, "targetDate", value);
+                            void handleMilestoneBlur(m.id, "targetDate", value);
+                          }}
                         />
                       ) : (
                         <div className="text-sm text-slate-700">
                           {m.targetDate
-                            ? new Date(m.targetDate).toLocaleDateString("en-IN")
+                            ? formatDate(m.targetDate)
                             : "-"}
                         </div>
                       )}

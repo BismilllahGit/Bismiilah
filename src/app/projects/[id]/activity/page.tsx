@@ -39,6 +39,8 @@ type Activity = {
 };
 
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+import { formatDate, todayISO } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function SiteActivityPage({
   params,
@@ -63,7 +65,7 @@ export default function SiteActivityPage({
     return matchesSearch(
       search,
       a.description,
-      new Date(a.date).toLocaleDateString(),
+      formatDate(a.date),
     );
   });
   const hasFilters = Boolean(search || from || to);
@@ -190,16 +192,15 @@ export default function SiteActivityPage({
             >
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date *</label>
-                <input
+                <DatePicker
                   name="date"
-                  type="date"
                   required
                   defaultValue={
                     editing
                       ? editing.date.slice(0, 10)
-                      : new Date().toISOString().split("T")[0]
+                      : todayISO()
                   }
-                  className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="h-10 w-full"
                 />
               </div>
               <div className="space-y-2">
@@ -242,20 +243,18 @@ export default function SiteActivityPage({
         />
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>From</span>
-          <input
-            type="date"
+          <DatePicker
             value={from}
             max={to || undefined}
-            onChange={(e) => setFrom(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+            onValueChange={(value) => setFrom(value)}
+            className="h-8"
           />
           <span>To</span>
-          <input
-            type="date"
+          <DatePicker
             value={to}
             min={from || undefined}
-            onChange={(e) => setTo(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+            onValueChange={(value) => setTo(value)}
+            className="h-8"
           />
         </div>
         {hasFilters && (
@@ -315,7 +314,7 @@ export default function SiteActivityPage({
               pg.pageItems.map((act) => (
                 <TableRow key={act.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium align-top">
-                    {new Date(act.date).toLocaleDateString()}
+                    {formatDate(act.date)}
                   </TableCell>
                   <TableCell className="whitespace-pre-wrap">
                     {act.description}

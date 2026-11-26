@@ -12,6 +12,8 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import { DatePicker } from "@/components/ui/date-picker";
+import { todayISO } from "@/lib/utils";
 
 type Project = { id: string; name: string };
 
@@ -86,12 +88,11 @@ export function CreateInvoiceSheet({
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Issued Date *</label>
-            <input
+            <DatePicker
               name="date"
-              type="date"
               required
-              defaultValue={new Date().toISOString().split("T")[0]}
-              className="relative flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              defaultValue={todayISO()}
+              className="h-10 w-full"
             />
           </div>
 

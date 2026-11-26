@@ -5,7 +5,10 @@ import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 import { requireSession } from "@/app/api/_lib/auth-guard";
 import { withApiHandler } from "@/app/api/_lib/handler";
-import { deleteProject } from "@/lib/services/projects";
+import {
+  trashProject,
+  permanentlyDeleteProject,
+} from "@/lib/services/projects";
 
 const updateProjectSchema = z.object({
   name: z.string().optional(),
@@ -94,12 +97,21 @@ export async function PATCH(
   }
 }
 
+/**
+ * DELETE /api/projects/:id            → move to Trash Bin (soft delete)
+ * DELETE /api/projects/:id?permanent=1 → permanently delete (must be trashed)
+ */
 export const DELETE = withApiHandler<{ params: Promise<{ id: string }> }>(
   "Failed to delete project",
   async (request, { params }) => {
     await requireSession();
     const { id } = await params;
-    await deleteProject(id);
+    const permanent = new URL(request.url).searchParams.get("permanent");
+    if (permanent === "1" || permanent === "true") {
+      await permanentlyDeleteProject(id);
+    } else {
+      await trashProject(id);
+    }
     return new NextResponse(null, { status: 204 });
   },
 );

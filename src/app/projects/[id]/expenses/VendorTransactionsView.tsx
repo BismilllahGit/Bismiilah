@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { VendorTxn } from "./page";
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
+import { formatDate } from "@/lib/utils";
 
 export default function VendorTransactionsView({
   transactions,
@@ -50,7 +51,7 @@ export default function VendorTransactionsView({
                   {v.contact.name}
                 </span>
                 <span className="text-xs font-medium text-slate-500 shrink-0">
-                  {new Date(v.date).toLocaleDateString()}
+                  {formatDate(v.date)}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2 text-xs">
@@ -133,7 +134,7 @@ export default function VendorTransactionsView({
               pg.pageItems.map((v) => (
                 <TableRow key={v.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium whitespace-nowrap">
-                    {new Date(v.date).toLocaleDateString()}
+                    {formatDate(v.date)}
                   </TableCell>
                   <TableCell className="font-semibold text-slate-900">
                     {v.contact.name}

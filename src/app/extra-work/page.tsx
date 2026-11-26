@@ -11,6 +11,7 @@ export default async function GlobalExtraWorkPage() {
   if (!session) redirect("/login");
 
   const extraWorkList = await prisma.extraWork.findMany({
+    where: { project: { deletedAt: null } },
     include: { project: true },
     orderBy: { date: "desc" },
   });
@@ -25,6 +26,7 @@ export default async function GlobalExtraWorkPage() {
   }));
 
   const allProjects = await prisma.project.findMany({
+    where: { deletedAt: null },
     select: { id: true, name: true },
   });
 

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProjectCostBreakdown } from "./ProjectCostBreakdown";
 import { ProjectPaymentsTable } from "./ProjectPaymentsTable";
+import { formatDate } from "@/lib/utils";
 
 export default async function ProjectOverviewPage({
   params,
@@ -76,7 +77,7 @@ export default async function ProjectOverviewPage({
               </h3>
               <p className="text-sm font-medium">
                 {project.startDate
-                  ? new Date(project.startDate).toLocaleDateString()
+                  ? formatDate(project.startDate)
                   : "Not set"}
               </p>
             </div>
@@ -86,7 +87,7 @@ export default async function ProjectOverviewPage({
               </h3>
               <p className="text-sm font-medium">
                 {project.endDate
-                  ? new Date(project.endDate).toLocaleDateString()
+                  ? formatDate(project.endDate)
                   : "Not set"}
               </p>
             </div>
