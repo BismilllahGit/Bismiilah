@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { notInTrashedProjectSql } from "@/lib/trash-filters";
 import { Prisma } from "@prisma/client";
 
 interface DailyLabourSummaryRow {
@@ -78,7 +79,7 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
   const groupBy = rawGroupBy?.toLowerCase();
   const offset = (page - 1) * limit;
 
-  const conditions = [];
+  const conditions = [notInTrashedProjectSql("dle.project_id")];
   if (projectId && projectId !== "ALL") {
     conditions.push(Prisma.sql`dle.project_id = ${projectId}`);
   }
@@ -94,10 +95,7 @@ export async function getDailyLabourReportData(params: DailyLabourQueryParams) {
     conditions.push(Prisma.sql`dle.date <= CAST(${endDate} as date)`);
   }
 
-  const whereClause =
-    conditions.length > 0
-      ? Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
-      : Prisma.empty;
+  const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`;
 
   // Overall Summary Query
   const summaryQuery = await prisma.$queryRaw<DailyLabourSummaryRow[]>`
@@ -233,6 +231,7 @@ export async function getSaturdayViewReportData() {
     where: {
       status: { notIn: ["PAID", "VOID"] },
       dueDate: { lte: comingSaturday },
+      project: { deletedAt: null },
     },
     select: {
       id: true,
@@ -466,7 +465,10 @@ export async function getPurchasesReportData({
   const safePageSize = Math.max(1, pageSize);
   const safePage = Math.max(1, page);
 
-  const conditions: Prisma.Sql[] = [Prisma.sql`it.type = 'BUY'`];
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`it.type = 'BUY'`,
+    Prisma.sql`p.deleted_at IS NULL`,
+  ];
   let projectName: string | null = null;
   const hasProject = !!projectId && projectId !== "ALL";
 

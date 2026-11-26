@@ -37,6 +37,8 @@ model Project {
   notes       String?       @db.Text
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
+  // Soft delete: set when the project is moved to the Trash Bin.
+  deletedAt   DateTime?     @map("deleted_at")
 
   client                Client?                @relation(fields: [clientId], references: [id])
   projectInventories    ProjectInventory[]
@@ -53,6 +55,7 @@ model Project {
   projectTasks          ProjectTask[]
 
   @@index([clientId])
+  @@index([deletedAt])
   @@map("projects")
 }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { IN_ACTIVE_PROJECT } from "@/lib/trash-filters";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -9,6 +10,7 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const extraWork = await prisma.extraWork.findMany({
+      where: IN_ACTIVE_PROJECT,
       include: {
         project: { select: { name: true } }
       },

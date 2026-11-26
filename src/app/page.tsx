@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth/next";
+import { IN_ACTIVE_PROJECT } from "@/lib/trash-filters";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import {
@@ -24,7 +25,7 @@ export default async function Home() {
 
   // Active Projects
   const activeProjectsCount = await prisma.project.count({
-    where: { status: "ACTIVE" },
+    where: { status: "ACTIVE", deletedAt: null },
   });
 
   // Today's Active Labour
@@ -34,14 +35,14 @@ export default async function Home() {
   todayEnd.setHours(23, 59, 59, 999);
 
   const labourToday = await prisma.dailyLabourEntry.aggregate({
-    where: { date: { gte: todayStart, lte: todayEnd } },
+    where: { date: { gte: todayStart, lte: todayEnd }, ...IN_ACTIVE_PROJECT },
     _sum: { headcount: true },
   });
   const workersCount = labourToday._sum.headcount || 0;
 
   // Pending Payments (Invoices)
   const invoices = await prisma.invoice.findMany({
-    where: { status: { notIn: ["PAID", "VOID"] } },
+    where: { status: { notIn: ["PAID", "VOID"] }, ...IN_ACTIVE_PROJECT },
     include: { clientPayments: true, paymentAllocations: true },
   });
 
@@ -57,13 +58,14 @@ export default async function Home() {
 
   // Unbilled Extra Work
   const extraWork = await prisma.extraWork.aggregate({
-    where: { status: "UNBILLED" },
+    where: { status: "UNBILLED", ...IN_ACTIVE_PROJECT },
     _sum: { amount: true },
   });
   const unbilledExtra = Number(extraWork._sum.amount || 0);
 
   // Recent Activity
   const recentActivities = await prisma.siteActivity.findMany({
+    where: IN_ACTIVE_PROJECT,
     take: 5,
     orderBy: { createdAt: "desc" },
     include: { project: { select: { name: true } } },

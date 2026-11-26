@@ -12,7 +12,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Building2, MapPin, Calendar } from "lucide-react";
+import { PlusCircle, Building2, MapPin, Calendar, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeader } from "@/components/ui/page-header";
@@ -24,12 +24,17 @@ export default async function ProjectsPage() {
   if (!session) redirect("/login");
 
   const projects = await prisma.project.findMany({
+    where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
     include: {
       projectTasks: {
         where: { status: { not: "COMPLETED" } },
       },
     },
+  });
+
+  const trashedCount = await prisma.project.count({
+    where: { deletedAt: { not: null } },
   });
 
   const now = new Date();
@@ -51,12 +56,20 @@ export default async function ProjectsPage() {
         subtitle="Manage all construction sites."
         subtitleClassName="text-muted-foreground mt-1"
         action={
-          <Link href="/projects/new">
-            <Button className="flex items-center gap-2">
-              <PlusCircle className="h-4 w-4" />
-              New Project
-            </Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/projects/trash">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
+                Trash{trashedCount > 0 ? ` (${trashedCount})` : ""}
+              </Button>
+            </Link>
+            <Link href="/projects/new">
+              <Button className="flex items-center gap-2">
+                <PlusCircle className="h-4 w-4" />
+                New Project
+              </Button>
+            </Link>
+          </div>
         }
       />
 

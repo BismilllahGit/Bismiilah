@@ -36,7 +36,8 @@ export default async function ProjectDetailLayout({
     },
   });
 
-  if (!project) notFound();
+  // Trashed projects are only reachable from the Trash Bin.
+  if (!project || project.deletedAt) notFound();
 
   const clients = await prisma.client.findMany({
     where: { isActive: true },
