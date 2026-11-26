@@ -193,6 +193,7 @@ model InventoryTransaction {
   transferGroupId     String?         @map("transfer_group_id") @db.VarChar(40)
   vendorId            String?         @map("vendor_id")
   vendorTransactionId String?         @unique @map("vendor_transaction_id")
+  extraWorkId         String?         @map("extra_work_id")
   type                TransactionType
   quantity            Decimal         @db.Decimal(10, 2)
   unitCost            Decimal         @map("unit_cost") @db.Decimal(10, 2)
@@ -205,8 +206,10 @@ model InventoryTransaction {
   item              Item               @relation(fields: [itemId], references: [id])
   vendor            Contact?           @relation(fields: [vendorId], references: [id])
   vendorTransaction VendorTransaction? @relation(fields: [vendorTransactionId], references: [id], onDelete: SetNull)
+  extraWork         ExtraWork?         @relation(fields: [extraWorkId], references: [id], onDelete: SetNull)
 
   @@index([vendorId])
+  @@index([extraWorkId])
   @@index([projectId, date])
   @@index([projectId, itemId, date, createdAt])
   @@index([transferGroupId])
@@ -426,7 +429,8 @@ model ExtraWork {
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id])
+  project               Project                @relation(fields: [projectId], references: [id])
+  inventoryTransactions InventoryTransaction[]
 
   @@index([projectId, status])
   @@map("extra_work")

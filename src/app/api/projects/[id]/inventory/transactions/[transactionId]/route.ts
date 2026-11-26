@@ -15,6 +15,7 @@ const transactionPatchSchema = z.object({
   note: z.string().optional(),
   vendorId: z.string().min(1).nullish(),
   paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
+  extraWorkId: z.string().min(1).nullish(),
 });
 
 function balanceDelta(type: TransactionType, quantity: number) {
@@ -78,6 +79,7 @@ export async function PATCH(
     }
     const { type, quantity, unitCost, date, note, paymentStatus } = parsed.data;
     const vendorId = parsed.data.vendorId ?? null;
+    const extraWorkId = parsed.data.extraWorkId ?? null;
 
     const existing = await prisma.inventoryTransaction.findUnique({
       where: { id: transactionId },
@@ -102,6 +104,18 @@ export async function PATCH(
       });
       if (!vendor)
         return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    }
+
+    if (extraWorkId) {
+      const extra = await prisma.extraWork.findUnique({
+        where: { id: extraWorkId },
+        select: { projectId: true },
+      });
+      if (!extra || extra.projectId !== projectId)
+        return NextResponse.json(
+          { error: "Extra work not found for this project" },
+          { status: 404 },
+        );
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -166,6 +180,7 @@ export async function PATCH(
           date: new Date(date),
           note,
           vendorId,
+          extraWorkId,
           vendorTransactionId: wantsLedger ? vendorTransactionId : null,
         },
       });

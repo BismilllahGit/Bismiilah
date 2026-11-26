@@ -18,6 +18,7 @@ import { PAYMENT_STATUS_OPTIONS } from "@/components/ui/payment-status-badge";
 import { ItemSelectCombobox } from "./ItemSelectCombobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { todayISO } from "@/lib/utils";
+import { ExtraWorkSelect, type ExtraWorkOption } from "./ExtraWorkSelect";
 
 type Item = { id: string; name: string; unit: string; unitCost: number };
 
@@ -30,6 +31,7 @@ export function LogTransactionSheet({
   setItemCost,
   items,
   vendors,
+  extraWorks = [],
   handleLogTransaction,
   mutating,
   disabled = false,
@@ -43,6 +45,7 @@ export function LogTransactionSheet({
   handleItemNameChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   items: Item[];
   vendors: { id: string; name: string }[];
+  extraWorks?: ExtraWorkOption[];
   handleLogTransaction: (e: React.FormEvent<HTMLFormElement>) => void;
   mutating: boolean;
   disabled?: boolean;
@@ -147,6 +150,7 @@ export function LogTransactionSheet({
               Applies to a Buy from a vendor; shown on the vendor&apos;s ledger.
             </p>
           </div>
+          <ExtraWorkSelect name="extraWorkId" extraWorks={extraWorks} defaultValue="" />
           <div className="space-y-2">
             <label className="text-sm font-medium">Date *</label>
             <DatePicker

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/pagination";
 import { InventoryMobileList } from "./InventoryMobileList";
 import { InventoryDesktopTable } from "./InventoryDesktopTable";
+import type { ExtraWorkOption } from "./ExtraWorkSelect";
 
 type Item = { id: string; name: string; unit: string; unitCost: number };
 type InventoryBalance = {
@@ -49,6 +50,9 @@ type InventoryLedgerRow = {
   transferGroupId: string | null;
   linkedProjectName: string | null;
   vendorName: string | null;
+  extraWorkId: string | null;
+  extraWorkVoucher: string | null;
+  extraWorkDescription: string | null;
   runningQtyBalance: number;
   runningValueBalance: number;
 };
@@ -96,6 +100,11 @@ export default function ProjectInventoryPage({
   const vendors = (contactsData || []).filter(
     (c) => c.type === "VENDOR" || c.type === "SHOP",
   );
+
+  const { data: extraWorkData } = useApiResource<ExtraWorkOption[]>(
+    `/api/projects/${projectId}/extra-work`,
+  );
+  const extraWorks = extraWorkData || [];
 
   const inventory = inventoryData || [];
   const [inventorySearch, setInventorySearch] = useState("");
@@ -210,6 +219,7 @@ export default function ProjectInventoryPage({
       note: formData.get("note") || undefined,
       vendorId: formData.get("vendorId") || undefined,
       paymentStatus: formData.get("paymentStatus") || undefined,
+      extraWorkId: formData.get("extraWorkId") || undefined,
     };
 
     try {
@@ -370,6 +380,15 @@ export default function ProjectInventoryPage({
               Vendor: {row.vendorName}
             </Badge>
           )}
+          {row.extraWorkId && (
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-violet-50 text-violet-800"
+              title={`Extra Work: ${row.extraWorkDescription ?? ""}`}
+            >
+              Extra Work: {row.extraWorkVoucher}
+            </Badge>
+          )}
         </div>
       ),
     }));
@@ -441,6 +460,7 @@ export default function ProjectInventoryPage({
             handleItemNameChange={handleItemNameChange}
             items={items}
             vendors={vendors}
+            extraWorks={extraWorks}
             handleLogTransaction={handleLogTransaction}
             mutating={logTransaction.mutating}
             disabled={!!selectedItem}
@@ -535,6 +555,7 @@ export default function ProjectInventoryPage({
       <EditInventoryItemSheet
         projectId={projectId}
         vendors={vendors}
+        extraWorks={extraWorks}
         item={editingItem?.item || null}
         open={editingItem !== null}
         onOpenChange={(open) => !open && setEditingItem(null)}
@@ -556,6 +577,7 @@ export default function ProjectInventoryPage({
       <EditInventoryTransactionSheet
         projectId={projectId}
         vendors={vendors}
+        extraWorks={extraWorks}
         transactionId={editingTransactionId}
         open={editingTransactionId !== null}
         onOpenChange={(open) => !open && setEditingTransactionId(null)}

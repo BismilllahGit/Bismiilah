@@ -13,10 +13,12 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { DatePicker } from "@/components/ui/date-picker";
+import { ExtraWorkSelect, type ExtraWorkOption } from "./ExtraWorkSelect";
 
 export function EditInventoryTransactionSheet({
   projectId,
   vendors,
+  extraWorks = [],
   transactionId,
   open,
   onOpenChange,
@@ -24,6 +26,7 @@ export function EditInventoryTransactionSheet({
 }: {
   projectId: string;
   vendors: { id: string; name: string }[];
+  extraWorks?: ExtraWorkOption[];
   transactionId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,6 +42,7 @@ export function EditInventoryTransactionSheet({
   const [date, setDate] = useState("");
   const [note, setNote] = useState("");
   const [vendorId, setVendorId] = useState("");
+  const [extraWorkId, setExtraWorkId] = useState("");
 
   useEffect(() => {
     if (!open || !transactionId) return;
@@ -57,6 +61,7 @@ export function EditInventoryTransactionSheet({
         setDate(new Date(txn.date).toISOString().split("T")[0]);
         setNote(txn.note || "");
         setVendorId(txn.vendorId || "");
+        setExtraWorkId(txn.extraWorkId || "");
       })
       .catch(() => alert("Failed to load transaction"))
       .finally(() => setLoading(false));
@@ -80,6 +85,7 @@ export function EditInventoryTransactionSheet({
             date,
             note: note || undefined,
             vendorId: vendorId || null,
+            extraWorkId: extraWorkId || null,
           }),
         },
       );
@@ -170,6 +176,11 @@ export function EditInventoryTransactionSheet({
                 A Buy with a vendor is also added to that vendor&apos;s ledger as a purchase.
               </p>
             </div>
+            <ExtraWorkSelect
+              extraWorks={extraWorks}
+              value={extraWorkId}
+              onChange={setExtraWorkId}
+            />
             <div className="space-y-2">
               <label className="text-sm font-medium">Date *</label>
               <DatePicker

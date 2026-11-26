@@ -18,9 +18,36 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const items = await prisma.extraWork.findMany({
+    const works = await prisma.extraWork.findMany({
       where: { projectId: (await params).id },
-      orderBy: { date: 'desc' }
+      orderBy: { date: 'desc' },
+      include: {
+        inventoryTransactions: {
+          select: {
+            type: true,
+            quantity: true,
+            unitCost: true,
+            item: { select: { id: true, name: true, unit: true } },
+          },
+        },
+      },
+    });
+
+    // Roll the linked inventory entries up to one line per item + type,
+    // e.g. "Cement · Issue 10 bag".
+    const items = works.map(({ inventoryTransactions, ...work }) => {
+      const grouped = new Map<string, { itemId: string; itemName: string; unit: string; type: string; quantity: number; value: number }>();
+      for (const t of inventoryTransactions) {
+        const key = `${t.item.id}:${t.type}`;
+        const row = grouped.get(key) ?? { itemId: t.item.id, itemName: t.item.name, unit: t.item.unit, type: t.type, quantity: 0, value: 0 };
+        row.quantity += Number(t.quantity);
+        row.value += Number(t.quantity) * Number(t.unitCost);
+        grouped.set(key, row);
+      }
+      return {
+        ...work,
+        linkedInventory: [...grouped.values()].sort((a, b) => a.itemName.localeCompare(b.itemName)),
+      };
     });
 
     return NextResponse.json(items);

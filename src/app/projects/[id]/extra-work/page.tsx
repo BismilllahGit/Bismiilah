@@ -12,7 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Hammer } from "lucide-react";
+import { ArrowLeft, Plus, Hammer, Pencil, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Sheet,
@@ -20,7 +21,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
@@ -36,13 +36,61 @@ import {
 } from "@/components/ui/pagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+type LinkedInventory = {
+  itemId: string;
+  itemName: string;
+  unit: string;
+  type: string;
+  quantity: number;
+  value: number;
+};
+
 type ExtraWork = {
   id: string;
   description: string;
   amount: number;
   date: string;
   status: string;
+  linkedInventory?: LinkedInventory[];
 };
+
+const TXN_LABEL: Record<string, string> = {
+  BUY: "Bought",
+  ISSUE: "Issued",
+  RETURN: "Returned",
+  ADJUST: "Adjusted",
+};
+
+function LinkedInventoryList({
+  rows,
+  projectId,
+}: {
+  rows?: LinkedInventory[];
+  projectId: string;
+}) {
+  if (!rows?.length) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      {rows.map((r) => (
+        <Link
+          key={`${r.itemId}:${r.type}`}
+          href={`/projects/${projectId}/inventory`}
+          className="text-xs text-slate-700 hover:text-blue-600"
+          title={`Value: ₹${r.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+        >
+          <span className="font-medium">{r.itemName}</span>{" "}
+          <span className="text-muted-foreground">
+            · {TXN_LABEL[r.type] ?? r.type}{" "}
+            {r.quantity.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+            {r.unit}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 import { formatDate, todayISO } from "@/lib/utils";
@@ -76,9 +124,37 @@ export default function ExtraWorkPage({
   );
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<ExtraWork | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ExtraWork | null>(null);
   const createExtraWork = useApiMutation<Record<string, unknown>, ExtraWork>(
     "POST",
   );
+  const updateExtraWork = useApiMutation<Record<string, unknown>, ExtraWork>(
+    "PATCH",
+  );
+  const deleteExtraWork = useApiMutation<undefined, { id: string }>("DELETE");
+
+  const openCreate = () => {
+    setEditing(null);
+    setOpen(true);
+  };
+
+  const openEdit = (w: ExtraWork) => {
+    setEditing(w);
+    setOpen(true);
+  };
+
+  const handleDelete = async (w: ExtraWork) => {
+    try {
+      await deleteExtraWork.mutate(
+        `/api/projects/${projectId}/extra-work/${w.id}`,
+      );
+      refetch();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete extra work");
+      throw err;
+    }
+  };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -93,14 +169,28 @@ export default function ExtraWorkPage({
     };
 
     try {
-      await createExtraWork.mutate(
-        `/api/projects/${projectId}/extra-work`,
-        payload,
-      );
+      if (editing) {
+        await updateExtraWork.mutate(
+          `/api/projects/${projectId}/extra-work/${editing.id}`,
+          payload,
+        );
+      } else {
+        await createExtraWork.mutate(
+          `/api/projects/${projectId}/extra-work`,
+          payload,
+        );
+      }
       setOpen(false);
+      setEditing(null);
       refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to log extra work");
+      alert(
+        err instanceof Error
+          ? err.message
+          : editing
+            ? "Failed to update extra work"
+            : "Failed to log extra work",
+      );
     } finally {
       setSaving(false);
     }
@@ -137,23 +227,32 @@ export default function ExtraWorkPage({
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger render={<Button className="flex items-center gap-2" />}>
+          <Button className="flex items-center gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" /> Log Extra Work
-          </SheetTrigger>
+          </Button>
           <SheetContent className="sm:max-w-md p-4">
             <SheetHeader className="p-0">
-              <SheetTitle>Log Extra Work</SheetTitle>
+              <SheetTitle>
+                {editing ? "Edit Extra Work" : "Log Extra Work"}
+              </SheetTitle>
               <SheetDescription>
-                Record deviation work to bill the client later.
+                {editing
+                  ? "Update the details of this deviation entry."
+                  : "Record deviation work to bill the client later."}
               </SheetDescription>
             </SheetHeader>
-            <form onSubmit={handleSave} className="space-y-4 mt-6">
+            <form
+              key={editing?.id ?? "new"}
+              onSubmit={handleSave}
+              className="space-y-4 mt-6"
+            >
               <div className="space-y-2">
                 <label className="text-sm font-medium">Description *</label>
                 <textarea
                   name="description"
                   required
                   rows={3}
+                  defaultValue={editing?.description ?? ""}
                   className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
                   placeholder="e.g. Additional electrical points in living room..."
                 />
@@ -167,6 +266,7 @@ export default function ExtraWorkPage({
                     step="0.01"
                     min="1"
                     required
+                    defaultValue={editing ? Number(editing.amount) : undefined}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                     placeholder="0.00"
                   />
@@ -176,7 +276,9 @@ export default function ExtraWorkPage({
                   <DatePicker
                     name="date"
                     required
-                    defaultValue={todayISO()}
+                    defaultValue={
+                      editing ? editing.date.slice(0, 10) : todayISO()
+                    }
                     className="h-9 w-full"
                   />
                 </div>
@@ -186,6 +288,7 @@ export default function ExtraWorkPage({
                 <NativeSelect
                   name="status"
                   required
+                  defaultValue={editing?.status ?? "UNBILLED"}
                 >
                   <option value="UNBILLED">Unbilled</option>
                   <option value="BILLED">Billed</option>
@@ -197,7 +300,11 @@ export default function ExtraWorkPage({
                   Cancel
                 </SheetClose>
                 <Button type="submit" disabled={saving}>
-                  {saving ? "Saving..." : "Save Entry"}
+                  {saving
+                    ? "Saving..."
+                    : editing
+                      ? "Save Changes"
+                      : "Save Entry"}
                 </Button>
               </SheetFooter>
             </form>
@@ -318,7 +425,38 @@ export default function ExtraWorkPage({
               <div className="text-sm text-slate-800 font-medium">
                 {w.description}
               </div>
-              <div className="flex items-center justify-end pt-1 border-t border-slate-100">
+              {!!w.linkedInventory?.length && (
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+                    Linked Inventory
+                  </div>
+                  <LinkedInventoryList
+                    rows={w.linkedInventory}
+                    projectId={projectId}
+                  />
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => openEdit(w)}
+                    aria-label="Edit extra work"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeleteTarget(w)}
+                    aria-label="Delete extra work"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
                 <span className="font-mono font-bold text-slate-900 text-sm">
                   ₹
                   {Number(w.amount).toLocaleString(undefined, {
@@ -340,15 +478,17 @@ export default function ExtraWorkPage({
                 <DateSortButton dir={dir} onToggle={toggle} />
               </TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Linked Inventory</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={6}
                   className="text-center py-10 text-muted-foreground"
                 >
                   Loading extra work...
@@ -356,7 +496,7 @@ export default function ExtraWorkPage({
               </TableRow>
             ) : filteredWorks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-10">
+                <TableCell colSpan={6} className="text-center py-10">
                   <EmptyState
                     icon={Hammer}
                     message="No extra work deviations recorded."
@@ -373,6 +513,12 @@ export default function ExtraWorkPage({
                     {formatDate(w.date)}
                   </TableCell>
                   <TableCell className="text-sm">{w.description}</TableCell>
+                  <TableCell>
+                    <LinkedInventoryList
+                      rows={w.linkedInventory}
+                      projectId={projectId}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -399,12 +545,47 @@ export default function ExtraWorkPage({
                       minimumFractionDigits: 2,
                     })}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEdit(w)}
+                        aria-label="Edit extra work"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteTarget(w)}
+                        aria-label="Delete extra work"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Delete this extra work?"
+        description={
+          deleteTarget
+            ? `${deleteTarget.description} (₹${Number(deleteTarget.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}).${deleteTarget.linkedInventory?.length ? " Linked inventory entries will be kept but unlinked." : ""} This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        onConfirm={() => handleDelete(deleteTarget!)}
+      />
 
       <PaginationControls
         page={pg.page}

@@ -13,12 +13,19 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import type { ExtraWorkOption } from "./ExtraWorkSelect";
+import { formatDate } from "@/lib/utils";
+
+// Sentinels for the item-level Extra Work select.
+const EW_NO_CHANGE = "";
+const EW_UNLINK = "__UNLINK__";
 
 type Item = { id: string; name: string; unit: string; unitCost: number };
 
 export function EditInventoryItemSheet({
   projectId,
   vendors,
+  extraWorks = [],
   item,
   open,
   onOpenChange,
@@ -26,6 +33,7 @@ export function EditInventoryItemSheet({
 }: {
   projectId: string;
   vendors: { id: string; name: string }[];
+  extraWorks?: ExtraWorkOption[];
   item: Item | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,6 +47,7 @@ export function EditInventoryItemSheet({
   const [vendorId, setVendorId] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
   const [hasBuys, setHasBuys] = useState(false);
+  const [extraWorkId, setExtraWorkId] = useState(EW_NO_CHANGE);
 
   useEffect(() => {
     if (!open || !item) return;
@@ -49,10 +58,16 @@ export function EditInventoryItemSheet({
     setVendorId("");
     setPaymentStatus("");
     setHasBuys(false);
+    setExtraWorkId(EW_NO_CHANGE);
     fetch(`/api/projects/${projectId}/inventory/${item.id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
         setHasBuys(d.buyCount > 0);
+        setExtraWorkId(
+          d.extraWorkId && d.extraWorkId !== "MIXED"
+            ? d.extraWorkId
+            : EW_NO_CHANGE,
+        );
         setVendorId(d.vendorId && d.vendorId !== "MIXED" ? d.vendorId : "");
         setPaymentStatus(
           d.paymentStatus && d.paymentStatus !== "MIXED" ? d.paymentStatus : "",
@@ -78,21 +93,28 @@ export function EditInventoryItemSheet({
       });
 
       let ok = res.ok;
-      if (ok && hasBuys && (vendorId || paymentStatus)) {
+      const sendVendor = hasBuys && (vendorId || paymentStatus);
+      const sendExtraWork = extraWorkId !== EW_NO_CHANGE;
+      if (ok && (sendVendor || sendExtraWork)) {
         const buyRes = await fetch(
           `/api/projects/${projectId}/inventory/${item.id}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              vendorId: vendorId || undefined,
-              paymentStatus: paymentStatus || undefined,
+              vendorId: (sendVendor && vendorId) || undefined,
+              paymentStatus: (sendVendor && paymentStatus) || undefined,
+              extraWorkId: !sendExtraWork
+                ? undefined
+                : extraWorkId === EW_UNLINK
+                  ? null
+                  : extraWorkId,
             }),
           },
         );
         if (!buyRes.ok) {
           const error = await buyRes.json();
-          alert(error.error || "Failed to update vendor / payment status");
+          alert(error.error || "Failed to update vendor / extra work");
           ok = false;
         }
       }
@@ -172,7 +194,8 @@ export function EditInventoryItemSheet({
                   ))}
                 </NativeSelect>
                 <p className="text-[10px] text-muted-foreground">
-                  Applies to all Buys of this item in this project and their vendor ledger entries.
+                  Applies to all Buys of this item in this project and their
+                  vendor ledger entries.
                 </p>
               </div>
               <div className="space-y-2">
@@ -189,11 +212,38 @@ export function EditInventoryItemSheet({
                   ))}
                 </NativeSelect>
                 <p className="text-[10px] text-muted-foreground">
-                  Applies to Buys from a vendor; shown on the vendor&apos;s ledger.
+                  Applies to Buys from a vendor; shown on the vendor&apos;s
+                  ledger.
                 </p>
               </div>
             </>
           )}
+          {
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Extra Work</label>
+              <NativeSelect
+                value={extraWorkId}
+                onChange={(e) => setExtraWorkId(e.target.value)}
+              >
+                <option value={EW_NO_CHANGE}>No change</option>
+                <option value={EW_UNLINK}>Not linked (remove link)</option>
+                {extraWorks.map((ew) => (
+                  <option key={ew.id} value={ew.id}>
+                    {ew.voucherNumber} ·{" "}
+                    {ew.description.length > 40
+                      ? `${ew.description.slice(0, 40)}…`
+                      : ew.description}{" "}
+                    ({formatDate(ew.date)})
+                  </option>
+                ))}
+              </NativeSelect>
+              <p className="text-[10px] text-muted-foreground">
+                Links all Buy / Issue / Return entries of this item in this
+                project. To link a single entry, edit it from the item&apos;s
+                ledger.
+              </p>
+            </div>
+          }
           <SheetFooter className="mt-6">
             <SheetClose render={<Button variant="outline" type="button" />}>
               Cancel

@@ -22,6 +22,9 @@ interface InventoryLedgerRawRow {
   transferGroupId: string | null;
   linkedProjectName: string | null;
   vendorName: string | null;
+  extraWorkId: string | null;
+  extraWorkVoucher: string | null;
+  extraWorkDescription: string | null;
   created_at: unknown;
   runningQtyBalance: unknown;
   runningValueBalance: unknown;
@@ -477,6 +480,9 @@ export async function getInventoryLedgerData(
         it.transfer_group_id as "transferGroupId",
         linked_project.name as "linkedProjectName",
         vendor.name as "vendorName",
+        it.extra_work_id as "extraWorkId",
+        extra.voucher_number as "extraWorkVoucher",
+        extra.description as "extraWorkDescription",
         it.created_at,
         ${openingQtyBalance} + SUM(CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE -it.quantity END)
           OVER (ORDER BY it.date, it.created_at, it.id) AS "runningQtyBalance",
@@ -490,6 +496,8 @@ export async function getInventoryLedgerData(
         ON linked_project.id = linked_tx.project_id
       LEFT JOIN contacts vendor
         ON vendor.id = it.vendor_id
+      LEFT JOIN extra_work extra
+        ON extra.id = it.extra_work_id
       WHERE it.project_id = ${projectId} AND it.item_id = ${itemId}
       ${dateFilter}
     )
@@ -527,6 +535,9 @@ export async function getInventoryLedgerData(
       transferGroupId: row.transferGroupId,
       linkedProjectName: row.linkedProjectName,
       vendorName: row.vendorName,
+      extraWorkId: row.extraWorkId,
+      extraWorkVoucher: row.extraWorkVoucher,
+      extraWorkDescription: row.extraWorkDescription,
       runningQtyBalance: Number(row.runningQtyBalance),
       runningValueBalance: Number(row.runningValueBalance),
     };
